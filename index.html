@@ -1713,10 +1713,10 @@ const I18N = {
     reminderTitle:"Archivo de hoy sin descargar", reminderBody3h:"Llevas 3 horas nombrando productos y aún no descargas el archivo de hoy.", reminderBody1h:"Falta 1 hora para que se cree el archivo de mañana y aún no has descargado el de hoy.",
     naming2026Found:"Ya existe en la base 2026 como", naming2026Suggestion:"Sugerencia de nombre (base 2026)", namingUseThis:"Usar este nombre",
     namingListTitle:"Nombrados hoy", namingEmptyList:"Aún no has nombrado productos hoy.",
-    archivedTabLabel:"Archivados", archivedTitle:"Días archivados", archivedEmpty:"Todavía no hay días archivados. Al cambiar de día, los nombrados de ayer pasan aquí automáticamente.",
+    archivedTabLabel:"Archivados", archivedTitle:"Días archivados", archivedEmpty:"Todavía no hay días archivados. Cuando cierres un día de nombrados, aparecerá aquí al día siguiente.",
     archivedDayEmpty:"Ese día no tiene productos guardados.", archivedCount:"productos", archivedDownload:"Descargar Excel de este día",
     archivedExpiryNote:"Los días archivados se guardan 7 días y luego se eliminan automáticamente para no saturar la base de datos.",
-    archivedLoading:"Cargando archivados…",
+    archivedLoading:"Cargando archivados…", namingSyncPending:"Pendiente de sincronizar con Supabase", namingSyncError:"No se pudo sincronizar este nombrado. Quedó guardado localmente y se reintentará automáticamente.", namingSyncOk:"Nombrado guardado en Supabase.",
     namingDupWith:"posible duplicado con", namingDupWarning:"Agregado, pero ya existe un posible duplicado en la base 2026", namingSpellTypo:"Posible error de escritura", namingSpellSplit:"Posible palabra pegada",
     namingSpellDoubleSpace:"Espacios de más", namingSpellDoubleSpaceWord:"(doble espacio)", namingSpellMissingWeight:"Falta el peso o volumen", namingSpellMissingWeightWord:"(peso/volumen)", namingSpellMissingWeightHint:"agrega KG, G, ML, L, etc.",
     namingSessionDupBadge:"repetido hoy con", namingSessionDupWarning:"Agregado, pero ya habías nombrado un producto igual hoy",
@@ -1828,7 +1828,7 @@ const I18N = {
     saveAvatar:"Guardar avatar", randomAvatar:"Aleatorio", memojiColumnMissing:"Falta la columna avatar_config (tipo texto) en la tabla personas. Créala en Supabase para guardar el avatar personalizado.",
     termsTitle:"Términos y condiciones", termsSub:"Antes de continuar debes aceptar los términos y condiciones de uso de la aplicación.", termsVersion:"Versión 1.0", termsAcceptLabel:"He leído y acepto los términos y condiciones.", termsContinue:"Aceptar y continuar", termsRequired:"Debes aceptar los términos para continuar.", termsError:"No se pudo registrar la aceptación. Revisa tu conexión e inténtalo de nuevo.",
     newsScan:"Escaneo listo", newsScanSub:"La cámara y el lector están preparados para verificar productos.", newsBase:"Base de productos", newsBaseSub:"Consulta cuándo se actualizó cada base.",
-    lastUpdated:"Última actualización", neverUpdated:"Sin actualización registrada", totalScans:"Escaneos registrados", activePeople:"Personas activas", productsScanned:"Productos encontrados", todayScans:"Escaneos hoy", adminStatsTitle:"Estadísticas", adminPeopleTitle:"Personas", adminBasesTitle:"Bases de productos", adminToolsTitle:"Herramientas de administración", adminPersonEdit:"Editar nombre", adminNoStats:"Aún no hay actividad registrada.", downloadWindow:"Los nombrados de cada día se guardan automáticamente y pasan a Archivados durante 7 días.", adminDataWarning:"Las estadísticas se generan con los escaneos registrados en la base de datos.", noUpdate:"No disponible", updateBase:"Actualizar base",
+    lastUpdated:"Última actualización", neverUpdated:"Sin actualización registrada", totalScans:"Escaneos registrados", activePeople:"Personas activas", productsScanned:"Productos encontrados", todayScans:"Escaneos hoy", adminStatsTitle:"Estadísticas", adminPeopleTitle:"Personas", adminBasesTitle:"Bases de productos", adminToolsTitle:"Herramientas de administración", adminPersonEdit:"Editar nombre", adminNoStats:"Aún no hay actividad registrada.", downloadWindow:"Los nombrados de cada día se guardan automáticamente y permanecen en Archivados durante 7 días.", adminDataWarning:"Las estadísticas se generan con los escaneos registrados en la base de datos.", noUpdate:"No disponible", updateBase:"Actualizar base",
     adminToolAccessTitle:"Herramientas por persona", adminToolAccessSub:"Toca a una persona para elegir exactamente qué herramientas puede ver y usar (tú, como administrador, siempre ves todas).", adminToolAccessSaved:"Cambios guardados.", adminToolAccessErrorColumn:"No se pudo guardar: falta la columna 'tool_access' en la tabla 'personas' de Supabase. Pide que la agreguen (tipo jsonb) y vuelve a intentar.", adminToolAccessNone:"Agrega personas para poder asignarles herramientas.", adminToolAccessAdminNote:"El administrador siempre ve todas las herramientas.",
     namingPreview:"Ver duplicado", namingPreviewTitle:"Posible duplicado", namingPreviewCurrent:"Lo que estás nombrando", namingPreviewMatch:"Ya existe en la base 2026", namingPreviewReasonExact:"⚠️ Coincidencia exacta de nombre", namingPreviewReasonFlavor:"⚠️ Mismo sabor y mismo peso, misma marca", namingPreviewReasonCode:"⚠️ Este código ya fue nombrado en la base 2026", namingPreviewReasonSimilar:"⚠️ Nombre muy parecido a uno ya existente (misma marca y peso)",
     namingEditOrder:"Editar", namingEditDone:"Listo",
@@ -1912,7 +1912,7 @@ const I18N = {
     reminderTitle:"Today's file not downloaded", reminderBody3h:"You've been naming products for 3 hours and still haven't downloaded today's file.", reminderBody1h:"1 hour left until tomorrow's file is created and you still haven't downloaded today's.",
     naming2026Found:"Already exists in the 2026 base as", naming2026Suggestion:"Name suggestion (2026 base)", namingUseThis:"Use this name",
     namingListTitle:"Named today", namingEmptyList:"You haven't named any products today yet.",
-    archivedTabLabel:"Archived", archivedTitle:"Archived days", archivedEmpty:"No archived days yet. When the day changes, yesterday’s named products appear here automatically.",
+    archivedTabLabel:"Archived", archivedTitle:"Archived days", archivedEmpty:"No archived days yet. When a naming day closes, it'll show up here the next day.",
     archivedDayEmpty:"That day has no saved products.", archivedCount:"products", archivedDownload:"Download this day's Excel",
     archivedExpiryNote:"Archived days are kept for 7 days and then removed automatically to keep the database lean.",
     archivedLoading:"Loading archived days…",
@@ -2198,12 +2198,18 @@ function computeDailyStats(){
   return { elapsedFraction, expected, diff, rate, etaText };
 }
 function loadNaming(){
-  const key = 'vp_naming_'+normalize(state.session||'')+'_'+todayKey();
+  const today = todayKey();
+  const key = 'vp_naming_'+normalize(state.session||'')+'_'+today;
   const raw = localStorage.getItem(key);
-  state.naming = raw ? JSON.parse(raw) : { date: todayKey(), items:[] };
+  try{ state.naming = raw ? JSON.parse(raw) : { date: today, items:[] }; }
+  catch(e){ state.naming = { date: today, items:[] }; }
+  if(!state.naming || state.naming.date!==today) state.naming = { date: today, items:[] };
+  if(!Array.isArray(state.naming.items)) state.naming.items=[];
 }
 function saveNaming(){
-  const key = 'vp_naming_'+normalize(state.session||'')+'_'+todayKey();
+  const today = todayKey();
+  if(!state.naming || state.naming.date!==today) return;
+  const key = 'vp_naming_'+normalize(state.session||'')+'_'+today;
   localStorage.setItem(key, JSON.stringify(state.naming));
 }
 /* ===================== Rectificador de calidad (datos locales, persisten hasta que se vacíen) ===================== */
@@ -2496,46 +2502,20 @@ function renderRepQuality(){
     </div>` : `<div class="empty">${t('qualityEmpty')}</div>`}
   `;
 }
-/* Recordatorios del archivo del día: uno 3 horas después de empezar a nombrar,
-   y otro 1 hora antes de la medianoche (cuando se genera el archivo del día siguiente).
-   Solo avisan si todavía no se ha descargado el archivo. Requieren que el navegador
-   tenga permiso de notificaciones y que la pestaña/app siga abierta — no son
-   notificaciones en segundo plano tipo push, así que si cierras la app no llegarán. */
-let namingReminderTimers = [];
-function clearNamingReminders(){
-  namingReminderTimers.forEach(clearTimeout);
-  namingReminderTimers = [];
-}
-async function ensureNotificationPermission(){
-  if(!('Notification' in window)) return false;
-  if(Notification.permission==='granted') return true;
-  if(Notification.permission==='denied') return false;
-  try{ const p = await Notification.requestPermission(); return p==='granted'; }catch(e){ return false; }
-}
-function fireNamingReminder(kind){
-  if(!state.naming || state.naming.date!==todayKey() || state.naming.downloadedAt) return;
-  if(!state.naming.items || !state.naming.items.length) return;
-  const body = kind==='3h' ? t('reminderBody3h') : t('reminderBody1h');
-  try{
-    if('Notification' in window && Notification.permission==='granted'){
-      new Notification(t('reminderTitle'), {body});
+/* ===================== Ciclo diario del Nombrador =====================
+   No existe una ventana de 24 horas: los nombrados se conservan por fecha y pasan a Archivados. */
+let namingDayWatcher=null;
+function startNamingDayWatcher(){
+  if(namingDayWatcher) return;
+  namingDayWatcher=setInterval(async()=>{
+    if(!state.session) return;
+    const today=todayKey();
+    if(state.naming&&state.naming.date!==today){
+      loadNaming(); state.archived={loaded:false,loading:false,byDate:{},dates:[],selectedDate:null};
+      try{ const rows=await fetchNamingRemote(); if(Array.isArray(rows)) await syncNamingRemoteRows(rows); }catch(e){}
+      render();
     }
-  }catch(e){}
-  toast(body);
-}
-function scheduleNamingReminders(){
-  clearNamingReminders();
-  if(!state.naming || !state.naming.items || !state.naming.items.length) return;
-  if(state.naming.downloadedAt) return;
-  if(!('Notification' in window) || Notification.permission!=='granted') return;
-  const now = Date.now();
-  if(state.naming.startedAt){
-    const t3h = state.naming.startedAt + 3*60*60*1000;
-    if(t3h>now) namingReminderTimers.push(setTimeout(()=>fireNamingReminder('3h'), t3h-now));
-  }
-  const midnight = new Date(); midnight.setHours(24,0,0,0);
-  const t1hBefore = midnight.getTime() - 60*60*1000;
-  if(t1hBefore>now) namingReminderTimers.push(setTimeout(()=>fireNamingReminder('1h'), t1hBefore-now));
+  },30000);
 }
 /* Extrae la cantidad neta del nombre (peso en gramos O volumen en mililitros), junto con su
    "tipo" (weight/volume), para poder comparar productos correctamente. Antes esta función solo
@@ -3173,9 +3153,7 @@ function downloadNamingExcel(){
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Nombrados');
   XLSX.writeFile(wb, `nombrados_${state.naming.date}.xlsx`);
-  state.naming.downloadedAt = Date.now();
   saveNaming();
-  clearNamingReminders();
 }
 function downloadArchivedExcel(dateKey){
   const items = (state.archived.byDate[dateKey]||[]);
@@ -3431,54 +3409,68 @@ function adminSection(id, title, sub, contentHtml, defaultOpen){
 }
 async function checkTermsAccepted(codigo){ if(!codigo) return false; try{ const rows=await sb(`terminos_aceptaciones?codigo_persona=eq.${encodeURIComponent(normalize(codigo))}&version=eq.${encodeURIComponent(state.termsVersion)}&select=id&limit=1`); return !!(rows&&rows.length); }catch(e){ return false; } }
 async function acceptTermsRemote(codigo){ await sb('terminos_aceptaciones',{method:'POST',body:JSON.stringify([{codigo_persona:normalize(codigo),version:state.termsVersion,aceptado_en:new Date().toISOString()}]),headers:{'Prefer':'return=minimal'}}); }
-async function fetchNamingRemote(){ if(!state.session)return []; try{return await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=eq.${encodeURIComponent(todayKey())}&order=creado_en.asc`);}catch(e){return [];} }
-/* ===================== Archivados: días anteriores de nombrados_diarios (se borran automáticamente pasados 7 días) ===================== */
-async function cleanupExpiredNamingRemote(){
-  if(!state.session) return;
-  const person = encodeURIComponent(normalize(state.session));
-  const cutoff = encodeURIComponent(daysAgoKey(7));
-  // Solo se limpian los registros de la persona actual.
-  try{
-    await sb(`nombrados_diarios?codigo_persona=eq.${person}&fecha=lt.${cutoff}`, {method:'DELETE'});
-  }catch(e){
-    console.warn('No se pudieron limpiar nombrados antiguos:', e);
-  }
+async function fetchNamingRemote(){
+  if(!state.session) return [];
+  try{ return await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=eq.${encodeURIComponent(todayKey())}&order=creado_en.asc`); }
+  catch(e){ return null; }
 }
+/* ===================== Archivados: días anteriores de nombrados_diarios (retención 7 días) ===================== */
 async function fetchArchivedNaming(){
   if(!state.session) return [];
-  try{
-    const person = encodeURIComponent(normalize(state.session));
-    const from = encodeURIComponent(daysAgoKey(7));
-    const today = encodeURIComponent(todayKey());
-    // Archivados = exactamente los 7 días anteriores al día actual.
-    return await sb(`nombrados_diarios?codigo_persona=eq.${person}&fecha=gte.${from}&fecha=lt.${today}&order=fecha.desc,creado_en.asc`);
-  }catch(e){ return []; }
+  const cutoff=daysAgoKey(7);
+  try{ return await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=gte.${encodeURIComponent(cutoff)}&fecha=lt.${encodeURIComponent(todayKey())}&order=fecha.desc,creado_en.asc`); }
+  catch(e){ return null; }
+}
+async function deleteExpiredNamingRemote(){
+  if(!state.session) return;
+  const cutoff=daysAgoKey(7);
+  try{ await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=lt.${encodeURIComponent(cutoff)}`,{method:'DELETE'}); }
+  catch(e){ console.error('No se pudo limpiar el archivo vencido:',e); }
+}
+function remoteRowToNamingItem(x){
+  return {id:'remote_'+x.id,codigo:x.codigo,nombre:x.nombre,duplicado:!!x.duplicado,duplicadoCodigo:x.duplicado_codigo||null,duplicadoTipo:x.duplicado_tipo||null,sessionDup:!!x.duplicado_sesion,sessionDupCode:x.duplicado_sesion_con||null,createdAt:Number(x.creado_en)||Date.now(),syncStatus:'synced'};
+}
+async function syncNamingRemoteRows(remoteRows){
+  if(!Array.isArray(remoteRows)||!state.naming) return false;
+  const localItems=Array.isArray(state.naming.items)?state.naming.items:[]; const used=new Set();
+  remoteRows.forEach(row=>{
+    const rc=Number(row.creado_en)||0;
+    let idx=localItems.findIndex((it,i)=>!used.has(i)&&it.id===('remote_'+row.id));
+    if(idx<0&&rc) idx=localItems.findIndex((it,i)=>!used.has(i)&&Number(it.createdAt)===rc&&it.codigo===row.codigo);
+    if(idx<0) idx=localItems.findIndex((it,i)=>!used.has(i)&&!it.createdAt&&it.codigo===row.codigo&&it.nombre===row.nombre);
+    if(idx>=0){ Object.assign(localItems[idx],remoteRowToNamingItem(row)); used.add(idx); }
+    else localItems.push(remoteRowToNamingItem(row));
+  });
+  state.naming.items=localItems; saveNaming();
+  let allOk=true;
+  for(const item of state.naming.items){
+    if(item.id&&String(item.id).startsWith('remote_')) continue;
+    try{ const row=await persistNamingRemote(item); item.id='remote_'+row.id; item.syncStatus='synced'; }
+    catch(e){ item.syncStatus='pending'; allOk=false; console.error('No se pudo sincronizar nombrado:',e); }
+  }
+  saveNaming(); return allOk;
 }
 async function loadArchivedNaming(force){
-  if(state.archived.loading) return;
-  if(state.archived.loaded && !force) return;
-  state.archived.loading = true; render();
+  if(state.archived.loading) return; if(state.archived.loaded&&!force) return;
+  state.archived.loading=true; render();
   try{
-    await cleanupExpiredNamingRemote();
-    const rows = await fetchArchivedNaming();
-    const byDate = {};
-    (rows||[]).forEach(r=>{ (byDate[r.fecha] = byDate[r.fecha]||[]).push(r); });
-    const dates = Object.keys(byDate).sort((a,b)=> b.localeCompare(a));
-    state.archived.byDate = byDate;
-    state.archived.dates = dates;
-    if(!dates.includes(state.archived.selectedDate)) state.archived.selectedDate = dates[0]||null;
+    await deleteExpiredNamingRemote();
+    const rows=await fetchArchivedNaming();
+    if(!Array.isArray(rows)) throw new Error('No se pudieron cargar los archivados.');
+    const byDate={}; rows.forEach(r=>{(byDate[r.fecha]=byDate[r.fecha]||[]).push(r);});
+    const dates=Object.keys(byDate).sort((a,b)=>b.localeCompare(a));
+    state.archived.byDate=byDate; state.archived.dates=dates;
+    if(!dates.includes(state.archived.selectedDate)) state.archived.selectedDate=dates[0]||null;
   }catch(e){ console.error(e); }
-  state.archived.loading = false; state.archived.loaded = true; render();
+  state.archived.loading=false; state.archived.loaded=true; render();
 }
 async function persistNamingRemote(item){
-  if(!state.session || !item) return null;
-  try{
-    const res = await sb('nombrados_diarios',{method:'POST',body:JSON.stringify([{codigo_persona:normalize(state.session),fecha:item.fecha||state.naming.date,codigo:item.codigo,nombre:item.nombre,duplicado:!!item.duplicado,duplicado_codigo:item.duplicadoCodigo||null,duplicado_tipo:item.duplicadoTipo||null,duplicado_sesion:!!item.sessionDup,duplicado_sesion_con:item.sessionDupCode||null,creado_en:item.creadoEn||Date.now()}]),headers:{'Prefer':'return=representation'}});
-    return (res && res[0]) ? res[0] : null;
-  }catch(e){
-    console.error('No se pudo guardar el nombrado en Supabase:', e);
-    return null;
-  }
+  if(!state.session) throw new Error('No hay sesión activa para guardar el nombrado.');
+  const createdAt=Number(item.createdAt)||Date.now(); item.createdAt=createdAt; item.syncStatus='syncing';
+  const payload={codigo_persona:normalize(state.session),fecha:state.naming.date||todayKey(),codigo:item.codigo,nombre:item.nombre,duplicado:!!item.duplicado,duplicado_codigo:item.duplicadoCodigo||null,duplicado_tipo:item.duplicadoTipo||null,duplicado_sesion:!!item.sessionDup,duplicado_sesion_con:item.sessionDupCode||null,creado_en:createdAt};
+  const res=await sb('nombrados_diarios',{method:'POST',body:JSON.stringify([payload]),headers:{'Prefer':'return=representation'}});
+  if(!res||!res[0]||res[0].id==null) throw new Error('Supabase no devolvió el registro creado.');
+  item.syncStatus='synced'; return res[0];
 }
 /* Guarda en el servidor la corrección de un nombre/código ya nombrado hoy (solo aplica
    si el ítem ya tiene un id remoto conocido, es decir, viene prefijado con 'remote_'). */
@@ -3547,28 +3539,11 @@ async function boot(){
     await loadCoreData();
     if(state.session){ state.termsAccepted=await checkTermsAccepted(state.session); state.termsChecked=true; }
     loadDaily(); loadNaming();
-    // El cambio de día ya NO elimina los nombrados del día anterior.
-    // El día actual vive en Nombrados hoy y los 7 días anteriores en Archivados.
     try{
-      await cleanupExpiredNamingRemote();
       const remoteNaming=await fetchNamingRemote();
-      const remoteItems=(remoteNaming||[]).map(x=>({
-        id:'remote_'+x.id, codigo:x.codigo, nombre:x.nombre, duplicado:!!x.duplicado,
-        duplicadoCodigo:x.duplicado_codigo||null, duplicadoTipo:x.duplicado_tipo||null,
-        sessionDup:!!x.duplicado_sesion, sessionDupCode:x.duplicado_sesion_con||null,
-        creadoEn:x.creado_en||null, fecha:x.fecha||todayKey()
-      }));
-      const remoteKeys=new Set(remoteItems.map(x=>`${x.codigo}\u0000${x.nombre}`));
-      const localUnsynced=(state.naming.items||[]).filter(x=>!String(x.id||'').startsWith('remote_') && !remoteKeys.has(`${x.codigo}\u0000${x.nombre}`));
-      state.naming.items=[...remoteItems, ...localUnsynced];
-      saveNaming();
-      // Reintenta subir cualquier nombrado local que aún no haya llegado al servidor.
-      for(const item of localUnsynced){
-        const row=await persistNamingRemote(item);
-        if(row && row.id!=null){ item.id='remote_'+row.id; item.creadoEn=row.creado_en||item.creadoEn||Date.now(); item.fecha=row.fecha||item.fecha||todayKey(); }
-      }
-      saveNaming();
-    }catch(e){ console.warn('No se pudo sincronizar el nombrador:', e); }
+      if(Array.isArray(remoteNaming)) await syncNamingRemoteRows(remoteNaming);
+    }catch(e){ console.error('Error sincronizando nombrados:',e); }
+    startNamingDayWatcher();
     state.booted = true;
     renderRoot();
   }catch(err){
@@ -4827,6 +4802,7 @@ function renderRepNaming(){
   const allSelected = items.length>0 && selectedCount===items.length;
   const mode = state.namingListMode || 'today';
   return `
+    <p class="small-note" style="margin:0 0 14px;">${t('downloadWindow')}</p>
     <div class="card glass">
       <div class="section-title">${t('namingNew')}</div>
       <div class="field"><label>${t('namingBarcode')}</label><input type="text" id="namingBarcode" placeholder="${t('namingBarcodePlaceholder')}" style="text-transform:uppercase;" /></div>
@@ -4899,7 +4875,7 @@ function renderNamingItem(it, order){
   const selected = state.namingSelected.includes(it.id);
   return `<div class="drag-item naming-item${editMode?' edit-mode':''}" data-dragid="${it.id}">
     ${editMode ? `<div class="naming-select${selected?' selected':''}" data-selectnaming="${it.id}" role="checkbox" aria-checked="${selected}">${selected?NAMING_CHECK_ICON:''}</div>` : `<div class="naming-order">${order}</div>`}
-    <div class="naming-item-info"${editMode?` data-selectnaming="${it.id}"`:''}><div class="name">${it.nombre}</div><div class="code">${it.codigo}${it.duplicado ? ` · <span class="naming-dup-badge severity-${dupSeverity(it.duplicadoTipo)}">${dupSeverity(it.duplicadoTipo)==='alta'?'🔴':'⚠️'} ${t('namingDupWith')} ${it.duplicadoCodigo}</span>`:''}${it.sessionDup ? ` · 🔁 ${t('namingSessionDupBadge')} ${it.sessionDupCode||''}`:''}</div></div>
+    <div class="naming-item-info"${editMode?` data-selectnaming="${it.id}"`:''}><div class="name">${it.nombre}</div><div class="code">${it.codigo}${it.duplicado ? ` · <span class="naming-dup-badge severity-${dupSeverity(it.duplicadoTipo)}">${dupSeverity(it.duplicadoTipo)==='alta'?'🔴':'⚠️'} ${t('namingDupWith')} ${it.duplicadoCodigo}</span>`:''}${it.sessionDup ? ` · 🔁 ${t('namingSessionDupBadge')} ${it.sessionDupCode||''}`:''}${it.syncStatus==='pending' ? ` · ⚠️ ${t('namingSyncPending')}`:''}</div></div>
     ${editMode ? `<div class="drag-handle" data-drag-handle title="${t('reorderHint')}">⠿</div>` : `<div class="naming-actions">
       ${it.duplicado ? `<button type="button" class="btn ghost sm naming-action-btn naming-preview-btn" data-previewnaming="${it.id}" aria-label="${t('namingPreview')}" title="${t('namingPreview')}">${ICONS.eye}<span>${t('namingPreview')}</span></button>` : ''}
       <button type="button" class="btn ghost sm naming-action-btn" data-editnaming="${it.id}" aria-label="${t('edit')}" title="${t('edit')}">${ICONS.edit}<span>${t('edit')}</span></button>
@@ -5772,7 +5748,6 @@ function bindTabEvents(){
       document.querySelectorAll('[data-archiveddate]').forEach(b=> b.onclick = ()=>{ state.archived.selectedDate = b.dataset.archiveddate; render(); });
       const adBtn = document.getElementById('archivedDownloadBtn');
       if(adBtn) adBtn.onclick = ()=> downloadArchivedExcel(adBtn.dataset.archiveddownload);
-      if(('Notification' in window) && Notification.permission==='granted') scheduleNamingReminders();
       const bcInput = document.getElementById('namingBarcode');
       bcInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); updateNamingSuggestion(); document.getElementById('namingNombre').focus(); } });
       bcInput.addEventListener('blur', updateNamingSuggestion);
@@ -5809,7 +5784,7 @@ function bindTabEvents(){
         });
         nombreInput.addEventListener('blur', ()=>{ renderSpellCheck(); renderFormatCheck(); renderAgreementsCheck(); });
       }
-      document.getElementById('namingAddBtn').onclick = ()=>{
+      document.getElementById('namingAddBtn').onclick = async ()=>{
         const codigo = normalize(document.getElementById('namingBarcode').value);
         const nombre = normalize(document.getElementById('namingNombre').value);
         if(!codigo || !nombre){ toast('!'); return; }
@@ -5827,23 +5802,20 @@ function bindTabEvents(){
           sessionDupInfo = { codigo: sessionDup.codigo, nombre: sessionDup.nombre };
         }
         const dup = findNameDuplicate2026(nombre, codigo);
-        const item={id:'n'+Date.now()+Math.random().toString(36).slice(2,6),codigo,nombre,duplicado:!!dup,duplicadoCodigo:dup?dup.codigo:null,duplicadoTipo:dup?.__dupReason||null,sessionDup:!!sessionDupInfo,sessionDupWith:sessionDupInfo?sessionDupInfo.nombre:null,sessionDupCode:sessionDupInfo?sessionDupInfo.codigo:null,fecha:todayKey(),creadoEn:Date.now()};
+        const item={id:'n'+Date.now()+Math.random().toString(36).slice(2,6),codigo,nombre,duplicado:!!dup,duplicadoCodigo:dup?dup.codigo:null,duplicadoTipo:dup?.__dupReason||null,sessionDup:!!sessionDupInfo,sessionDupWith:sessionDupInfo?sessionDupInfo.nombre:null,sessionDupCode:sessionDupInfo?sessionDupInfo.codigo:null,createdAt:Date.now(),syncStatus:'pending'};
         const esPrimero = !state.naming.items.length;
         state.naming.items.push(item);
-        if(esPrimero && !state.naming.startedAt) state.naming.startedAt = Date.now();
         saveNaming();
-        if(esPrimero){
-          ensureNotificationPermission().then(()=>scheduleNamingReminders());
-        } else {
-          scheduleNamingReminders();
+        try{
+          const row=await persistNamingRemote(item);
+          item.id='remote_'+row.id;
+          saveNaming();
+          toast(t('namingSyncOk'));
+        }catch(err){
+          item.syncStatus='pending'; saveNaming();
+          console.error('Error guardando nombrado en Supabase:',err);
+          toast(t('namingSyncError'));
         }
-        persistNamingRemote(item).then(row=>{
-          if(row && row.id!=null){
-            item.id = 'remote_'+row.id;
-            saveNaming();
-            if(state.tab==='rep' && state.repView==='naming') render();
-          }
-        });
         document.getElementById('namingBarcode').value=''; document.getElementById('namingNombre').value=''; document.getElementById('namingSuggestion').innerHTML=''; if(spellWrap) spellWrap.innerHTML=''; if(formatWrap) formatWrap.innerHTML='';
         toast(dup ? t('namingDupWarning') : (sessionDupInfo ? t('namingSessionDupWarning') : t('imported')));
         render();
