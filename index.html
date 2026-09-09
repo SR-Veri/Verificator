@@ -1713,7 +1713,7 @@ const I18N = {
     reminderTitle:"Archivo de hoy sin descargar", reminderBody3h:"Llevas 3 horas nombrando productos y aún no descargas el archivo de hoy.", reminderBody1h:"Falta 1 hora para que se cree el archivo de mañana y aún no has descargado el de hoy.",
     naming2026Found:"Ya existe en la base 2026 como", naming2026Suggestion:"Sugerencia de nombre (base 2026)", namingUseThis:"Usar este nombre",
     namingListTitle:"Nombrados hoy", namingEmptyList:"Aún no has nombrado productos hoy.",
-    archivedTabLabel:"Archivados", archivedTitle:"Días archivados", archivedEmpty:"Todavía no hay días archivados. Cuando cierres un día de nombrados, aparecerá aquí al día siguiente.",
+    archivedTabLabel:"Archivados", archivedTitle:"Días archivados", archivedEmpty:"Todavía no hay días archivados. Al cambiar de día, los nombrados de ayer pasan aquí automáticamente.",
     archivedDayEmpty:"Ese día no tiene productos guardados.", archivedCount:"productos", archivedDownload:"Descargar Excel de este día",
     archivedExpiryNote:"Los días archivados se guardan 7 días y luego se eliminan automáticamente para no saturar la base de datos.",
     archivedLoading:"Cargando archivados…",
@@ -1828,7 +1828,7 @@ const I18N = {
     saveAvatar:"Guardar avatar", randomAvatar:"Aleatorio", memojiColumnMissing:"Falta la columna avatar_config (tipo texto) en la tabla personas. Créala en Supabase para guardar el avatar personalizado.",
     termsTitle:"Términos y condiciones", termsSub:"Antes de continuar debes aceptar los términos y condiciones de uso de la aplicación.", termsVersion:"Versión 1.0", termsAcceptLabel:"He leído y acepto los términos y condiciones.", termsContinue:"Aceptar y continuar", termsRequired:"Debes aceptar los términos para continuar.", termsError:"No se pudo registrar la aceptación. Revisa tu conexión e inténtalo de nuevo.",
     newsScan:"Escaneo listo", newsScanSub:"La cámara y el lector están preparados para verificar productos.", newsBase:"Base de productos", newsBaseSub:"Consulta cuándo se actualizó cada base.",
-    lastUpdated:"Última actualización", neverUpdated:"Sin actualización registrada", totalScans:"Escaneos registrados", activePeople:"Personas activas", productsScanned:"Productos encontrados", todayScans:"Escaneos hoy", adminStatsTitle:"Estadísticas", adminPeopleTitle:"Personas", adminBasesTitle:"Bases de productos", adminToolsTitle:"Herramientas de administración", adminPersonEdit:"Editar nombre", adminNoStats:"Aún no hay actividad registrada.", downloadWindow:"Este archivo está disponible durante 24 horas. Después se crea un nuevo archivo para el día siguiente.", adminDataWarning:"Las estadísticas se generan con los escaneos registrados en la base de datos.", noUpdate:"No disponible", updateBase:"Actualizar base",
+    lastUpdated:"Última actualización", neverUpdated:"Sin actualización registrada", totalScans:"Escaneos registrados", activePeople:"Personas activas", productsScanned:"Productos encontrados", todayScans:"Escaneos hoy", adminStatsTitle:"Estadísticas", adminPeopleTitle:"Personas", adminBasesTitle:"Bases de productos", adminToolsTitle:"Herramientas de administración", adminPersonEdit:"Editar nombre", adminNoStats:"Aún no hay actividad registrada.", downloadWindow:"Los nombrados de cada día se guardan automáticamente y pasan a Archivados durante 7 días.", adminDataWarning:"Las estadísticas se generan con los escaneos registrados en la base de datos.", noUpdate:"No disponible", updateBase:"Actualizar base",
     adminToolAccessTitle:"Herramientas por persona", adminToolAccessSub:"Toca a una persona para elegir exactamente qué herramientas puede ver y usar (tú, como administrador, siempre ves todas).", adminToolAccessSaved:"Cambios guardados.", adminToolAccessErrorColumn:"No se pudo guardar: falta la columna 'tool_access' en la tabla 'personas' de Supabase. Pide que la agreguen (tipo jsonb) y vuelve a intentar.", adminToolAccessNone:"Agrega personas para poder asignarles herramientas.", adminToolAccessAdminNote:"El administrador siempre ve todas las herramientas.",
     namingPreview:"Ver duplicado", namingPreviewTitle:"Posible duplicado", namingPreviewCurrent:"Lo que estás nombrando", namingPreviewMatch:"Ya existe en la base 2026", namingPreviewReasonExact:"⚠️ Coincidencia exacta de nombre", namingPreviewReasonFlavor:"⚠️ Mismo sabor y mismo peso, misma marca", namingPreviewReasonCode:"⚠️ Este código ya fue nombrado en la base 2026", namingPreviewReasonSimilar:"⚠️ Nombre muy parecido a uno ya existente (misma marca y peso)",
     namingEditOrder:"Editar", namingEditDone:"Listo",
@@ -1912,7 +1912,7 @@ const I18N = {
     reminderTitle:"Today's file not downloaded", reminderBody3h:"You've been naming products for 3 hours and still haven't downloaded today's file.", reminderBody1h:"1 hour left until tomorrow's file is created and you still haven't downloaded today's.",
     naming2026Found:"Already exists in the 2026 base as", naming2026Suggestion:"Name suggestion (2026 base)", namingUseThis:"Use this name",
     namingListTitle:"Named today", namingEmptyList:"You haven't named any products today yet.",
-    archivedTabLabel:"Archived", archivedTitle:"Archived days", archivedEmpty:"No archived days yet. When a naming day closes, it'll show up here the next day.",
+    archivedTabLabel:"Archived", archivedTitle:"Archived days", archivedEmpty:"No archived days yet. When the day changes, yesterday’s named products appear here automatically.",
     archivedDayEmpty:"That day has no saved products.", archivedCount:"products", archivedDownload:"Download this day's Excel",
     archivedExpiryNote:"Archived days are kept for 7 days and then removed automatically to keep the database lean.",
     archivedLoading:"Loading archived days…",
@@ -2026,7 +2026,7 @@ const I18N = {
     emojiTab:"Emoji", builderTab:"Customize", catBg:"Background", catSkin:"Skin", catHair:"Hair", catHairColor:"Hair color", catEyes:"Eyes", catMouth:"Mouth", catAccessory:"Accessories",
     saveAvatar:"Save avatar", randomAvatar:"Random", memojiColumnMissing:"Missing avatar_config column (text type) in the personas table. Create it in Supabase to save the custom avatar.",
     newsScan:"Scanning ready", newsScanSub:"The camera and reader are ready to verify products.", newsBase:"Product databases", newsBaseSub:"See when each database was updated.",
-    lastUpdated:"Last updated", neverUpdated:"No update recorded", totalScans:"Recorded scans", activePeople:"Active people", productsScanned:"Products found", todayScans:"Today's scans", adminStatsTitle:"Statistics", adminPeopleTitle:"People", adminBasesTitle:"Product databases", adminToolsTitle:"Administration tools", adminPersonEdit:"Edit name", adminNoStats:"No activity has been recorded yet.", downloadWindow:"This file is available for 24 hours. A new file is created for the following day.", adminDataWarning:"Statistics are generated from scans recorded in the database.", noUpdate:"Unavailable", updateBase:"Update database",
+    lastUpdated:"Last updated", neverUpdated:"No update recorded", totalScans:"Recorded scans", activePeople:"Active people", productsScanned:"Products found", todayScans:"Today's scans", adminStatsTitle:"Statistics", adminPeopleTitle:"People", adminBasesTitle:"Product databases", adminToolsTitle:"Administration tools", adminPersonEdit:"Edit name", adminNoStats:"No activity has been recorded yet.", downloadWindow:"Each day’s named products are saved automatically and remain in Archived for 7 days.", adminDataWarning:"Statistics are generated from scans recorded in the database.", noUpdate:"Unavailable", updateBase:"Update database",
     adminToolAccessTitle:"Tools per person", adminToolAccessSub:"Tap a person to choose exactly which tools they can see and use (as admin, you always see all of them).", adminToolAccessSaved:"Changes saved.", adminToolAccessErrorColumn:"Couldn't save: the 'tool_access' column is missing from the 'personas' table in Supabase. Ask for it to be added (jsonb type) and try again.", adminToolAccessNone:"Add people to be able to assign them tools.", adminToolAccessAdminNote:"The admin always sees every tool.",
     namingPreview:"View duplicate", namingPreviewTitle:"Possible duplicate", namingPreviewCurrent:"What you're naming", namingPreviewMatch:"Already exists in the 2026 base", namingPreviewReasonExact:"⚠️ Exact name match", namingPreviewReasonFlavor:"⚠️ Same flavor and weight, same brand", namingPreviewReasonCode:"⚠️ This code was already named in the 2026 base", namingPreviewReasonSimilar:"⚠️ Name very similar to an existing one (same brand and weight)",
     namingEditOrder:"Edit", namingEditDone:"Done",
@@ -3433,10 +3433,25 @@ async function checkTermsAccepted(codigo){ if(!codigo) return false; try{ const 
 async function acceptTermsRemote(codigo){ await sb('terminos_aceptaciones',{method:'POST',body:JSON.stringify([{codigo_persona:normalize(codigo),version:state.termsVersion,aceptado_en:new Date().toISOString()}]),headers:{'Prefer':'return=minimal'}}); }
 async function fetchNamingRemote(){ if(!state.session)return []; try{return await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=eq.${encodeURIComponent(todayKey())}&order=creado_en.asc`);}catch(e){return [];} }
 /* ===================== Archivados: días anteriores de nombrados_diarios (se borran automáticamente pasados 7 días) ===================== */
+async function cleanupExpiredNamingRemote(){
+  if(!state.session) return;
+  const person = encodeURIComponent(normalize(state.session));
+  const cutoff = encodeURIComponent(daysAgoKey(7));
+  // Solo se limpian los registros de la persona actual.
+  try{
+    await sb(`nombrados_diarios?codigo_persona=eq.${person}&fecha=lt.${cutoff}`, {method:'DELETE'});
+  }catch(e){
+    console.warn('No se pudieron limpiar nombrados antiguos:', e);
+  }
+}
 async function fetchArchivedNaming(){
   if(!state.session) return [];
   try{
-    return await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=lt.${encodeURIComponent(todayKey())}&order=fecha.desc,creado_en.asc`);
+    const person = encodeURIComponent(normalize(state.session));
+    const from = encodeURIComponent(daysAgoKey(7));
+    const today = encodeURIComponent(todayKey());
+    // Archivados = exactamente los 7 días anteriores al día actual.
+    return await sb(`nombrados_diarios?codigo_persona=eq.${person}&fecha=gte.${from}&fecha=lt.${today}&order=fecha.desc,creado_en.asc`);
   }catch(e){ return []; }
 }
 async function loadArchivedNaming(force){
@@ -3444,9 +3459,7 @@ async function loadArchivedNaming(force){
   if(state.archived.loaded && !force) return;
   state.archived.loading = true; render();
   try{
-    // Antes de leer, borra lo que ya venció (más de 7 días archivado) para no saturar Supabase.
-    const cutoff = daysAgoKey(7);
-    try{ await sb(`nombrados_diarios?fecha=lt.${encodeURIComponent(cutoff)}`, {method:'DELETE'}); }catch(e){}
+    await cleanupExpiredNamingRemote();
     const rows = await fetchArchivedNaming();
     const byDate = {};
     (rows||[]).forEach(r=>{ (byDate[r.fecha] = byDate[r.fecha]||[]).push(r); });
@@ -3458,10 +3471,14 @@ async function loadArchivedNaming(force){
   state.archived.loading = false; state.archived.loaded = true; render();
 }
 async function persistNamingRemote(item){
+  if(!state.session || !item) return null;
   try{
-    const res = await sb('nombrados_diarios',{method:'POST',body:JSON.stringify([{codigo_persona:normalize(state.session),fecha:state.naming.date,codigo:item.codigo,nombre:item.nombre,duplicado:!!item.duplicado,duplicado_codigo:item.duplicadoCodigo||null,duplicado_tipo:item.duplicadoTipo||null,duplicado_sesion:!!item.sessionDup,duplicado_sesion_con:item.sessionDupCode||null,creado_en:Date.now()}]),headers:{'Prefer':'return=representation'}});
+    const res = await sb('nombrados_diarios',{method:'POST',body:JSON.stringify([{codigo_persona:normalize(state.session),fecha:item.fecha||state.naming.date,codigo:item.codigo,nombre:item.nombre,duplicado:!!item.duplicado,duplicado_codigo:item.duplicadoCodigo||null,duplicado_tipo:item.duplicadoTipo||null,duplicado_sesion:!!item.sessionDup,duplicado_sesion_con:item.sessionDupCode||null,creado_en:item.creadoEn||Date.now()}]),headers:{'Prefer':'return=representation'}});
     return (res && res[0]) ? res[0] : null;
-  }catch(e){ return null; }
+  }catch(e){
+    console.error('No se pudo guardar el nombrado en Supabase:', e);
+    return null;
+  }
 }
 /* Guarda en el servidor la corrección de un nombre/código ya nombrado hoy (solo aplica
    si el ítem ya tiene un id remoto conocido, es decir, viene prefijado con 'remote_'). */
@@ -3530,13 +3547,28 @@ async function boot(){
     await loadCoreData();
     if(state.session){ state.termsAccepted=await checkTermsAccepted(state.session); state.termsChecked=true; }
     loadDaily(); loadNaming();
+    // El cambio de día ya NO elimina los nombrados del día anterior.
+    // El día actual vive en Nombrados hoy y los 7 días anteriores en Archivados.
     try{
+      await cleanupExpiredNamingRemote();
       const remoteNaming=await fetchNamingRemote();
-      if(remoteNaming&&remoteNaming.length){
-        state.naming.items=remoteNaming.map(x=>({id:'remote_'+x.id,codigo:x.codigo,nombre:x.nombre,duplicado:!!x.duplicado,duplicadoCodigo:x.duplicado_codigo||null,duplicadoTipo:x.duplicado_tipo||null,sessionDup:!!x.duplicado_sesion,sessionDupCode:x.duplicado_sesion_con||null}));
-        saveNaming();
+      const remoteItems=(remoteNaming||[]).map(x=>({
+        id:'remote_'+x.id, codigo:x.codigo, nombre:x.nombre, duplicado:!!x.duplicado,
+        duplicadoCodigo:x.duplicado_codigo||null, duplicadoTipo:x.duplicado_tipo||null,
+        sessionDup:!!x.duplicado_sesion, sessionDupCode:x.duplicado_sesion_con||null,
+        creadoEn:x.creado_en||null, fecha:x.fecha||todayKey()
+      }));
+      const remoteKeys=new Set(remoteItems.map(x=>`${x.codigo}\u0000${x.nombre}`));
+      const localUnsynced=(state.naming.items||[]).filter(x=>!String(x.id||'').startsWith('remote_') && !remoteKeys.has(`${x.codigo}\u0000${x.nombre}`));
+      state.naming.items=[...remoteItems, ...localUnsynced];
+      saveNaming();
+      // Reintenta subir cualquier nombrado local que aún no haya llegado al servidor.
+      for(const item of localUnsynced){
+        const row=await persistNamingRemote(item);
+        if(row && row.id!=null){ item.id='remote_'+row.id; item.creadoEn=row.creado_en||item.creadoEn||Date.now(); item.fecha=row.fecha||item.fecha||todayKey(); }
       }
-    }catch(e){}
+      saveNaming();
+    }catch(e){ console.warn('No se pudo sincronizar el nombrador:', e); }
     state.booted = true;
     renderRoot();
   }catch(err){
@@ -4795,7 +4827,6 @@ function renderRepNaming(){
   const allSelected = items.length>0 && selectedCount===items.length;
   const mode = state.namingListMode || 'today';
   return `
-    <div class="warning-banner" style="margin-bottom:14px;">${ICONS.warn}<span>${t('downloadWindow')}</span></div>
     <div class="card glass">
       <div class="section-title">${t('namingNew')}</div>
       <div class="field"><label>${t('namingBarcode')}</label><input type="text" id="namingBarcode" placeholder="${t('namingBarcodePlaceholder')}" style="text-transform:uppercase;" /></div>
@@ -5796,7 +5827,7 @@ function bindTabEvents(){
           sessionDupInfo = { codigo: sessionDup.codigo, nombre: sessionDup.nombre };
         }
         const dup = findNameDuplicate2026(nombre, codigo);
-        const item={id:'n'+Date.now()+Math.random().toString(36).slice(2,6),codigo,nombre,duplicado:!!dup,duplicadoCodigo:dup?dup.codigo:null,duplicadoTipo:dup?.__dupReason||null,sessionDup:!!sessionDupInfo,sessionDupWith:sessionDupInfo?sessionDupInfo.nombre:null,sessionDupCode:sessionDupInfo?sessionDupInfo.codigo:null};
+        const item={id:'n'+Date.now()+Math.random().toString(36).slice(2,6),codigo,nombre,duplicado:!!dup,duplicadoCodigo:dup?dup.codigo:null,duplicadoTipo:dup?.__dupReason||null,sessionDup:!!sessionDupInfo,sessionDupWith:sessionDupInfo?sessionDupInfo.nombre:null,sessionDupCode:sessionDupInfo?sessionDupInfo.codigo:null,fecha:todayKey(),creadoEn:Date.now()};
         const esPrimero = !state.naming.items.length;
         state.naming.items.push(item);
         if(esPrimero && !state.naming.startedAt) state.naming.startedAt = Date.now();
