@@ -4875,7 +4875,7 @@ function renderNamingItem(it, order){
   const selected = state.namingSelected.includes(it.id);
   return `<div class="drag-item naming-item${editMode?' edit-mode':''}" data-dragid="${it.id}">
     ${editMode ? `<div class="naming-select${selected?' selected':''}" data-selectnaming="${it.id}" role="checkbox" aria-checked="${selected}">${selected?NAMING_CHECK_ICON:''}</div>` : `<div class="naming-order">${order}</div>`}
-    <div class="naming-item-info"${editMode?` data-selectnaming="${it.id}"`:''}><div class="name">${it.nombre}</div><div class="code">${it.codigo}${it.duplicado ? ` · <span class="naming-dup-badge severity-${dupSeverity(it.duplicadoTipo)}">${dupSeverity(it.duplicadoTipo)==='alta'?'🔴':'⚠️'} ${t('namingDupWith')} ${it.duplicadoCodigo}</span>`:''}${it.sessionDup ? ` · 🔁 ${t('namingSessionDupBadge')} ${it.sessionDupCode||''}`:''}${it.syncStatus==='pending' ? ` · ⚠️ ${t('namingSyncPending')}`:''}</div></div>
+    <div class="naming-item-info"${editMode?` data-selectnaming="${it.id}"`:''}><div class="name">${it.nombre}</div><div class="code">${it.codigo}${it.duplicado ? ` · <span class="naming-dup-badge severity-${dupSeverity(it.duplicadoTipo)}">${dupSeverity(it.duplicadoTipo)==='alta'?'🔴':'⚠️'} ${t('namingDupWith')} ${it.duplicadoCodigo}</span>`:''}${it.sessionDup ? ` · 🔁 ${t('namingSessionDupBadge')} ${it.sessionDupCode||''}`:''}</div></div>
     ${editMode ? `<div class="drag-handle" data-drag-handle title="${t('reorderHint')}">⠿</div>` : `<div class="naming-actions">
       ${it.duplicado ? `<button type="button" class="btn ghost sm naming-action-btn naming-preview-btn" data-previewnaming="${it.id}" aria-label="${t('namingPreview')}" title="${t('namingPreview')}">${ICONS.eye}<span>${t('namingPreview')}</span></button>` : ''}
       <button type="button" class="btn ghost sm naming-action-btn" data-editnaming="${it.id}" aria-label="${t('edit')}" title="${t('edit')}">${ICONS.edit}<span>${t('edit')}</span></button>
@@ -5810,11 +5810,9 @@ function bindTabEvents(){
           const row=await persistNamingRemote(item);
           item.id='remote_'+row.id;
           saveNaming();
-          toast(t('namingSyncOk'));
         }catch(err){
           item.syncStatus='pending'; saveNaming();
           console.error('Error guardando nombrado en Supabase:',err);
-          toast(t('namingSyncError'));
         }
         document.getElementById('namingBarcode').value=''; document.getElementById('namingNombre').value=''; document.getElementById('namingSuggestion').innerHTML=''; if(spellWrap) spellWrap.innerHTML=''; if(formatWrap) formatWrap.innerHTML='';
         toast(dup ? t('namingDupWarning') : (sessionDupInfo ? t('namingSessionDupWarning') : t('imported')));
