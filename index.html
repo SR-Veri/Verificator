@@ -2472,12 +2472,15 @@ async function verifyNamingItemWithVeri(item){
       const cand = matchCodigo ? candidatos.find(c=>c.codigo===matchCodigo) : null;
       if(r.veredicto==='no_duplicado'){
         // Veri IA descarta el duplicado (ej. mismo peso/marca pero sabor distinto) -> se limpia el aviso local.
-        item.duplicado = false; item.duplicadoTipo = null; item.duplicadoCodigo = null;
+        item.duplicado = false; item.duplicadoTipo = null; item.duplicadoCodigo = null; item.duplicadoNombre = null;
       } else if(cand){
         // Veri confirmó CON CUÁL producto real de la base hace match: se puede mostrar con confianza.
+        // Se guarda el nombre del candidato en el mismo momento en que se fija el código, para que
+        // la vista previa nunca tenga que volver a buscarlo (y posiblemente encontrar otro producto).
         item.duplicado = true;
         item.duplicadoTipo = r.veredicto==='duplicado' ? 'veri' : 'revisar';
         item.duplicadoCodigo = cand.codigo;
+        item.duplicadoNombre = cand.nombre||null;
       } else if(localDup){
         // Veri ve parecido pero no logró señalar un código real de la lista de candidatos:
         // nunca se marca como "duplicado exacto" sin confirmación; se deja como "revisar" y
@@ -2486,9 +2489,10 @@ async function verifyNamingItemWithVeri(item){
         item.duplicado = true;
         item.duplicadoTipo = 'revisar';
         item.duplicadoCodigo = localDup.codigo;
+        item.duplicadoNombre = localDup.nombre||null;
       } else {
         // Sin candidato confirmado y sin duplicado local real: no hay nada que mostrar, no se marca.
-        item.duplicado = false; item.duplicadoTipo = null; item.duplicadoCodigo = null;
+        item.duplicado = false; item.duplicadoTipo = null; item.duplicadoCodigo = null; item.duplicadoNombre = null;
       }
     } else { changed = false; }
   }catch(err){
@@ -3496,7 +3500,7 @@ async function deleteExpiredNamingRemote(){
   catch(e){ console.error('No se pudo limpiar el archivo vencido:',e); }
 }
 function remoteRowToNamingItem(x){
-  return {id:'remote_'+x.id,codigo:x.codigo,nombre:x.nombre,duplicado:!!x.duplicado,duplicadoCodigo:x.duplicado_codigo||null,duplicadoTipo:x.duplicado_tipo||null,sessionDup:!!x.duplicado_sesion,sessionDupCode:x.duplicado_sesion_con||null,createdAt:Number(x.creado_en)||Date.now(),syncStatus:'synced'};
+  return {id:'remote_'+x.id,codigo:x.codigo,nombre:x.nombre,duplicado:!!x.duplicado,duplicadoCodigo:x.duplicado_codigo||null,duplicadoNombre:x.duplicado_nombre||null,duplicadoTipo:x.duplicado_tipo||null,sessionDup:!!x.duplicado_sesion,sessionDupCode:x.duplicado_sesion_con||null,createdAt:Number(x.creado_en)||Date.now(),syncStatus:'synced'};
 }
 async function syncNamingRemoteRows(remoteRows){
   if(!Array.isArray(remoteRows)||!state.naming) return false;
@@ -3535,7 +3539,7 @@ async function loadArchivedNaming(force){
 async function persistNamingRemote(item){
   if(!state.session) throw new Error('No hay sesión activa para guardar el nombrado.');
   const createdAt=Number(item.createdAt)||Date.now(); item.createdAt=createdAt; item.syncStatus='syncing';
-  const payload={codigo_persona:normalize(state.session),fecha:state.naming.date||todayKey(),codigo:item.codigo,nombre:item.nombre,duplicado:!!item.duplicado,duplicado_codigo:item.duplicadoCodigo||null,duplicado_tipo:item.duplicadoTipo||null,duplicado_sesion:!!item.sessionDup,duplicado_sesion_con:item.sessionDupCode||null,creado_en:createdAt};
+  const payload={codigo_persona:normalize(state.session),fecha:state.naming.date||todayKey(),codigo:item.codigo,nombre:item.nombre,duplicado:!!item.duplicado,duplicado_codigo:item.duplicadoCodigo||null,duplicado_nombre:item.duplicadoNombre||null,duplicado_tipo:item.duplicadoTipo||null,duplicado_sesion:!!item.sessionDup,duplicado_sesion_con:item.sessionDupCode||null,creado_en:createdAt};
   const res=await sb('nombrados_diarios',{method:'POST',body:JSON.stringify([payload]),headers:{'Prefer':'return=representation'}});
   if(!res||!res[0]||res[0].id==null) throw new Error('Supabase no devolvió el registro creado.');
   item.syncStatus='synced'; return res[0];
@@ -3546,7 +3550,7 @@ async function persistNamingEditRemote(item){
   if(!item.id || !item.id.startsWith('remote_')) return;
   const remoteId = item.id.slice(7);
   try{
-    await sb(`nombrados_diarios?id=eq.${encodeURIComponent(remoteId)}`, {method:'PATCH', body:JSON.stringify({codigo:item.codigo, nombre:item.nombre, duplicado:!!item.duplicado, duplicado_codigo:item.duplicadoCodigo||null, duplicado_tipo:item.duplicadoTipo||null, duplicado_sesion:!!item.sessionDup, duplicado_sesion_con:item.sessionDupCode||null}), headers:{'Prefer':'return=minimal'}});
+    await sb(`nombrados_diarios?id=eq.${encodeURIComponent(remoteId)}`, {method:'PATCH', body:JSON.stringify({codigo:item.codigo, nombre:item.nombre, duplicado:!!item.duplicado, duplicado_codigo:item.duplicadoCodigo||null, duplicado_nombre:item.duplicadoNombre||null, duplicado_tipo:item.duplicadoTipo||null, duplicado_sesion:!!item.sessionDup, duplicado_sesion_con:item.sessionDupCode||null}), headers:{'Prefer':'return=minimal'}});
   }catch(e){}
 }
 async function updateBaseTimestamp(year){ const patch={}; patch['base_'+year+'_updated_at']=new Date().toISOString(); try{await sb('config?id=eq.1',{method:'PATCH',body:JSON.stringify(patch),headers:{'Prefer':'return=minimal'}});}catch(e){} }
@@ -4956,7 +4960,11 @@ function closeNamingPreview(){ const el=document.getElementById('namingPreviewOv
 function openNamingPreview(itemId){
   const it = findNamingItemById(itemId);
   if(!it || !it.duplicado) return;
-  const dup = findDuplicateByCode2026(it.duplicadoCodigo);
+  // Se usa el nombre guardado en el momento de la detección (it.duplicadoNombre), igual que hace
+  // Calidad. Buscar de nuevo por código puede traer un producto distinto si el código quedó
+  // repetido en la base entre varios nombres, así que solo se recurre a esa búsqueda como respaldo
+  // para ítems antiguos que se guardaron antes de este cambio y no tienen duplicadoNombre.
+  const dupNombre = it.duplicadoNombre || (findDuplicateByCode2026(it.duplicadoCodigo)||{}).nombre;
   const reasonText = it.duplicadoTipo==='sameFlavorMass' ? t('namingPreviewReasonFlavor') : (it.duplicadoTipo==='code' ? t('namingPreviewReasonCode') : (it.duplicadoTipo==='similar' ? t('namingPreviewReasonSimilar') : ((it.duplicadoTipo==='veri'||it.duplicadoTipo==='revisar') ? (it.veriReason || t('namingPreviewReasonVeri')) : t('namingPreviewReasonExact'))));
   const severity = dupSeverity(it.duplicadoTipo);
   closeNamingPreview();
@@ -4973,7 +4981,7 @@ function openNamingPreview(itemId){
     <div class="preview-reason severity-${severity}">${severity==='alta'?'🔴':'⚠️'} ${reasonText}</div>
     <div class="preview-block">
       <div class="label">${t('namingPreviewMatch')}</div>
-      <div class="name">${dup ? dup.nombre : it.duplicadoCodigo}</div>
+      <div class="name">${dupNombre || it.duplicadoCodigo}</div>
       <div class="code">${it.duplicadoCodigo||''}</div>
     </div>
     <button type="button" class="btn secondary block" id="namingPreviewCloseBtn2">${t('namingEditDone')}</button>
@@ -5018,7 +5026,7 @@ function openNamingEditModal(itemId){
       it.sessionDup = false; it.sessionDupWith = null; it.sessionDupCode = null;
     }
     const dup = findNameDuplicate2026(nn, nc);
-    it.codigo=nc; it.nombre=nn; it.duplicado=!!dup; it.duplicadoCodigo=dup?dup.codigo:null; it.duplicadoTipo=dup?.__dupReason||null;
+    it.codigo=nc; it.nombre=nn; it.duplicado=!!dup; it.duplicadoCodigo=dup?dup.codigo:null; it.duplicadoNombre=dup?dup.nombre:null; it.duplicadoTipo=dup?.__dupReason||null;
     it.veriChecked=false; it.veriReason=null; it.veriChecking=false;
     saveNaming();
     persistNamingEditRemote(it);
@@ -5874,7 +5882,7 @@ function bindTabEvents(){
           sessionDupInfo = { codigo: sessionDup.codigo, nombre: sessionDup.nombre };
         }
         const dup = findNameDuplicate2026(nombre, codigo);
-        const item={id:'n'+Date.now()+Math.random().toString(36).slice(2,6),codigo,nombre,duplicado:!!dup,duplicadoCodigo:dup?dup.codigo:null,duplicadoTipo:dup?.__dupReason||null,veriChecking:false,veriChecked:false,veriReason:null,sessionDup:!!sessionDupInfo,sessionDupWith:sessionDupInfo?sessionDupInfo.nombre:null,sessionDupCode:sessionDupInfo?sessionDupInfo.codigo:null,createdAt:Date.now(),syncStatus:'pending'};
+        const item={id:'n'+Date.now()+Math.random().toString(36).slice(2,6),codigo,nombre,duplicado:!!dup,duplicadoCodigo:dup?dup.codigo:null,duplicadoNombre:dup?dup.nombre:null,duplicadoTipo:dup?.__dupReason||null,veriChecking:false,veriChecked:false,veriReason:null,sessionDup:!!sessionDupInfo,sessionDupWith:sessionDupInfo?sessionDupInfo.nombre:null,sessionDupCode:sessionDupInfo?sessionDupInfo.codigo:null,createdAt:Date.now(),syncStatus:'pending'};
         const esPrimero = !state.naming.items.length;
         state.naming.items.push(item);
         saveNaming();
