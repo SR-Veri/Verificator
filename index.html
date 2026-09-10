@@ -1830,7 +1830,7 @@ const I18N = {
     newsScan:"Escaneo listo", newsScanSub:"La cámara y el lector están preparados para verificar productos.", newsBase:"Base de productos", newsBaseSub:"Consulta cuándo se actualizó cada base.",
     lastUpdated:"Última actualización", neverUpdated:"Sin actualización registrada", totalScans:"Escaneos registrados", activePeople:"Personas activas", productsScanned:"Productos encontrados", todayScans:"Escaneos hoy", adminStatsTitle:"Estadísticas", adminPeopleTitle:"Personas", adminBasesTitle:"Bases de productos", adminToolsTitle:"Herramientas de administración", adminPersonEdit:"Editar nombre", adminNoStats:"Aún no hay actividad registrada.", downloadWindow:"Los nombrados de cada día se guardan automáticamente y permanecen en Archivados durante 7 días.", adminDataWarning:"Las estadísticas se generan con los escaneos registrados en la base de datos.", noUpdate:"No disponible", updateBase:"Actualizar base",
     adminToolAccessTitle:"Herramientas por persona", adminToolAccessSub:"Toca a una persona para elegir exactamente qué herramientas puede ver y usar (tú, como administrador, siempre ves todas).", adminToolAccessSaved:"Cambios guardados.", adminToolAccessErrorColumn:"No se pudo guardar: falta la columna 'tool_access' en la tabla 'personas' de Supabase. Pide que la agreguen (tipo jsonb) y vuelve a intentar.", adminToolAccessNone:"Agrega personas para poder asignarles herramientas.", adminToolAccessAdminNote:"El administrador siempre ve todas las herramientas.",
-    namingPreview:"Ver duplicado", namingPreviewTitle:"Posible duplicado", namingPreviewCurrent:"Lo que estás nombrando", namingPreviewMatch:"Ya existe en la base 2026", namingPreviewReasonExact:"⚠️ Coincidencia exacta de nombre", namingPreviewReasonFlavor:"⚠️ Mismo sabor y mismo peso, misma marca", namingPreviewReasonCode:"⚠️ Este código ya fue nombrado en la base 2026", namingPreviewReasonSimilar:"⚠️ Nombre muy parecido a uno ya existente (misma marca y peso)",
+    namingPreview:"Ver duplicado", namingPreviewTitle:"Posible duplicado", namingPreviewCurrent:"Lo que estás nombrando", namingPreviewMatch:"Ya existe en la base 2026", namingPreviewReasonExact:"⚠️ Coincidencia exacta de nombre", namingPreviewReasonFlavor:"⚠️ Mismo sabor y mismo peso, misma marca", namingPreviewReasonCode:"⚠️ Este código ya fue nombrado en la base 2026", namingPreviewReasonSimilar:"⚠️ Nombre muy parecido a uno ya existente (misma marca y peso)", namingPreviewReasonVeri:"⚠️ Veri IA considera que es el mismo producto", namingVeriChecking:"Verificando con Veri IA…",
     namingEditOrder:"Editar", namingEditDone:"Listo",
     namingSelectAll:"Seleccionar todo", namingDeselectAll:"Deseleccionar todo", namingDeleteSelected:"Eliminar",
     namingConfirmDeleteMultiple:"⚠️🚨 ¿Mandamos a volar estos {count} productos de los de hoy? 🚨 Confirma, pero conste que no hay botón de '¡Ups, me equivoqué!'",
@@ -2028,7 +2028,7 @@ const I18N = {
     newsScan:"Scanning ready", newsScanSub:"The camera and reader are ready to verify products.", newsBase:"Product databases", newsBaseSub:"See when each database was updated.",
     lastUpdated:"Last updated", neverUpdated:"No update recorded", totalScans:"Recorded scans", activePeople:"Active people", productsScanned:"Products found", todayScans:"Today's scans", adminStatsTitle:"Statistics", adminPeopleTitle:"People", adminBasesTitle:"Product databases", adminToolsTitle:"Administration tools", adminPersonEdit:"Edit name", adminNoStats:"No activity has been recorded yet.", downloadWindow:"Each day’s named products are saved automatically and remain in Archived for 7 days.", adminDataWarning:"Statistics are generated from scans recorded in the database.", noUpdate:"Unavailable", updateBase:"Update database",
     adminToolAccessTitle:"Tools per person", adminToolAccessSub:"Tap a person to choose exactly which tools they can see and use (as admin, you always see all of them).", adminToolAccessSaved:"Changes saved.", adminToolAccessErrorColumn:"Couldn't save: the 'tool_access' column is missing from the 'personas' table in Supabase. Ask for it to be added (jsonb type) and try again.", adminToolAccessNone:"Add people to be able to assign them tools.", adminToolAccessAdminNote:"The admin always sees every tool.",
-    namingPreview:"View duplicate", namingPreviewTitle:"Possible duplicate", namingPreviewCurrent:"What you're naming", namingPreviewMatch:"Already exists in the 2026 base", namingPreviewReasonExact:"⚠️ Exact name match", namingPreviewReasonFlavor:"⚠️ Same flavor and weight, same brand", namingPreviewReasonCode:"⚠️ This code was already named in the 2026 base", namingPreviewReasonSimilar:"⚠️ Name very similar to an existing one (same brand and weight)",
+    namingPreview:"View duplicate", namingPreviewTitle:"Possible duplicate", namingPreviewCurrent:"What you're naming", namingPreviewMatch:"Already exists in the 2026 base", namingPreviewReasonExact:"⚠️ Exact name match", namingPreviewReasonFlavor:"⚠️ Same flavor and weight, same brand", namingPreviewReasonCode:"⚠️ This code was already named in the 2026 base", namingPreviewReasonSimilar:"⚠️ Name very similar to an existing one (same brand and weight)", namingPreviewReasonVeri:"⚠️ Veri AI considers this the same product", namingVeriChecking:"Checking with Veri AI…",
     namingEditOrder:"Edit", namingEditDone:"Done",
     namingSelectAll:"Select all", namingDeselectAll:"Deselect all", namingDeleteSelected:"Delete",
     namingConfirmDeleteMultiple:"Delete these {count} products from today's named list? This action cannot be undone.",
@@ -2436,6 +2436,69 @@ async function runVeriQualityCheck(){
     render();
   }
 }
+/* Verificación de duplicados con Veri IA para el Nombrador (mismo mecanismo que usa Calidad:
+   candidatos reales de la base 2026 + veredicto del modelo), para que un nombre que solo se
+   PARECE a otro (ej. mismo peso/marca pero sabor distinto) no se marque como duplicado nada
+   más por la heurística local, y para que también pueda detectar duplicados reales que la
+   heurística local no encontró. Si Veri IA está apagada, sin clave configurada, o la petición
+   falla, se deja tal cual el resultado del chequeo local (ya calculado antes de llamar esto)
+   sin bloquear ni retrasar el flujo de nombrar. Devuelve true si el ítem cambió. */
+async function verifyNamingItemWithVeri(item){
+  if(!toolVisible('veriai')) return false;
+  if(!state.prefs.aiEnabled) return false;
+  if(!(state.veriApiKey||'').trim()) return false;
+  // Una coincidencia "exact" (nombre idéntico, como buscarlo con Ctrl+F en la base) o "code"
+  // (mismo código de barras ya nombrado) es 100% segura: no se manda a Veri IA, porque
+  // reevaluarla solo agrega el riesgo de que "confirme" el duplicado contra un producto
+  // equivocado si no logra señalar bien con cuál candidato hace match.
+  if(item.duplicadoTipo==='exact' || item.duplicadoTipo==='code') return false;
+  const localDup = item.duplicado ? {codigo:item.duplicadoCodigo, nombre:(findDuplicateByCode2026(item.duplicadoCodigo)||{}).nombre} : null;
+  const candidatos = getQualityCandidates(item.nombre, item.codigo, localDup);
+  if(!candidatos.length) return false; // nada real con qué comparar: se deja el resultado local
+  item.veriChecking = true;
+  let changed = true;
+  try{
+    const payload = [{ id: item.id, codigo: item.codigo||null, nombre: item.nombre, candidatos }];
+    const text = await callGroqRaw([{role:'system',content:QUALITY_VERI_SYSTEM},{role:'user',content:JSON.stringify(payload)}], 500, {reasoning_effort:'low'});
+    const cleaned = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(cleaned);
+    const r = Array.isArray(parsed) ? parsed.find(p=>String(p.id)===String(item.id)) : null;
+    if(r && ['duplicado','revisar','no_duplicado'].includes(r.veredicto)){
+      item.veriChecked = true;
+      item.veriReason = String(r.razon||'').slice(0,200);
+      const matchCodigo = r.coincidencia_codigo ? String(r.coincidencia_codigo) : null;
+      // Solo se acepta si el código coincide EXACTO con uno de los candidatos enviados
+      // (evita que Veri "invente" un producto que no existe realmente en la base).
+      const cand = matchCodigo ? candidatos.find(c=>c.codigo===matchCodigo) : null;
+      if(r.veredicto==='no_duplicado'){
+        // Veri IA descarta el duplicado (ej. mismo peso/marca pero sabor distinto) -> se limpia el aviso local.
+        item.duplicado = false; item.duplicadoTipo = null; item.duplicadoCodigo = null;
+      } else if(cand){
+        // Veri confirmó CON CUÁL producto real de la base hace match: se puede mostrar con confianza.
+        item.duplicado = true;
+        item.duplicadoTipo = r.veredicto==='duplicado' ? 'veri' : 'revisar';
+        item.duplicadoCodigo = cand.codigo;
+      } else if(localDup){
+        // Veri ve parecido pero no logró señalar un código real de la lista de candidatos:
+        // nunca se marca como "duplicado exacto" sin confirmación; se deja como "revisar" y
+        // se conserva el candidato local (que sí es un producto real de la base), para que la
+        // vista previa siempre muestre el producto correcto y no uno que no coincide.
+        item.duplicado = true;
+        item.duplicadoTipo = 'revisar';
+        item.duplicadoCodigo = localDup.codigo;
+      } else {
+        // Sin candidato confirmado y sin duplicado local real: no hay nada que mostrar, no se marca.
+        item.duplicado = false; item.duplicadoTipo = null; item.duplicadoCodigo = null;
+      }
+    } else { changed = false; }
+  }catch(err){
+    console.error('Veri IA (nombrar):', err);
+    changed = false;
+  } finally {
+    item.veriChecking = false;
+  }
+  return changed;
+}
 function qualityStatusBadge(it){
   if(it.manualVerdict==='si') return `<span class="quality-badge dup">${t('qualityConfirmedYes')}</span>`;
   if(it.manualVerdict==='no') return `<span class="quality-badge ok">${t('qualityConfirmedNo')}</span>`;
@@ -2553,9 +2616,14 @@ function extractMassGrams(name){
 function flavorSignature(name){
   const parts=normalize(name).split(/[,;|]+/).map(x=>x.trim()).filter(Boolean);
   if(parts.length<2) return null;
-  const c=parts.filter(p=>!extractQuantity(p)).map(p=>p.replace(/\b[A-Z]?\d+\b/g,'').replace(/\s+/g,' ').trim()).filter(p=>p.length>=4);
-  if(!c.length) return null; const middle=c.slice(1,-1); const pick=(middle.length?middle:c).sort((a,b)=>b.length-a.length)[0];
-  return normalizeForSearch(pick).split(' ').filter(Boolean).sort().join(' ');
+  // Antes se elegía un solo segmento "del medio" (parts.slice(1,-1)) como firma de sabor/variante,
+  // así que si el nombre traía una coma extra antes del sabor (ej. "...EN TROZOS, DE MORA, 500G, B")
+  // ese último segmento con el sabor quedaba descartado y dos sabores distintos (MORA/GUANABANA)
+  // terminaban con la MISMA firma -> falso duplicado. Ahora se usan TODOS los segmentos que no sean
+  // la marca (primer segmento) ni la cantidad neta, sin importar cuántas comas tenga el nombre.
+  const c=parts.slice(1).filter(p=>!extractQuantity(p)).map(p=>p.replace(/\b[A-Z]?\d+\b/g,'').replace(/\s+/g,' ').trim()).filter(p=>p.length>=4);
+  if(!c.length) return null;
+  return normalizeForSearch(c.join(' ')).split(' ').filter(Boolean).sort().join(' ');
 }
 function tokenSet(name){
   return new Set(normalizeForSearch(name).split(' ').filter(Boolean));
@@ -2596,7 +2664,7 @@ function namesLookSimilar(nameA, nameB){
    - "media" (ámbar, como antes): es un posible duplicado que conviene revisar, pero no es 100% seguro
      (mismo sabor+peso+marca, o nombre muy parecido). */
 function dupSeverity(tipo){
-  return (tipo==='exact' || tipo==='code') ? 'alta' : 'media';
+  return (tipo==='exact' || tipo==='code' || tipo==='veri') ? 'alta' : 'media';
 }
 function findNameDuplicate2026(nombreNorm, excludeCodigo){
   const idx=state.index['2026']; if(!idx) return null;
@@ -4875,7 +4943,7 @@ function renderNamingItem(it, order){
   const selected = state.namingSelected.includes(it.id);
   return `<div class="drag-item naming-item${editMode?' edit-mode':''}" data-dragid="${it.id}">
     ${editMode ? `<div class="naming-select${selected?' selected':''}" data-selectnaming="${it.id}" role="checkbox" aria-checked="${selected}">${selected?NAMING_CHECK_ICON:''}</div>` : `<div class="naming-order">${order}</div>`}
-    <div class="naming-item-info"${editMode?` data-selectnaming="${it.id}"`:''}><div class="name">${it.nombre}</div><div class="code">${it.codigo}${it.duplicado ? ` · <span class="naming-dup-badge severity-${dupSeverity(it.duplicadoTipo)}">${dupSeverity(it.duplicadoTipo)==='alta'?'🔴':'⚠️'} ${t('namingDupWith')} ${it.duplicadoCodigo}</span>`:''}${it.sessionDup ? ` · 🔁 ${t('namingSessionDupBadge')} ${it.sessionDupCode||''}`:''}</div></div>
+    <div class="naming-item-info"${editMode?` data-selectnaming="${it.id}"`:''}><div class="name">${it.nombre}</div><div class="code">${it.codigo}${it.duplicado ? ` · <span class="naming-dup-badge severity-${dupSeverity(it.duplicadoTipo)}">${dupSeverity(it.duplicadoTipo)==='alta'?'🔴':'⚠️'} ${t('namingDupWith')} ${it.duplicadoCodigo}</span>`:''}${it.sessionDup ? ` · 🔁 ${t('namingSessionDupBadge')} ${it.sessionDupCode||''}`:''}</div>${it.veriChecking ? `<div class="small-note" style="margin-top:2px;">${t('namingVeriChecking')}</div>` : (it.veriChecked && it.veriReason ? `<div class="small-note" style="margin-top:2px;font-style:italic;">"${escapeHtml(it.veriReason)}"</div>` : '')}</div>
     ${editMode ? `<div class="drag-handle" data-drag-handle title="${t('reorderHint')}">⠿</div>` : `<div class="naming-actions">
       ${it.duplicado ? `<button type="button" class="btn ghost sm naming-action-btn naming-preview-btn" data-previewnaming="${it.id}" aria-label="${t('namingPreview')}" title="${t('namingPreview')}">${ICONS.eye}<span>${t('namingPreview')}</span></button>` : ''}
       <button type="button" class="btn ghost sm naming-action-btn" data-editnaming="${it.id}" aria-label="${t('edit')}" title="${t('edit')}">${ICONS.edit}<span>${t('edit')}</span></button>
@@ -4889,7 +4957,7 @@ function openNamingPreview(itemId){
   const it = findNamingItemById(itemId);
   if(!it || !it.duplicado) return;
   const dup = findDuplicateByCode2026(it.duplicadoCodigo);
-  const reasonText = it.duplicadoTipo==='sameFlavorMass' ? t('namingPreviewReasonFlavor') : (it.duplicadoTipo==='code' ? t('namingPreviewReasonCode') : (it.duplicadoTipo==='similar' ? t('namingPreviewReasonSimilar') : t('namingPreviewReasonExact')));
+  const reasonText = it.duplicadoTipo==='sameFlavorMass' ? t('namingPreviewReasonFlavor') : (it.duplicadoTipo==='code' ? t('namingPreviewReasonCode') : (it.duplicadoTipo==='similar' ? t('namingPreviewReasonSimilar') : ((it.duplicadoTipo==='veri'||it.duplicadoTipo==='revisar') ? (it.veriReason || t('namingPreviewReasonVeri')) : t('namingPreviewReasonExact'))));
   const severity = dupSeverity(it.duplicadoTipo);
   closeNamingPreview();
   const overlay = document.createElement('div');
@@ -4951,10 +5019,14 @@ function openNamingEditModal(itemId){
     }
     const dup = findNameDuplicate2026(nn, nc);
     it.codigo=nc; it.nombre=nn; it.duplicado=!!dup; it.duplicadoCodigo=dup?dup.codigo:null; it.duplicadoTipo=dup?.__dupReason||null;
+    it.veriChecked=false; it.veriReason=null; it.veriChecking=false;
     saveNaming();
     persistNamingEditRemote(it);
     closeNamingEditModal();
     render();
+    verifyNamingItemWithVeri(it).then(changed=>{
+      if(changed){ saveNaming(); persistNamingEditRemote(it); render(); }
+    });
   };
 }
 function renderRepList(){
@@ -5802,7 +5874,7 @@ function bindTabEvents(){
           sessionDupInfo = { codigo: sessionDup.codigo, nombre: sessionDup.nombre };
         }
         const dup = findNameDuplicate2026(nombre, codigo);
-        const item={id:'n'+Date.now()+Math.random().toString(36).slice(2,6),codigo,nombre,duplicado:!!dup,duplicadoCodigo:dup?dup.codigo:null,duplicadoTipo:dup?.__dupReason||null,sessionDup:!!sessionDupInfo,sessionDupWith:sessionDupInfo?sessionDupInfo.nombre:null,sessionDupCode:sessionDupInfo?sessionDupInfo.codigo:null,createdAt:Date.now(),syncStatus:'pending'};
+        const item={id:'n'+Date.now()+Math.random().toString(36).slice(2,6),codigo,nombre,duplicado:!!dup,duplicadoCodigo:dup?dup.codigo:null,duplicadoTipo:dup?.__dupReason||null,veriChecking:false,veriChecked:false,veriReason:null,sessionDup:!!sessionDupInfo,sessionDupWith:sessionDupInfo?sessionDupInfo.nombre:null,sessionDupCode:sessionDupInfo?sessionDupInfo.codigo:null,createdAt:Date.now(),syncStatus:'pending'};
         const esPrimero = !state.naming.items.length;
         state.naming.items.push(item);
         saveNaming();
@@ -5817,6 +5889,11 @@ function bindTabEvents(){
         document.getElementById('namingBarcode').value=''; document.getElementById('namingNombre').value=''; document.getElementById('namingSuggestion').innerHTML=''; if(spellWrap) spellWrap.innerHTML=''; if(formatWrap) formatWrap.innerHTML='';
         toast(dup ? t('namingDupWarning') : (sessionDupInfo ? t('namingSessionDupWarning') : t('imported')));
         render();
+        // Verificación con Veri IA en segundo plano (igual que en Calidad): no bloquea el flujo
+        // de escaneo/nombrado, pero corrige el aviso local (lo confirma o lo descarta) apenas responde.
+        verifyNamingItemWithVeri(item).then(changed=>{
+          if(changed){ saveNaming(); persistNamingEditRemote(item); render(); }
+        });
       };
       document.querySelectorAll('[data-delnaming]').forEach(b=> b.onclick = async ()=>{
         if(!confirm(t('namingConfirmDelete'))) return;
