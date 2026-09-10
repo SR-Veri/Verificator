@@ -3206,14 +3206,14 @@ function onNamingCodeScanned(code){
 function downloadNamingExcel(){
   if(!state.naming || !state.naming.items.length){ toast(t('namingEmpty')); return; }
   const data = state.naming.items.map(it=>{
-    const dup = it.duplicado ? findDuplicateByCode2026(it.duplicadoCodigo) : null;
+    const dupNombre = it.duplicado ? (it.duplicadoNombre || (findDuplicateByCode2026(it.duplicadoCodigo)||{}).nombre) : null;
     return {
       'TIPO': 'Producto nombrado',
       'CODIGO': it.codigo,
       'NOMBRE DEL PRODUCTO': it.nombre,
       'DUPLICADO 2026': it.duplicado ? 'SI' : 'NO',
       'SEVERIDAD': it.duplicado ? (dupSeverity(it.duplicadoTipo)==='alta' ? 'ALTA (igual)' : 'MEDIA (parecido)') : '',
-      'PRODUCTO POSIBLEMENTE DUPLICADO': dup ? dup.nombre : '',
+      'PRODUCTO POSIBLEMENTE DUPLICADO': dupNombre || '',
       'CODIGO DEL POSIBLE DUPLICADO': it.duplicadoCodigo || '',
       'CRITERIO': it.duplicadoTipo==='sameFlavorMass' ? 'Mismo sabor y mismo peso, misma marca' : (it.duplicadoTipo==='code' ? 'Mismo código ya nombrado' : (it.duplicadoTipo==='similar' ? 'Nombre muy parecido a uno existente' : (it.duplicado ? 'Coincidencia exacta de nombre' : ''))),
       'REPETIDO EL MISMO DIA': it.sessionDup ? `SI (${it.sessionDupCode||''})` : 'NO'
@@ -5250,8 +5250,30 @@ let lastScanCode = null, lastScanTime = 0;
 let candidateCode = null, candidateCount = 0;
 let activeWrapId = null, activeBtnId = null, activeOnDetect = null;
 const CONFIRM_COUNT = 2;
+// Formatos de código de barras que realmente se usan en empaques de productos. Antes se aceptaba
+// cualquier formato que el navegador supiera leer (QR, Aztec, PDF417, etc.), lo que hacía más
+// probable que la cámara "confirmara" una lectura basura si alcanzaba a leer algo parecido a un
+// código en dos cuadros seguidos. Limitar los formatos reduce esas falsas lecturas.
+const PRODUCT_BARCODE_FORMATS = ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf'];
+/* Valida el dígito verificador estándar de GTIN (EAN-8, UPC-A/EAN-13, EAN-14). Si el código no es
+   puramente numérico o no tiene una longitud estándar (ej. CODE_128/CODE_39 alfanuméricos), no hay
+   checksum que aplicar y se deja pasar tal cual. Esto es lo que de verdad filtra la mayoría de las
+   lecturas erróneas de EAN/UPC: un solo dígito mal leído por la cámara casi siempre rompe el checksum. */
+function gtinChecksumValid(code){
+  if(!/^\d+$/.test(code)) return true;
+  if(![8,12,13,14].includes(code.length)) return true;
+  const digits = code.split('').map(Number);
+  const checkDigit = digits.pop();
+  let sum = 0;
+  digits.reverse().forEach((d,i)=>{ sum += d * (i%2===0?3:1); });
+  const calc = (10 - (sum%10))%10;
+  return calc===checkDigit;
+}
 function handleDetection(value){
   if(!value) return;
+  // Se descarta de inmediato cualquier lectura que no pase el checksum, sin tocar el candidato que
+  // ya se venía acumulando: así una racha de lecturas buenas no se pierde por un cuadro con ruido.
+  if(!gtinChecksumValid(value)) return;
   if(value===candidateCode){ candidateCount++; } else { candidateCode=value; candidateCount=1; }
   if(candidateCount>=CONFIRM_COUNT){
     candidateCode=null; candidateCount=0;
@@ -5353,7 +5375,9 @@ async function startCamera(wrapId, btnId, onDetect){
   setupPinchZoom(frame, video, stream.getVideoTracks()[0]);
 
   if('BarcodeDetector' in window){
-    const detector = new BarcodeDetector();
+    let detector;
+    try{ detector = new BarcodeDetector({formats:PRODUCT_BARCODE_FORMATS}); }
+    catch(e){ detector = new BarcodeDetector(); }
     let detecting = false;
     let stopped = false;
     const loop = async ()=>{
@@ -5374,7 +5398,16 @@ async function startCamera(wrapId, btnId, onDetect){
   } else {
     try{
       await loadZXing();
-      const codeReader = new ZXing.BrowserMultiFormatReader();
+      let codeReader;
+      try{
+        const formatMap = {ean_13:'EAN_13',ean_8:'EAN_8',upc_a:'UPC_A',upc_e:'UPC_E',code_128:'CODE_128',code_39:'CODE_39',itf:'ITF'};
+        const formats = PRODUCT_BARCODE_FORMATS.map(f=>ZXing.BarcodeFormat[formatMap[f]]).filter(f=>f!==undefined);
+        const hints = new Map();
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+        codeReader = new ZXing.BrowserMultiFormatReader(hints);
+      }catch(e){
+        codeReader = new ZXing.BrowserMultiFormatReader();
+      }
       zxingReader = codeReader;
       codeReader.decodeFromStream(stream, video, (result)=>{
         if(result && state.cameraStream){ handleDetection(result.getText()); }
