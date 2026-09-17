@@ -1734,6 +1734,7 @@ const I18N = {
     namingFastDecoding:"Leyendo código de barras…", namingFastNoCode:"No se pudo leer el código, escríbelo manualmente",
     namingFastEnterCode:"Escribe el código manualmente", namingFastManual:"Falta nombrar manual",
     namingFastAdd:"Agregar", namingFastAdded:"Agregado", namingFastRemove:"Quitar",
+    namingFastProcessing:"Procesando fotos", namingFastScanBtn:"Escanear", namingFastScanTitle:"Escanear código del producto",
     repPending:"Pendientes", repDone:"Completadas", repAll:"Todas",
     repNew:"Nueva repetición", repCodProd:"Código de producto", repNomProd:"Nombre del producto",
     repFotografo:"Código del fotógrafo", repBarras:"Código de barras", repMotivo:"Motivo de repetición",
@@ -1940,6 +1941,7 @@ const I18N = {
     namingFastDecoding:"Reading barcode…", namingFastNoCode:"Couldn't read the code, type it manually",
     namingFastEnterCode:"Type the code manually", namingFastManual:"Needs manual naming",
     namingFastAdd:"Add", namingFastAdded:"Added", namingFastRemove:"Remove",
+    namingFastProcessing:"Processing photos", namingFastScanBtn:"Scan", namingFastScanTitle:"Scan the product's code",
     repPending:"Pending", repDone:"Done", repAll:"All",
     repNew:"New repeat", repCodProd:"Product code", repNomProd:"Product name",
     repFotografo:"Photographer code", repBarras:"Barcode", repMotivo:"Repeat reason",
@@ -3302,6 +3304,40 @@ async function decodeBarcodeFromFile(file){
   return null;
 }
 function makeFastId(){ return 'f'+Date.now()+Math.random().toString(36).slice(2,6); }
+/* Modal de cámara para escanear el código de un ítem puntual de FastNames cuando la lectura
+   automática de la foto falló. Se maneja como overlay aparte (igual que openNamingPreview /
+   openNamingEditModal) para que no lo borre el re-render de la lista mientras la cámara está activa. */
+function closeFastCameraModal(){
+  stopCamera();
+  const el = document.getElementById('namingFastCameraOverlay');
+  if(el) el.remove();
+}
+function openFastCameraModal(entryId){
+  closeFastCameraModal();
+  const overlay = document.createElement('div');
+  overlay.id = 'namingFastCameraOverlay';
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `<div class="modal-sheet glass">
+    <div class="modal-header"><h3>${t('namingFastScanTitle')}</h3><button type="button" class="modal-close" id="namingFastCameraCloseBtn" aria-label="${t('namingEditDone')}">${ICONS.x}</button></div>
+    <div id="namingFastCameraWrap"></div>
+    <div class="row" style="margin-top:8px;"><button class="btn secondary block" id="namingFastCameraStartBtn">${ICONS.camera} ${t('startCamera')}</button></div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeFastCameraModal(); });
+  document.getElementById('namingFastCameraCloseBtn').onclick = closeFastCameraModal;
+  document.getElementById('namingFastCameraStartBtn').onclick = ()=>{
+    startCamera('namingFastCameraWrap','namingFastCameraStartBtn', (code)=>{
+      const entry = state.namingFast && state.namingFast.items.find(x=>x.id===entryId);
+      closeFastCameraModal();
+      if(entry){
+        entry.codigo = normalize(code);
+        entry.status='done';
+        applyFastLookup(entry);
+      }
+      render();
+    });
+  };
+}
 /* A partir del código ya leído, busca el nombre en la base 2025 (si existe, se usa tal cual) y
    revisa duplicado/sugerencia contra la base 2026 — mismo criterio que updateNamingSuggestion()
    usa en el flujo manual 1x1: código ya nombrado en 2026 = duplicado real; si no, y hay nombre de
@@ -3331,10 +3367,14 @@ async function handleNamingFastFiles(fileList){
     sugerencias:[], added:false, file
   }));
   state.namingFast.items.push(...newEntries);
+  state.namingFast.processing = { current:0, total:newEntries.length };
   render();
   try{ await ensureBaseLoaded('2025'); await ensureBaseLoaded('2026'); }catch(e){}
-  for(const entry of newEntries){
-    entry.status='decoding'; render();
+  for(let i=0;i<newEntries.length;i++){
+    const entry = newEntries[i];
+    entry.status='decoding';
+    state.namingFast.processing = { current:i, total:newEntries.length };
+    render();
     try{ entry.thumb = await fileToThumbDataUrl(entry.file); }catch(e){}
     let code = null;
     try{ code = await decodeBarcodeFromFile(entry.file); }catch(e){}
@@ -3346,8 +3386,11 @@ async function handleNamingFastFiles(fileList){
     } else {
       entry.status='error';
     }
+    state.namingFast.processing = { current:i+1, total:newEntries.length };
     render();
   }
+  state.namingFast.processing = null;
+  render();
 }
 function downloadNamingExcel(){
   if(!state.naming || !state.naming.items.length){ toast(t('namingEmpty')); return; }
@@ -5057,14 +5100,22 @@ function renderNamingFast(){
   if(!state.namingFast) state.namingFast = {items:[]};
   const items = state.namingFast.items;
   const readyCount = items.filter(e=> !e.added && e.codigo && e.nombre && e.nombre.trim()).length;
+  const proc = state.namingFast.processing;
+  const pct = proc && proc.total ? Math.round((proc.current/proc.total)*100) : 0;
   return `
     <p class="small-note" style="margin:0 0 10px;">${t('namingFastSub')}</p>
     <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-      <label class="btn secondary sm" for="namingFastFileInput" style="cursor:pointer;">${ICONS.camera} ${t('namingFastImportBtn')}</label>
-      <input type="file" id="namingFastFileInput" accept="image/*" multiple style="display:none;">
-      ${items.length ? `<button type="button" class="btn secondary sm" id="namingFastClearBtn">${t('namingFastClear')}</button>` : ''}
+      <label class="btn secondary sm" for="namingFastFileInput" style="cursor:pointer;${proc?'pointer-events:none;opacity:.5;':''}">${ICONS.camera} ${t('namingFastImportBtn')}</label>
+      <input type="file" id="namingFastFileInput" accept="image/*" multiple style="display:none;" ${proc?'disabled':''}>
+      ${items.length && !proc ? `<button type="button" class="btn secondary sm" id="namingFastClearBtn">${t('namingFastClear')}</button>` : ''}
       ${readyCount ? `<button type="button" class="btn sm" id="namingFastAddAllBtn">${t('namingFastAddAll')} (${readyCount})</button>` : ''}
     </div>
+    ${proc ? `<div class="naming-fast-progress" style="margin-bottom:14px;">
+      <div class="small-note" style="margin-bottom:4px;">${t('namingFastProcessing')} ${proc.current}/${proc.total}</div>
+      <div style="height:10px;border-radius:999px;background:var(--input-bg);overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:999px;transition:width .25s ease;"></div>
+      </div>
+    </div>` : ''}
     ${items.length ? items.map((e,i)=>renderNamingFastItem(e,i+1)).join('') : `<div class="empty">${t('namingFastEmpty')}</div>`}
   `;
 }
@@ -5078,7 +5129,10 @@ function renderNamingFastItem(e, order){
     e.source==='2025'
       ? `<div class="name">${escapeHtml(e.nombre)}</div><div class="small-note">✨ ${t('naming2025Found')}</div>`
       : `<div class="small-note" style="margin-bottom:4px;">⚠️ ${t('namingFastManual')}</div><textarea class="naming-fast-name-input" data-fastname="${e.id}" rows="2" style="text-transform:uppercase;width:100%;resize:vertical;" placeholder="${t('namingName')}">${escapeHtml(e.nombre||'')}</textarea>`
-  ) : (e.status==='decoding' ? '' : `<input type="text" class="naming-fast-code-input" data-fastcode="${e.id}" placeholder="${t('namingFastEnterCode')}" style="text-transform:uppercase;width:100%;">`);
+  ) : (e.status==='decoding' ? '' : `<div class="row" style="gap:6px;margin-top:2px;align-items:stretch;">
+      <input type="text" class="naming-fast-code-input" data-fastcode="${e.id}" placeholder="${t('namingFastEnterCode')}" style="text-transform:uppercase;flex:1;min-width:0;">
+      <button type="button" class="btn secondary sm naming-action-btn" data-fastscan="${e.id}" aria-label="${t('namingFastScanBtn')}" title="${t('namingFastScanBtn')}">${ICONS.camera}<span>${t('namingFastScanBtn')}</span></button>
+    </div>`);
   return `<div class="drag-item naming-item" data-fastitem="${e.id}">
     <div class="naming-order">${order}</div>
     ${e.thumb ? `<img src="${e.thumb}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:8px;margin-right:8px;flex-shrink:0;">` : ''}
@@ -6155,6 +6209,7 @@ function bindTabEvents(){
           if(addBtn) addBtn.disabled = !entry.codigo || !entry.nombre;
         });
       });
+      document.querySelectorAll('[data-fastscan]').forEach(b=> b.onclick = ()=> openFastCameraModal(b.dataset.fastscan));
       document.querySelectorAll('[data-fastcode]').forEach(inp=>{
         inp.addEventListener('change', ()=>{
           const id = inp.dataset.fastcode;
