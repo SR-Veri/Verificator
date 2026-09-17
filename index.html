@@ -1727,6 +1727,13 @@ const I18N = {
     namingSessionDupCode:"Ya agregaste este código hoy: {nombre} ({codigo}). ¿Agregarlo de nuevo?",
     namingSessionDupName:"Ya agregaste un producto con este nombre hoy: {nombre} ({codigo}). ¿Agregarlo de todos modos?",
     namingDownload:"Descargar Excel del día", namingEmpty:"Aún no hay productos para descargar.",
+    namingMode1x1:"Nombrar 1x1", namingModeFast:"Nombrar FastNames",
+    namingFastSub:"Importa las fotos de los productos en el mismo orden en que los fotografiaste. La app lee el código de barras de cada foto, busca el nombre en la base 2025 y revisa duplicados en la base 2026, igual que en Nombrar 1x1.",
+    namingFastImportBtn:"Importar fotos", namingFastClear:"Vaciar", namingFastClearConfirm:"¿Vaciar la lista de fotos importadas? Los que ya agregaste a la lista de hoy no se pierden.",
+    namingFastAddAll:"Agregar todos los listos", namingFastEmpty:"Aún no has importado fotos.",
+    namingFastDecoding:"Leyendo código de barras…", namingFastNoCode:"No se pudo leer el código, escríbelo manualmente",
+    namingFastEnterCode:"Escribe el código manualmente", namingFastManual:"Falta nombrar manual",
+    namingFastAdd:"Agregar", namingFastAdded:"Agregado", namingFastRemove:"Quitar",
     repPending:"Pendientes", repDone:"Completadas", repAll:"Todas",
     repNew:"Nueva repetición", repCodProd:"Código de producto", repNomProd:"Nombre del producto",
     repFotografo:"Código del fotógrafo", repBarras:"Código de barras", repMotivo:"Motivo de repetición",
@@ -1926,6 +1933,13 @@ const I18N = {
     namingSessionDupCode:"You already added this code today: {nombre} ({codigo}). Add it again?",
     namingSessionDupName:"You already added a product with this name today: {nombre} ({codigo}). Add it anyway?",
     namingDownload:"Download today's Excel", namingEmpty:"No products to download yet.",
+    namingMode1x1:"Name 1x1", namingModeFast:"Name FastNames",
+    namingFastSub:"Import the product photos in the same order you took them. The app reads the barcode in each photo, looks up the name in the 2025 base, and checks for duplicates in the 2026 base, just like in Name 1x1.",
+    namingFastImportBtn:"Import photos", namingFastClear:"Clear", namingFastClearConfirm:"Clear the imported photo list? Products already added to today's list are kept.",
+    namingFastAddAll:"Add all ready", namingFastEmpty:"You haven't imported photos yet.",
+    namingFastDecoding:"Reading barcode…", namingFastNoCode:"Couldn't read the code, type it manually",
+    namingFastEnterCode:"Type the code manually", namingFastManual:"Needs manual naming",
+    namingFastAdd:"Add", namingFastAdded:"Added", namingFastRemove:"Remove",
     repPending:"Pending", repDone:"Done", repAll:"All",
     repNew:"New repeat", repCodProd:"Product code", repNomProd:"Product name",
     repFotografo:"Photographer code", repBarras:"Barcode", repMotivo:"Repeat reason",
@@ -2056,6 +2070,7 @@ const state = {
   session: localStorage.getItem('vp_session') || null,
   loginError:'', loginStep:'code', loginCandidate:null, avatarPickerOpen:false,
   tab:'home', repView:'list', namingEditMode:false, namingSelected:[], namingListMode:'today',
+  namingSubMode:'1x1', namingFast:{items:[]},
   prefs: JSON.parse(localStorage.getItem('vp_prefs')||'null') || { lang:'es', theme:'light', defaultBase:'2026', accent:'#0A84FF', vibration:true, sound:true, soundStyle:'modern' },
   bases:{ '2025':[], '2026':[] },
   index:{ '2025':null, '2026':null },
@@ -3202,6 +3217,137 @@ function onNamingCodeScanned(code){
   vibrateFor('exact'); beepFor('exact');
   const nameInput = document.getElementById('namingNombre');
   if(nameInput) nameInput.focus();
+}
+/* Agrega un producto a la lista de nombrados de hoy (mismo mecanismo que usa el botón "Agregar" de
+   Nombrar 1x1: aviso de repetido del día, chequeo de duplicado contra la base 2026, guardado local +
+   Supabase, y verificación en segundo plano con Veri IA). La usan tanto Nombrar 1x1 como Nombrar
+   FastNames para no duplicar esta lógica. Devuelve el ítem creado, o null si el usuario canceló o
+   faltaban datos. */
+async function commitNamingItem(codigoRaw, nombreRaw){
+  const codigo = normalize(codigoRaw), nombre = normalize(nombreRaw);
+  if(!codigo || !nombre) return null;
+  const sessionDup = state.naming.items.find(it=> it.codigo===codigo || it.nombre===nombre);
+  let sessionDupInfo = null;
+  if(sessionDup){
+    const msgKey = sessionDup.codigo===codigo ? 'namingSessionDupCode' : 'namingSessionDupName';
+    const msg = t(msgKey).replace('{nombre}', sessionDup.nombre).replace('{codigo}', sessionDup.codigo);
+    if(!confirm(msg)) return null;
+    sessionDupInfo = { codigo: sessionDup.codigo, nombre: sessionDup.nombre };
+  }
+  const dup = findNameDuplicate2026(nombre, codigo);
+  const item={id:'n'+Date.now()+Math.random().toString(36).slice(2,6),codigo,nombre,duplicado:!!dup,duplicadoCodigo:dup?dup.codigo:null,duplicadoNombre:dup?dup.nombre:null,duplicadoTipo:dup?.__dupReason||null,veriChecking:false,veriChecked:false,veriReason:null,sessionDup:!!sessionDupInfo,sessionDupWith:sessionDupInfo?sessionDupInfo.nombre:null,sessionDupCode:sessionDupInfo?sessionDupInfo.codigo:null,createdAt:Date.now(),syncStatus:'pending'};
+  state.naming.items.push(item);
+  saveNaming();
+  try{
+    const row=await persistNamingRemote(item);
+    item.id='remote_'+row.id;
+    saveNaming();
+  }catch(err){
+    item.syncStatus='pending'; saveNaming();
+    console.error('Error guardando nombrado en Supabase:',err);
+  }
+  toast(dup ? t('namingDupWarning') : (sessionDupInfo ? t('namingSessionDupWarning') : t('imported')));
+  verifyNamingItemWithVeri(item).then(changed=>{
+    if(changed){ saveNaming(); persistNamingEditRemote(item); render(); }
+  });
+  return item;
+}
+/* ===================== Nombrar FastNames: importar fotos y decodificar código ===================== */
+function fileToThumbDataUrl(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>resolve(reader.result);
+    reader.onerror = ()=>reject(new Error('thumb read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+/* Lee el código de barras de una foto ya tomada (no de un video en vivo): primero intenta con la
+   BarcodeDetector nativa sobre un ImageBitmap de la foto y, si no está disponible o no encuentra
+   nada, cae a ZXing decodificando la misma foto desde una URL temporal. Reutiliza los mismos
+   formatos de código (PRODUCT_BARCODE_FORMATS) y el checksum (gtinChecksumValid) que usa el
+   escaneo con cámara, para no aceptar lecturas basura. */
+async function decodeBarcodeFromFile(file){
+  let bitmap = null;
+  try{ bitmap = await createImageBitmap(file); }catch(e){}
+  if(bitmap && 'BarcodeDetector' in window){
+    let detector;
+    try{ detector = new BarcodeDetector({formats:PRODUCT_BARCODE_FORMATS}); }
+    catch(e){ try{ detector = new BarcodeDetector(); }catch(e2){ detector=null; } }
+    if(detector){
+      try{
+        const codes = await detector.detect(bitmap);
+        if(codes && codes.length){
+          const good = codes.map(c=>c.rawValue).find(v=>gtinChecksumValid(v));
+          if(good || codes[0]) return good || codes[0].rawValue;
+        }
+      }catch(e){}
+    }
+  }
+  let url = null;
+  try{
+    await loadZXing();
+    url = URL.createObjectURL(file);
+    let codeReader;
+    try{
+      const formatMap = {ean_13:'EAN_13',ean_8:'EAN_8',upc_a:'UPC_A',upc_e:'UPC_E',code_128:'CODE_128',code_39:'CODE_39',itf:'ITF'};
+      const formats = PRODUCT_BARCODE_FORMATS.map(f=>ZXing.BarcodeFormat[formatMap[f]]).filter(f=>f!==undefined);
+      const hints = new Map();
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+      codeReader = new ZXing.BrowserMultiFormatReader(hints);
+    }catch(e){ codeReader = new ZXing.BrowserMultiFormatReader(); }
+    const result = await codeReader.decodeFromImageUrl(url);
+    if(result) return result.getText();
+  }catch(e){}
+  finally{ if(url) URL.revokeObjectURL(url); }
+  return null;
+}
+function makeFastId(){ return 'f'+Date.now()+Math.random().toString(36).slice(2,6); }
+/* A partir del código ya leído, busca el nombre en la base 2025 (si existe, se usa tal cual) y
+   revisa duplicado/sugerencia contra la base 2026 — mismo criterio que updateNamingSuggestion()
+   usa en el flujo manual 1x1: código ya nombrado en 2026 = duplicado real; si no, y hay nombre de
+   2025, se buscan productos parecidos en 2026 (mismo peso/sabor) como sugerencia. */
+function applyFastLookup(entry){
+  const code = entry.codigo;
+  const p25 = state.index['2025'] && state.index['2025'].map.get(code);
+  const p26 = state.index['2026'] && state.index['2026'].map.get(code);
+  entry.duplicado=false; entry.duplicadoTipo=null; entry.duplicadoCodigo=null; entry.duplicadoNombre=null; entry.sugerencias=[];
+  if(p25){ entry.nombre = p25.nombre; entry.source='2025'; }
+  else { entry.nombre=''; entry.source='manual'; }
+  if(p26){
+    entry.duplicado=true; entry.duplicadoTipo='code'; entry.duplicadoCodigo=p26.codigo; entry.duplicadoNombre=p26.nombre;
+  } else if(p25){
+    entry.sugerencias = findLineSuggestions2026(p25.nombre, code, 3);
+  }
+}
+/* Procesa las fotos importadas EN ORDEN (una por una, no en paralelo, para no saturar el celular):
+   miniatura + lectura de código + búsqueda en 2025/2026, re-pintando la lista después de cada foto
+   para que el usuario vea el avance sin esperar a que termine todo el lote. */
+async function handleNamingFastFiles(fileList){
+  if(!state.namingFast) state.namingFast = {items:[]};
+  const files = Array.from(fileList).sort((a,b)=> (a.lastModified||0)-(b.lastModified||0) || a.name.localeCompare(b.name));
+  const newEntries = files.map(file=>({
+    id: makeFastId(), fileName:file.name, thumb:null, status:'pending',
+    codigo:null, nombre:'', source:null, duplicado:false, duplicadoTipo:null, duplicadoCodigo:null, duplicadoNombre:null,
+    sugerencias:[], added:false, file
+  }));
+  state.namingFast.items.push(...newEntries);
+  render();
+  try{ await ensureBaseLoaded('2025'); await ensureBaseLoaded('2026'); }catch(e){}
+  for(const entry of newEntries){
+    entry.status='decoding'; render();
+    try{ entry.thumb = await fileToThumbDataUrl(entry.file); }catch(e){}
+    let code = null;
+    try{ code = await decodeBarcodeFromFile(entry.file); }catch(e){}
+    entry.file = null;
+    if(code){
+      entry.codigo = normalize(code);
+      applyFastLookup(entry);
+      entry.status='done';
+    } else {
+      entry.status='error';
+    }
+    render();
+  }
 }
 function downloadNamingExcel(){
   if(!state.naming || !state.naming.items.length){ toast(t('namingEmpty')); return; }
@@ -4873,7 +5019,13 @@ function renderRepNaming(){
   const selectedCount = state.namingSelected.length;
   const allSelected = items.length>0 && selectedCount===items.length;
   const mode = state.namingListMode || 'today';
+  const subMode = state.namingSubMode || '1x1';
   return `
+    <div class="pill-toggle" style="margin-bottom:12px;">
+      <button data-namingsubmode="1x1" class="${subMode==='1x1'?'active':''}">${t('namingMode1x1')}</button>
+      <button data-namingsubmode="fast" class="${subMode==='fast'?'active':''}">${t('namingModeFast')}</button>
+    </div>
+    ${subMode==='1x1' ? `
     <p class="small-note" style="margin:0 0 14px;">${t('downloadWindow')}</p>
     <div class="card glass">
       <div class="section-title">${t('namingNew')}</div>
@@ -4886,7 +5038,11 @@ function renderRepNaming(){
       <div id="namingSpellCheck"></div>
       <div id="namingAgreementsCheck"></div>
       <button class="btn block" id="namingAddBtn">${t('namingAdd')}</button>
-    </div>
+    </div>` : `
+    <div class="card glass">
+      <div class="section-title">${t('namingModeFast')}</div>
+      ${renderNamingFast()}
+    </div>`}
     <div class="card glass">
       <div class="pill-toggle" style="margin-bottom:12px;">
         <button data-namingmode="today" class="${mode==='today'?'active':''}">${t('namingListTitle')}</button>
@@ -4895,6 +5051,49 @@ function renderRepNaming(){
       ${mode==='today' ? renderNamingTodayPanel(items, selectedCount, allSelected) : renderNamingArchivedPanel()}
     </div>
   `;
+}
+/* ===================== Nombrar FastNames: renderizado ===================== */
+function renderNamingFast(){
+  if(!state.namingFast) state.namingFast = {items:[]};
+  const items = state.namingFast.items;
+  const readyCount = items.filter(e=> !e.added && e.codigo && e.nombre && e.nombre.trim()).length;
+  return `
+    <p class="small-note" style="margin:0 0 10px;">${t('namingFastSub')}</p>
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      <label class="btn secondary sm" for="namingFastFileInput" style="cursor:pointer;">${ICONS.camera} ${t('namingFastImportBtn')}</label>
+      <input type="file" id="namingFastFileInput" accept="image/*" multiple style="display:none;">
+      ${items.length ? `<button type="button" class="btn secondary sm" id="namingFastClearBtn">${t('namingFastClear')}</button>` : ''}
+      ${readyCount ? `<button type="button" class="btn sm" id="namingFastAddAllBtn">${t('namingFastAddAll')} (${readyCount})</button>` : ''}
+    </div>
+    ${items.length ? items.map((e,i)=>renderNamingFastItem(e,i+1)).join('') : `<div class="empty">${t('namingFastEmpty')}</div>`}
+  `;
+}
+function renderNamingFastItem(e, order){
+  const dupBadge = e.duplicado ? `<span class="naming-dup-badge severity-${dupSeverity(e.duplicadoTipo)}">${dupSeverity(e.duplicadoTipo)==='alta'?'🔴':'⚠️'} ${t('namingDupWith')} ${e.duplicadoCodigo||''}</span>` : '';
+  const sugHtml = (!e.duplicado && e.sugerencias && e.sugerencias.length) ? `<details class="naming-suggestion-alert"><summary><span class="naming-suggestion-alert-icon">💡</span><strong>${t('naming2026Suggestion')}</strong></summary><div class="naming-suggestion-alert-body">${e.sugerencias.map(p=>`<div class="naming-duplicate-product">${escapeHtml(p.nombre)}</div>`).join('')}</div></details>` : '';
+  let statusHtml = '';
+  if(e.status==='decoding') statusHtml = `<div class="small-note">${t('namingFastDecoding')}</div>`;
+  else if(e.status==='error') statusHtml = `<div class="small-note">⚠️ ${t('namingFastNoCode')}</div>`;
+  const nameBlock = e.codigo ? (
+    e.source==='2025'
+      ? `<div class="name">${escapeHtml(e.nombre)}</div><div class="small-note">✨ ${t('naming2025Found')}</div>`
+      : `<div class="small-note" style="margin-bottom:4px;">⚠️ ${t('namingFastManual')}</div><textarea class="naming-fast-name-input" data-fastname="${e.id}" rows="2" style="text-transform:uppercase;width:100%;resize:vertical;" placeholder="${t('namingName')}">${escapeHtml(e.nombre||'')}</textarea>`
+  ) : (e.status==='decoding' ? '' : `<input type="text" class="naming-fast-code-input" data-fastcode="${e.id}" placeholder="${t('namingFastEnterCode')}" style="text-transform:uppercase;width:100%;">`);
+  return `<div class="drag-item naming-item" data-fastitem="${e.id}">
+    <div class="naming-order">${order}</div>
+    ${e.thumb ? `<img src="${e.thumb}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:8px;margin-right:8px;flex-shrink:0;">` : ''}
+    <div class="naming-item-info">
+      ${e.codigo ? `<div class="code">${e.codigo}</div>` : ''}
+      ${nameBlock}
+      ${statusHtml}
+      ${dupBadge ? `<div style="margin-top:2px;">${dupBadge}</div>` : ''}
+      ${sugHtml}
+    </div>
+    <div class="naming-actions">
+      ${!e.added ? `<button type="button" class="btn ghost sm naming-action-btn" data-fastadd="${e.id}" ${(!e.codigo || !e.nombre || !e.nombre.trim()) ? 'disabled' : ''}>${t('namingFastAdd')}</button>` : `<span class="small-note">✅ ${t('namingFastAdded')}</span>`}
+      <button type="button" class="btn ghost sm naming-action-btn naming-delete-btn" data-fastdel="${e.id}" aria-label="${t('namingFastRemove')}" title="${t('namingFastRemove')}">${ICONS.trash}</button>
+    </div>
+  </div>`;
 }
 function renderNamingTodayPanel(items, selectedCount, allSelected){
   return `
@@ -5857,85 +6056,117 @@ function bindTabEvents(){
       };
     } else if(state.repView==='naming'){
       ensureBothBasesLoaded();
+      document.querySelectorAll('[data-namingsubmode]').forEach(b=> b.onclick = ()=>{ stopCamera(); state.namingSubMode = b.dataset.namingsubmode; render(); });
       document.querySelectorAll('[data-namingmode]').forEach(b=> b.onclick = ()=>{ state.namingListMode = b.dataset.namingmode; render(); });
       document.querySelectorAll('[data-archiveddate]').forEach(b=> b.onclick = ()=>{ state.archived.selectedDate = b.dataset.archiveddate; render(); });
       const adBtn = document.getElementById('archivedDownloadBtn');
       if(adBtn) adBtn.onclick = ()=> downloadArchivedExcel(adBtn.dataset.archiveddownload);
       const bcInput = document.getElementById('namingBarcode');
-      bcInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); updateNamingSuggestion(); document.getElementById('namingNombre').focus(); } });
-      bcInput.addEventListener('blur', updateNamingSuggestion);
-      document.getElementById('namingCamBtn').onclick = ()=>{ state.cameraStream ? stopCamera() : startCamera('namingCameraWrap','namingCamBtn', onNamingCodeScanned); };
-      const nombreInput = document.getElementById('namingNombre');
-      const spellWrap = document.getElementById('namingSpellCheck');
-      const formatWrap = document.getElementById('namingFormatCheck');
-      const agreementsWrap = document.getElementById('namingAgreementsCheck');
-      const renderSpellCheck = ()=>{
-        if(!spellWrap) return;
-        const issues = checkNameSpelling(nombreInput.value);
-        spellWrap.innerHTML = issues.length ? `<div class="naming-spell-alert" role="alert"><span class="naming-spell-alert-icon">✏️</span><div>${issues.map(i=>`<div>${i.type==='split' ? t('namingSpellSplit') : i.type==='space' ? t('namingSpellDoubleSpace') : i.type==='weight' ? t('namingSpellMissingWeight') : t('namingSpellTypo')}: <strong>${i.word}</strong> → <strong>${i.suggestion}</strong></div>`).join('')}</div></div>` : '';
-      };
-      const renderFormatCheck = ()=>{
-        if(!formatWrap) return;
-        if(!state.prefs.namingFormatCheck){ formatWrap.innerHTML=''; return; }
-        const missing = checkNameFormat(nombreInput.value);
-        formatWrap.innerHTML = missing.length ? `<div class="naming-format-alert" role="alert"><span class="naming-format-alert-icon">📋</span><div><strong>${t('namingFormatTitle')}</strong>${missing.map(m=>`<div>• ${m}</div>`).join('')}</div></div>` : '';
-      };
-      const renderAgreementsCheck = ()=>{
-        if(!agreementsWrap) return;
-        if(!state.prefs.namingAgreementsCheck){ agreementsWrap.innerHTML=''; return; }
-        const issues = checkNamingAgreements(nombreInput.value);
-        agreementsWrap.innerHTML = issues.length ? `<div class="naming-agreement-alert" role="alert"><span class="naming-agreement-alert-icon">🤝</span><div><strong>${t('namingAgreementsTitle')}</strong>${issues.map(i=>`<div>• ${i.text}</div>`).join('')}</div></div>` : '';
-      };
-      if(nombreInput){
-        nombreInput.addEventListener('input', ()=>{
-          const start = nombreInput.selectionStart, end = nombreInput.selectionEnd;
-          const stripped = stripAccentsLive(nombreInput.value);
-          if(stripped !== nombreInput.value){ nombreInput.value = stripped; nombreInput.setSelectionRange(start,end); }
-          renderSpellCheck();
-          renderFormatCheck();
-          renderAgreementsCheck();
-        });
-        nombreInput.addEventListener('blur', ()=>{ renderSpellCheck(); renderFormatCheck(); renderAgreementsCheck(); });
+      if(bcInput){
+        bcInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); updateNamingSuggestion(); document.getElementById('namingNombre').focus(); } });
+        bcInput.addEventListener('blur', updateNamingSuggestion);
+        document.getElementById('namingCamBtn').onclick = ()=>{ state.cameraStream ? stopCamera() : startCamera('namingCameraWrap','namingCamBtn', onNamingCodeScanned); };
+        const nombreInput = document.getElementById('namingNombre');
+        const spellWrap = document.getElementById('namingSpellCheck');
+        const formatWrap = document.getElementById('namingFormatCheck');
+        const agreementsWrap = document.getElementById('namingAgreementsCheck');
+        const renderSpellCheck = ()=>{
+          if(!spellWrap) return;
+          const issues = checkNameSpelling(nombreInput.value);
+          spellWrap.innerHTML = issues.length ? `<div class="naming-spell-alert" role="alert"><span class="naming-spell-alert-icon">✏️</span><div>${issues.map(i=>`<div>${i.type==='split' ? t('namingSpellSplit') : i.type==='space' ? t('namingSpellDoubleSpace') : i.type==='weight' ? t('namingSpellMissingWeight') : t('namingSpellTypo')}: <strong>${i.word}</strong> → <strong>${i.suggestion}</strong></div>`).join('')}</div></div>` : '';
+        };
+        const renderFormatCheck = ()=>{
+          if(!formatWrap) return;
+          if(!state.prefs.namingFormatCheck){ formatWrap.innerHTML=''; return; }
+          const missing = checkNameFormat(nombreInput.value);
+          formatWrap.innerHTML = missing.length ? `<div class="naming-format-alert" role="alert"><span class="naming-format-alert-icon">📋</span><div><strong>${t('namingFormatTitle')}</strong>${missing.map(m=>`<div>• ${m}</div>`).join('')}</div></div>` : '';
+        };
+        const renderAgreementsCheck = ()=>{
+          if(!agreementsWrap) return;
+          if(!state.prefs.namingAgreementsCheck){ agreementsWrap.innerHTML=''; return; }
+          const issues = checkNamingAgreements(nombreInput.value);
+          agreementsWrap.innerHTML = issues.length ? `<div class="naming-agreement-alert" role="alert"><span class="naming-agreement-alert-icon">🤝</span><div><strong>${t('namingAgreementsTitle')}</strong>${issues.map(i=>`<div>• ${i.text}</div>`).join('')}</div></div>` : '';
+        };
+        if(nombreInput){
+          nombreInput.addEventListener('input', ()=>{
+            const start = nombreInput.selectionStart, end = nombreInput.selectionEnd;
+            const stripped = stripAccentsLive(nombreInput.value);
+            if(stripped !== nombreInput.value){ nombreInput.value = stripped; nombreInput.setSelectionRange(start,end); }
+            renderSpellCheck();
+            renderFormatCheck();
+            renderAgreementsCheck();
+          });
+          nombreInput.addEventListener('blur', ()=>{ renderSpellCheck(); renderFormatCheck(); renderAgreementsCheck(); });
+        }
+        document.getElementById('namingAddBtn').onclick = async ()=>{
+          const codigo = document.getElementById('namingBarcode').value;
+          const nombre = document.getElementById('namingNombre').value;
+          if(!normalize(codigo) || !normalize(nombre)){ toast('!'); return; }
+          const item = await commitNamingItem(codigo, nombre);
+          if(!item) return;
+          document.getElementById('namingBarcode').value=''; document.getElementById('namingNombre').value=''; document.getElementById('namingSuggestion').innerHTML=''; if(spellWrap) spellWrap.innerHTML=''; if(formatWrap) formatWrap.innerHTML='';
+          render();
+        };
       }
-      document.getElementById('namingAddBtn').onclick = async ()=>{
-        const codigo = normalize(document.getElementById('namingBarcode').value);
-        const nombre = normalize(document.getElementById('namingNombre').value);
-        if(!codigo || !nombre){ toast('!'); return; }
-        // Aviso de "repetidos del día": solo debe saltar si es el mismo código o el nombre
-        // es EXACTAMENTE igual (no "parecido"), ya que un sabor, peso o marca distintos
-        // son productos distintos aunque el contexto se vea similar.
-        const sessionDup = state.naming.items.find(it=> it.codigo===codigo || it.nombre===nombre);
-        let sessionDupInfo = null;
-        if(sessionDup){
-          const msgKey = sessionDup.codigo===codigo ? 'namingSessionDupCode' : 'namingSessionDupName';
-          const msg = t(msgKey).replace('{nombre}', sessionDup.nombre).replace('{codigo}', sessionDup.codigo);
-          if(!confirm(msg)) return;
-          // El usuario decidió agregarlo de todos modos: se guarda la advertencia junto al ítem
-          // para que quede visible en la lista de nombrados (no solo en el momento de agregar).
-          sessionDupInfo = { codigo: sessionDup.codigo, nombre: sessionDup.nombre };
-        }
-        const dup = findNameDuplicate2026(nombre, codigo);
-        const item={id:'n'+Date.now()+Math.random().toString(36).slice(2,6),codigo,nombre,duplicado:!!dup,duplicadoCodigo:dup?dup.codigo:null,duplicadoNombre:dup?dup.nombre:null,duplicadoTipo:dup?.__dupReason||null,veriChecking:false,veriChecked:false,veriReason:null,sessionDup:!!sessionDupInfo,sessionDupWith:sessionDupInfo?sessionDupInfo.nombre:null,sessionDupCode:sessionDupInfo?sessionDupInfo.codigo:null,createdAt:Date.now(),syncStatus:'pending'};
-        const esPrimero = !state.naming.items.length;
-        state.naming.items.push(item);
-        saveNaming();
-        try{
-          const row=await persistNamingRemote(item);
-          item.id='remote_'+row.id;
-          saveNaming();
-        }catch(err){
-          item.syncStatus='pending'; saveNaming();
-          console.error('Error guardando nombrado en Supabase:',err);
-        }
-        document.getElementById('namingBarcode').value=''; document.getElementById('namingNombre').value=''; document.getElementById('namingSuggestion').innerHTML=''; if(spellWrap) spellWrap.innerHTML=''; if(formatWrap) formatWrap.innerHTML='';
-        toast(dup ? t('namingDupWarning') : (sessionDupInfo ? t('namingSessionDupWarning') : t('imported')));
-        render();
-        // Verificación con Veri IA en segundo plano (igual que en Calidad): no bloquea el flujo
-        // de escaneo/nombrado, pero corrige el aviso local (lo confirma o lo descarta) apenas responde.
-        verifyNamingItemWithVeri(item).then(changed=>{
-          if(changed){ saveNaming(); persistNamingEditRemote(item); render(); }
-        });
+      // ===== Nombrar FastNames =====
+      const fastFileInput = document.getElementById('namingFastFileInput');
+      if(fastFileInput) fastFileInput.onchange = (e)=>{
+        const files = e.target.files;
+        if(files && files.length) handleNamingFastFiles(files);
+        e.target.value='';
       };
+      const fastClearBtn = document.getElementById('namingFastClearBtn');
+      if(fastClearBtn) fastClearBtn.onclick = ()=>{
+        if(!confirm(t('namingFastClearConfirm'))) return;
+        state.namingFast.items = [];
+        render();
+      };
+      const fastAddAllBtn = document.getElementById('namingFastAddAllBtn');
+      if(fastAddAllBtn) fastAddAllBtn.onclick = async ()=>{
+        const ready = state.namingFast.items.filter(e=> !e.added && e.codigo && e.nombre && e.nombre.trim());
+        for(const entry of ready){
+          const item = await commitNamingItem(entry.codigo, entry.nombre);
+          if(item) entry.added = true;
+        }
+        render();
+      };
+      document.querySelectorAll('[data-fastadd]').forEach(b=> b.onclick = async ()=>{
+        const id = b.dataset.fastadd;
+        const entry = state.namingFast.items.find(x=>x.id===id);
+        if(!entry || !entry.codigo || !entry.nombre || !entry.nombre.trim()) return;
+        const item = await commitNamingItem(entry.codigo, entry.nombre);
+        if(item){ entry.added = true; render(); }
+      });
+      document.querySelectorAll('[data-fastdel]').forEach(b=> b.onclick = ()=>{
+        const id = b.dataset.fastdel;
+        state.namingFast.items = state.namingFast.items.filter(x=>x.id!==id);
+        render();
+      });
+      document.querySelectorAll('[data-fastname]').forEach(inp=>{
+        inp.addEventListener('input', ()=>{
+          const id = inp.dataset.fastname;
+          const entry = state.namingFast.items.find(x=>x.id===id);
+          if(!entry) return;
+          const start = inp.selectionStart, end = inp.selectionEnd;
+          const stripped = stripAccentsLive(inp.value);
+          if(stripped !== inp.value){ inp.value = stripped; inp.setSelectionRange(start,end); }
+          entry.nombre = normalize(inp.value);
+          const addBtn = document.querySelector(`[data-fastadd="${id}"]`);
+          if(addBtn) addBtn.disabled = !entry.codigo || !entry.nombre;
+        });
+      });
+      document.querySelectorAll('[data-fastcode]').forEach(inp=>{
+        inp.addEventListener('change', ()=>{
+          const id = inp.dataset.fastcode;
+          const entry = state.namingFast.items.find(x=>x.id===id);
+          if(!entry) return;
+          entry.codigo = normalize(inp.value);
+          if(!entry.codigo){ entry.status='error'; render(); return; }
+          entry.status='done';
+          applyFastLookup(entry);
+          render();
+        });
+      });
       document.querySelectorAll('[data-delnaming]').forEach(b=> b.onclick = async ()=>{
         if(!confirm(t('namingConfirmDelete'))) return;
         const itemId = b.dataset.delnaming;
