@@ -358,22 +358,22 @@ body:after{width:500px;height:500px;right:-180px;top:60px;background:#a9c7ff;ani
   --card-highlight:rgba(255,255,255,.78);
 }
 [data-theme="dark"]{
-  --bg-1:#0b0c10;
-  --bg-2:#14161c;
+  --bg-1:#000000;
+  --bg-2:#000000;
   --text-1:#f5f6f8;
   --text-2:#9b9faa;
-  --glass-bg:rgba(28,30,38,.62);
-  --glass-bg-strong:rgba(37,39,48,.82);
-  --glass-border:rgba(255,255,255,.10);
-  --glass-shadow:0 24px 70px rgba(0,0,0,.38);
-  --input-bg:rgba(255,255,255,.065);
-  --divider:rgba(255,255,255,.085);
-  --nav-bg:rgba(17,18,23,.78);
-  --ambient-a:rgba(109,93,252,.22);
-  --ambient-b:rgba(59,130,246,.14);
-  --ambient-c:rgba(255,107,154,.12);
-  --ambient-d:rgba(52,199,89,.08);
-  --card-highlight:rgba(255,255,255,.045);
+  --glass-bg:rgba(255,255,255,.045);
+  --glass-bg-strong:rgba(255,255,255,.07);
+  --glass-border:rgba(255,255,255,.09);
+  --glass-shadow:0 24px 70px rgba(0,0,0,.6);
+  --input-bg:rgba(255,255,255,.05);
+  --divider:rgba(255,255,255,.075);
+  --nav-bg:rgba(0,0,0,.85);
+  --ambient-a:rgba(109,93,252,.14);
+  --ambient-b:rgba(59,130,246,.09);
+  --ambient-c:rgba(255,107,154,.07);
+  --ambient-d:rgba(52,199,89,.05);
+  --card-highlight:rgba(255,255,255,.035);
 }
 html{background:var(--bg-1)}
 body{
@@ -600,10 +600,10 @@ input[type=text],input[type=search],select,textarea{border-radius:15px;backgroun
 .file-drop{border:1px solid var(--glass-border)!important;border-radius:20px!important;background:var(--input-bg);padding:20px!important}
 /* Strong dark-mode surfaces */
 [data-theme="dark"] .login-card{box-shadow:0 30px 100px rgba(0,0,0,.48)!important}
-[data-theme="dark"] .home-card{background:rgba(27,29,37,.66)}
-[data-theme="dark"] .tools-bento{background:linear-gradient(145deg,rgba(27,29,37,.7),rgba(109,93,252,.10))}
-[data-theme="dark"] .bases-bento{background:linear-gradient(145deg,rgba(27,29,37,.7),rgba(59,130,246,.08))}
-[data-theme="dark"] .home-search{background:rgba(29,31,39,.78)}
+[data-theme="dark"] .home-card{background:rgba(8,8,10,.8)}
+[data-theme="dark"] .tools-bento{background:linear-gradient(145deg,rgba(8,8,10,.85),rgba(109,93,252,.08))}
+[data-theme="dark"] .bases-bento{background:linear-gradient(145deg,rgba(8,8,10,.85),rgba(59,130,246,.07))}
+[data-theme="dark"] .home-search{background:rgba(6,6,8,.9)}
 /* Desktop stays spacious */
 @media (min-width:701px){
   .home-grid{align-items:stretch}
@@ -1104,28 +1104,28 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
   [data-theme="dark"] .home-widget,
   [data-theme="dark"] .settings-group,
   [data-theme="dark"] .profile-card{
-    background:rgba(25,27,33,.94)!important;
+    background:rgba(10,10,12,.96)!important;
   }
 
   .bottomnav{
     background:rgba(248,247,244,.96)!important;
   }
   [data-theme="dark"] .bottomnav{
-    background:rgba(22,24,29,.96)!important;
+    background:rgba(0,0,0,.97)!important;
   }
 
   .home-search{
     background:rgba(250,249,246,.94)!important;
   }
   [data-theme="dark"] .home-search{
-    background:rgba(25,27,33,.96)!important;
+    background:rgba(10,10,12,.97)!important;
   }
 
   .spotlight-panel{
     background:rgba(250,249,246,.97)!important;
   }
   [data-theme="dark"] .spotlight-panel{
-    background:rgba(25,27,33,.98)!important;
+    background:rgba(8,8,10,.98)!important;
   }
 
   /* Stop expensive ambient blobs and card entrance animations while
@@ -1240,7 +1240,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
   overflow:hidden!important;
 }
 [data-theme="dark"] .spotlight-panel{
-  background:rgba(25,27,33,.94)!important;
+  background:rgba(8,8,10,.96)!important;
   border-color:rgba(255,255,255,.13)!important;
   box-shadow:
     0 26px 78px rgba(0,0,0,.48),
@@ -1312,13 +1312,13 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 }
 [data-theme="dark"] .glass,[data-theme="dark"] .card,[data-theme="dark"] .home-widget,
 [data-theme="dark"] .settings-group,[data-theme="dark"] .profile-card{
-  background:rgba(30,31,37,.9)!important;
-  box-shadow:0 1px 2px rgba(0,0,0,.25),0 14px 34px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05)!important;
+  background:rgba(8,8,10,.94)!important;
+  box-shadow:0 1px 2px rgba(0,0,0,.3),0 14px 34px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.04)!important;
 }
 [data-theme="light"] .home-search{background:rgba(255,255,255,.92)!important;}
-[data-theme="dark"] .home-search{background:rgba(29,31,39,.92)!important;}
+[data-theme="dark"] .home-search{background:rgba(6,6,8,.94)!important;}
 [data-theme="light"] .recent-mini{background:rgba(246,246,248,.9)!important;}
-[data-theme="dark"] .recent-mini{background:rgba(255,255,255,.06)!important;}
+[data-theme="dark"] .recent-mini{background:rgba(255,255,255,.05)!important;}
 </style>
 <style>
 /* ===== Home palette refinement ===== */
@@ -1377,7 +1377,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
       color-mix(in srgb, var(--card-tone, var(--accent)) 13%, transparent),
       color-mix(in srgb, var(--card-tone, var(--accent)) 5%, transparent) 60%,
       transparent 100%),
-    var(--home-card-bg, rgba(30,31,37,.9)) !important;
+    var(--home-card-bg, rgba(8,8,10,.94)) !important;
 }
 
 /* ===== Grid de tarjetas de inicio: se adapta sin dejar huecos vacíos, tanto en
@@ -1572,6 +1572,25 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 </style>
 </head>
 <body data-theme="light">
+<script>
+/* Aplica el theme correcto ANTES del primer paint, para que en iPhone/Android
+   no se vea un flash en modo claro. Usa la preferencia guardada; si no hay
+   ninguna, sigue el modo oscuro/claro del sistema operativo. */
+(function(){
+  try{
+    var saved = JSON.parse(localStorage.getItem('vp_prefs')||'null');
+    var theme = saved && saved.theme;
+    if(!theme){
+      theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    }
+    document.body.setAttribute('data-theme', theme);
+    if(theme==='dark'){
+      var m = document.querySelector('meta[name="theme-color"]');
+      if(m) m.setAttribute('content', '#000000');
+    }
+  }catch(e){}
+})();
+</script>
 <div id="root"></div>
 <button type="button" id="veriFab" class="veri-fab" aria-label="Ask Veri" title="Veri"></button>
 
@@ -2073,7 +2092,7 @@ const state = {
   loginError:'', loginStep:'code', loginCandidate:null, avatarPickerOpen:false,
   tab:'home', repView:'list', namingEditMode:false, namingSelected:[], namingListMode:'today',
   namingSubMode:'1x1', namingFast:{items:[]},
-  prefs: JSON.parse(localStorage.getItem('vp_prefs')||'null') || { lang:'es', theme:'light', defaultBase:'2026', accent:'#0A84FF', vibration:true, sound:true, soundStyle:'modern' },
+  prefs: JSON.parse(localStorage.getItem('vp_prefs')||'null') || { lang:'es', theme:(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light', defaultBase:'2026', accent:'#0A84FF', vibration:true, sound:true, soundStyle:'modern' },
   bases:{ '2025':[], '2026':[] },
   index:{ '2025':null, '2026':null },
   personas:[],
@@ -4049,7 +4068,7 @@ function applyTheme(){
   });
 
   const meta = document.querySelector('meta[name="theme-color"]');
-  if(meta) meta.setAttribute('content', state.prefs.accent);
+  if(meta) meta.setAttribute('content', state.prefs.theme==='dark' ? '#000000' : state.prefs.accent);
 }
 function hexToRgb(hex){
   const h = hex.replace('#','');
