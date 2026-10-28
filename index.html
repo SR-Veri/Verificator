@@ -2192,7 +2192,7 @@ const I18N = {
     cartInBaseTitle:"Ya existe en la base 2026", cartInBaseExactLabel:"Este código ya está registrado en la base 2026. ¿Quieres agregarlo al carrito de todas formas?",
     cartInBaseSimilarLabel:"Encontramos un producto parecido en la base 2026. ¿Quieres agregarlo al carrito de todas formas?",
     cartAddAnyway:"Agregar de todas formas", cartCancelAdd:"No agregar",
-    cartAddException:"Agregar como excepción", cartExceptionTag:"Excepción", cartInBaseNote:"Ya está en la base 2026, no se agrega al carrito salvo como excepción.", cartReviewBtn:"Revisar en Buscar", cartReviewTitle:"Revisión manual del código escaneado", cartReviewSimilar:"Producto parecido en la base", cartReviewNone:"No se encontró un producto parecido.", cartReviewAdd:"Agregar al carrito", cartReviewDiscard:"No agregar", cartAddedAuto:"Agregado al carrito con el código escaneado.", cartInCartLabel:"Ya está en el carrito", cartInCartOf:"Este producto ya está en el carrito de", cartFilterSelected:"personas seleccionadas", cartFilterProducts:"productos", cartFilterClear:"Ver todas", repPhotographerAuto:"Fotógrafo (tu cuenta)",
+    cartAddException:"Agregar como excepción", cartExceptionTag:"Excepción", cartInBaseNote:"Ya está en la base 2026, no se agrega al carrito salvo como excepción.", cartReviewBtn:"Revisar en Buscar", cartReviewTitle:"Revisión manual del código escaneado", cartReviewSimilar:"Producto parecido en la base", cartReviewNone:"No se encontró un producto parecido.", cartReviewAdd:"Agregar al carrito", cartReviewDiscard:"No agregar", cartAddedAuto:"Agregado al carrito con el código escaneado.", cartInCartLabel:"Ya está en el carrito", cartInCartOf:"Este producto ya está en el carrito de", cartFilterSelected:"personas seleccionadas", cartFilterProducts:"productos", cartFilterClear:"Ver todas", repPhotographerAuto:"Fotógrafo (tu cuenta)", cartNeedCode:"Este producto lo agregó otra persona. Pídele la clave de borrado al administrador y escríbela:", cartNeedCodeClear:"Para vaciar el carrito pídele la clave de borrado al administrador y escríbela:", cartBadCode:"Clave incorrecta o vencida.", cartAdminClearPrompt:"Vas a vaciar el carrito de TODOS. Escribe VACIAR para confirmar:", cartKeyLabel:"Clave de borrado", cartKeyUntil:"válida hasta", cartKeyHint:"Dásela solo a quien deba borrar productos ajenos o vaciar el carrito.", namingPendingSync:"pendientes de sincronizar (se reintenta solo)",
     cartDeleteItem:"Eliminar", cartDeleteConfirm:"¿Eliminar este producto del carrito? No se puede deshacer.",
     cartDeleteError:"No se pudo eliminar el producto. Intenta de nuevo.",
     cartFilterAll:"Todas las personas", cartFilterEmpty:"Esta persona no ha agregado productos hoy.",
@@ -2398,7 +2398,7 @@ const I18N = {
     cartInBaseTitle:"Already in the 2026 base", cartInBaseExactLabel:"This code is already registered in the 2026 base. Add it to the cart anyway?",
     cartInBaseSimilarLabel:"We found a similar product in the 2026 base. Add it to the cart anyway?",
     cartAddAnyway:"Add anyway", cartCancelAdd:"Don't add",
-    cartAddException:"Add as exception", cartExceptionTag:"Exception", cartInBaseNote:"Already in the 2026 base; it is only added to the cart as an exception.", cartReviewBtn:"Review in Search", cartReviewTitle:"Manual review of the scanned code", cartReviewSimilar:"Similar product in the base", cartReviewNone:"No similar product found.", cartReviewAdd:"Add to cart", cartReviewDiscard:"Don't add", cartAddedAuto:"Added to the cart with the scanned code.", cartInCartLabel:"Already in the cart", cartInCartOf:"This product is already in the cart of", cartFilterSelected:"people selected", cartFilterProducts:"products", cartFilterClear:"Show all", repPhotographerAuto:"Photographer (your account)",
+    cartAddException:"Add as exception", cartExceptionTag:"Exception", cartInBaseNote:"Already in the 2026 base; it is only added to the cart as an exception.", cartReviewBtn:"Review in Search", cartReviewTitle:"Manual review of the scanned code", cartReviewSimilar:"Similar product in the base", cartReviewNone:"No similar product found.", cartReviewAdd:"Add to cart", cartReviewDiscard:"Don't add", cartAddedAuto:"Added to the cart with the scanned code.", cartInCartLabel:"Already in the cart", cartInCartOf:"This product is already in the cart of", cartFilterSelected:"people selected", cartFilterProducts:"products", cartFilterClear:"Show all", repPhotographerAuto:"Photographer (your account)", cartNeedCode:"This product was added by someone else. Ask the admin for the delete key and type it:", cartNeedCodeClear:"To clear the cart ask the admin for the delete key and type it:", cartBadCode:"Wrong or expired key.", cartAdminClearPrompt:"You are about to clear everyone's cart. Type VACIAR to confirm:", cartKeyLabel:"Delete key", cartKeyUntil:"valid until", cartKeyHint:"Share it only with someone who must delete others' products or clear the cart.", namingPendingSync:"pending sync (retries automatically)",
     cartDeleteItem:"Delete", cartDeleteConfirm:"Delete this product from the cart? This can't be undone.",
     cartDeleteError:"Couldn't delete the product. Try again.",
     cartFilterAll:"All people", cartFilterEmpty:"This person hasn't added products today.",
@@ -4271,7 +4271,13 @@ async function persistNamingRemote(item, fechaOverride){
   if(!state.session) throw new Error('No hay sesión activa para guardar el nombrado.');
   const createdAt=Number(item.createdAt)||Date.now(); item.createdAt=createdAt; item.syncStatus='syncing';
   const payload={codigo_persona:normalize(state.session),fecha:fechaOverride||state.naming.date||todayKey(),codigo:item.codigo,nombre:item.nombre,duplicado:!!item.duplicado,duplicado_codigo:item.duplicadoCodigo||null,duplicado_nombre:item.duplicadoNombre||null,duplicado_tipo:item.duplicadoTipo||null,duplicado_sesion:!!item.sessionDup,duplicado_sesion_con:item.sessionDupCode||null,creado_en:createdAt};
-  const res=await sb('nombrados_diarios',{method:'POST',body:JSON.stringify([payload]),headers:{'Prefer':'return=representation'}});
+  let res;
+  try{ res=await sb('nombrados_diarios',{method:'POST',body:JSON.stringify([payload]),headers:{'Prefer':'return=representation'},silent:true}); }
+  catch(e1){
+    // Si faltan columnas opcionales en la tabla, se guarda lo esencial para que igual se sincronice.
+    const core={codigo_persona:payload.codigo_persona,fecha:payload.fecha,codigo:payload.codigo,nombre:payload.nombre,duplicado:payload.duplicado,creado_en:payload.creado_en};
+    res=await sb('nombrados_diarios',{method:'POST',body:JSON.stringify([core]),headers:{'Prefer':'return=representation'}});
+  }
   if(!res||!res[0]||res[0].id==null) throw new Error('Supabase no devolvió el registro creado.');
   item.syncStatus='synced'; return res[0];
 }
@@ -5307,7 +5313,20 @@ async function completeLogin(codigo){
   await loadCoreData();
   await loadRemotePrefs(codigo);
   state.termsAccepted=await checkTermsAccepted(codigo); state.termsChecked=true;
+  // Al iniciar sesión (sin recargar) se carga también la lista de nombrados del día desde el servidor.
+  resetUserScopedState();
+  loadNaming();
+  try{ await pushPendingNamingOfPastDays(); }catch(e){}
+  try{ const rows=await fetchNamingRemote(); if(Array.isArray(rows)) await syncNamingRemoteRows(rows); }catch(e){ console.error('Error sincronizando nombrados:',e); }
+  startNamingDayWatcher();
   state.booted=true; renderRoot();
+}
+// Datos que pertenecen a una cuenta: se limpian al cambiar de usuario para no mezclar listas entre cuentas.
+function resetUserScopedState(){
+  state.naming=null; state.namingFast=null; state.namingSelected=[]; state.namingEditMode=false;
+  state.archived={loaded:false,loading:false,byDate:{},dates:[],selectedDate:null};
+  state.cart=[]; state.cartLoaded=false; state.cartFilterPersonas=[]; state.cartReview=null;
+  state.quality=null;
 }
 async function sha256Hex(str){
   const enc = new TextEncoder().encode(str);
@@ -5318,6 +5337,7 @@ function logout(){
   localStorage.removeItem('vp_session');
   sessionStorage.removeItem('vp_admin_unlocked');
   state.session = null; state.tab='home';
+  resetUserScopedState();
   state.loginStep='code'; state.loginCandidate=null; state.loginError=''; state.termsAccepted=false; state.termsChecked=false;
   renderRoot();
 }
@@ -5963,7 +5983,7 @@ function renderNamingFastItem(e, order){
 function renderNamingTodayPanel(items, selectedCount, allSelected){
   return `
       <div class="row between" style="margin-bottom:10px;">
-        <div class="section-title" style="margin:0;">${t('namingListTitle')} (${items.length})</div>
+        <div class="section-title" style="margin:0;">${t('namingListTitle')} (${items.length})${(()=>{const n=items.filter(i=>!String(i.id).startsWith('remote_')).length;return n?` <span class="small-note" style="color:#b45309;font-weight:600;">· ${n} ${t('namingPendingSync')}</span>`:'';})()}</div>
         ${items.length?`<div class="row" style="gap:6px;">
           <button class="btn secondary sm" id="namingEditOrderBtn">${state.namingEditMode ? t('namingEditDone') : t('namingEditOrder')}</button>
           ${!state.namingEditMode ? `<button class="btn secondary sm" id="namingDownloadBtn">${t('namingDownload')}</button>` : ''}
@@ -6744,14 +6764,33 @@ function cartPersonOptions(){
   });
   return [...map.entries()].map(([codigo,nombre])=>({codigo,nombre,count:counts.get(codigo)||0}));
 }
-function canDeleteCartItem(it){
-  // El admin y co-admin pueden borrar cualquier producto; cualquier otra persona
-  // solo puede borrar lo que ella misma agregó (por si se equivocó al escanear).
-  if(isAdmin() || isCoAdmin()) return true;
-  return it.codigo_persona === normalize(state.session||'');
+const CART_KEY_WINDOW_MS = 5*60*1000;
+function cyrb53(str, seed=0){
+  let h1=0xdeadbeef^seed, h2=0x41c6ce57^seed;
+  for(let i=0,ch;i<str.length;i++){ ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+  return 4294967296*(2097151&h2)+(h1>>>0);
+}
+// Clave de 6 dígitos que cambia cada 5 minutos. La ve el administrador y se la da a quien deba borrar productos ajenos o vaciar el carrito.
+function cartKeyForWindow(w){ return String(cyrb53('veri-cart|'+(state.adminPassword||'veri')+'|'+w)%1000000).padStart(6,'0'); }
+function currentCartKey(){ return cartKeyForWindow(Math.floor(Date.now()/CART_KEY_WINDOW_MS)); }
+function cartKeyValidUntil(){ return new Date((Math.floor(Date.now()/CART_KEY_WINDOW_MS)+1)*CART_KEY_WINDOW_MS); }
+function verifyCartKey(input){
+  const v=String(input||'').replace(/\D/g,''); if(v.length!==6) return false;
+  const w=Math.floor(Date.now()/CART_KEY_WINDOW_MS);
+  return v===cartKeyForWindow(w) || v===cartKeyForWindow(w-1); // tolera el cambio de ventana
+}
+function isOwnCartItem(it){ return it.codigo_persona === normalize(state.session||''); }
+// Lo propio se borra sin problema; lo ajeno solo el administrador, o quien tenga la clave dinámica.
+function canDeleteCartItem(it){ return true; }
+function cartKeyChipHTML(){
+  if(!isAdmin()) return '';
+  const until=cartKeyValidUntil().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  return `<div class="cart-key-chip"><span>🔑 ${t('cartKeyLabel')}</span><b>${currentCartKey()}</b><span class="small-note">${t('cartKeyUntil')} ${until}</span></div><p class="small-note" style="margin:0 0 10px;">${t('cartKeyHint')}</p>`;
 }
 function renderCartList(){
-  const canClear = isAdmin() || isCoAdmin();
+  const canClear = state.cart.length>0;
   const persons = cartPersonOptions();
   const filter = (state.cartFilterPersonas||[]).filter(c=>persons.some(p=>p.codigo===c));
   // El filtro solo afecta lo que se muestra: la verificación de duplicados (findCartDuplicate)
@@ -6773,6 +6812,7 @@ function renderCartList(){
       <div class="section-title" style="margin:0;">${t('cartTitle')} · ${items.length}${filter.length ? ` / ${state.cart.length}` : ''}</div>
       ${canClear ? `<button class="btn ghost sm" id="cartClearBtn">${t('cartClear')}</button>` : ''}
     </div>
+    ${cartKeyChipHTML()}
     ${chips}
     ${items.length ? rows : `<p class="small-note">${filter.length ? t('cartFilterEmpty') : t('cartEmpty')}</p>`}
   </div>`;
@@ -6800,7 +6840,15 @@ function updateCartListDOM(){
   }
 }
 async function clearCartToday(){
-  if(!confirm(t('cartClearConfirm'))) return;
+  if(isAdmin()){
+    const typed = prompt(t('cartAdminClearPrompt'));
+    if(!typed || typed.trim().toUpperCase()!=='VACIAR') return;
+  } else {
+    const k = prompt(t('cartNeedCodeClear'));
+    if(k===null) return;
+    if(!verifyCartKey(k)){ toast(t('cartBadCode')); return; }
+    if(!confirm(t('cartClearConfirm'))) return;
+  }
   try{
     await sb(`carrito?fecha=gte.${encodeURIComponent(cartTodayStartISO())}`, {method:'DELETE', headers:{'Prefer':'return=minimal'}});
     state.cart = [];
@@ -6810,8 +6858,14 @@ async function clearCartToday(){
 async function deleteCartItem(id){
   if(!id || String(id).indexOf('tmp_')===0) return; // fila aún no confirmada por el servidor, espera un momento
   const it = state.cart.find(x=>String(x.id)===String(id));
-  if(!it || !canDeleteCartItem(it)) return;
-  if(!confirm(t('cartDeleteConfirm'))) return;
+  if(!it) return;
+  if(isOwnCartItem(it) || isAdmin()){
+    if(!confirm(t('cartDeleteConfirm'))) return;
+  } else {
+    const k = prompt(t('cartNeedCode'));
+    if(k===null) return;
+    if(!verifyCartKey(k)){ toast(t('cartBadCode')); return; }
+  }
   const prevCart = state.cart;
   state.cart = state.cart.filter(x=>String(x.id)!==String(id));
   updateCartListDOM();
@@ -7754,4 +7808,8 @@ textarea.notif-field{ resize:vertical; min-height:92px; line-height:1.4; }
 .cart-person-chip.active b{color:#fff}
 .scan-cart-owner{margin:10px 0 0;padding:8px 10px;border-radius:12px;background:rgba(245,158,11,.14);font-size:13px;line-height:1.35;color:#b45309;font-weight:600;white-space:normal}
 [data-theme="dark"] .scan-cart-owner{color:#fbbf24}
+</style>
+<style id="veri-cart-key">
+.cart-key-chip{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 6px;padding:10px 12px;border-radius:14px;background:rgba(var(--accent-rgb),.10);border:1px solid rgba(var(--accent-rgb),.22);font-size:13px;font-weight:650}
+.cart-key-chip b{font-size:20px;letter-spacing:.18em;font-variant-numeric:tabular-nums;color:var(--accent)}
 </style>
