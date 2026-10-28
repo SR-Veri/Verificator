@@ -2192,6 +2192,7 @@ const I18N = {
     cartInBaseTitle:"Ya existe en la base 2026", cartInBaseExactLabel:"Este código ya está registrado en la base 2026. ¿Quieres agregarlo al carrito de todas formas?",
     cartInBaseSimilarLabel:"Encontramos un producto parecido en la base 2026. ¿Quieres agregarlo al carrito de todas formas?",
     cartAddAnyway:"Agregar de todas formas", cartCancelAdd:"No agregar",
+    cartAddException:"Agregar como excepción", cartExceptionTag:"Excepción", cartInBaseNote:"Ya está en la base 2026, no se agrega al carrito salvo como excepción.", cartReviewBtn:"Revisar en Buscar", cartReviewTitle:"Revisión manual del código escaneado", cartReviewSimilar:"Producto parecido en la base", cartReviewNone:"No se encontró un producto parecido.", cartReviewAdd:"Agregar al carrito", cartReviewDiscard:"No agregar", cartAddedAuto:"Agregado al carrito con el código escaneado.", cartInCartLabel:"Ya está en el carrito", cartInCartOf:"Este producto ya está en el carrito de", cartFilterSelected:"personas seleccionadas", cartFilterProducts:"productos", cartFilterClear:"Ver todas", repPhotographerAuto:"Fotógrafo (tu cuenta)",
     cartDeleteItem:"Eliminar", cartDeleteConfirm:"¿Eliminar este producto del carrito? No se puede deshacer.",
     cartDeleteError:"No se pudo eliminar el producto. Intenta de nuevo.",
     cartFilterAll:"Todas las personas", cartFilterEmpty:"Esta persona no ha agregado productos hoy.",
@@ -2397,6 +2398,7 @@ const I18N = {
     cartInBaseTitle:"Already in the 2026 base", cartInBaseExactLabel:"This code is already registered in the 2026 base. Add it to the cart anyway?",
     cartInBaseSimilarLabel:"We found a similar product in the 2026 base. Add it to the cart anyway?",
     cartAddAnyway:"Add anyway", cartCancelAdd:"Don't add",
+    cartAddException:"Add as exception", cartExceptionTag:"Exception", cartInBaseNote:"Already in the 2026 base; it is only added to the cart as an exception.", cartReviewBtn:"Review in Search", cartReviewTitle:"Manual review of the scanned code", cartReviewSimilar:"Similar product in the base", cartReviewNone:"No similar product found.", cartReviewAdd:"Add to cart", cartReviewDiscard:"Don't add", cartAddedAuto:"Added to the cart with the scanned code.", cartInCartLabel:"Already in the cart", cartInCartOf:"This product is already in the cart of", cartFilterSelected:"people selected", cartFilterProducts:"products", cartFilterClear:"Show all", repPhotographerAuto:"Photographer (your account)",
     cartDeleteItem:"Delete", cartDeleteConfirm:"Delete this product from the cart? This can't be undone.",
     cartDeleteError:"Couldn't delete the product. Try again.",
     cartFilterAll:"All people", cartFilterEmpty:"This person hasn't added products today.",
@@ -2597,7 +2599,7 @@ const state = {
   repFilterCode:'',
   repSort:'desc',
   cameraStream:null, cameraLoopId:null, scanZoom:1, scanZoomCaps:null,
-  scanMode:'continuous', cart:[], cartLoaded:false, cartChannel:null, cartPollTimer:null, cartFilterPersona:'',
+  scanMode:'continuous', cart:[], cartReview:null, cartLoaded:false, cartChannel:null, cartPollTimer:null, cartFilterPersonas:[],
   preferredCameraId: localStorage.getItem('vp_camera_device') || '',
   availableCameras: [],
   adminPassword:null,
@@ -3072,11 +3074,19 @@ function startNamingDayWatcher(){
     if(!state.session) return;
     const today=todayKey();
     if(state.naming&&state.naming.date!==today){
+      // Pasó la medianoche: lo de ayer queda en Archivados (7 días) y arranca una lista nueva.
+      try{ await pushPendingNamingOfPastDays(); }catch(e){}
       loadNaming(); state.archived={loaded:false,loading:false,byDate:{},dates:[],selectedDate:null};
       try{ const rows=await fetchNamingRemote(); if(Array.isArray(rows)) await syncNamingRemoteRows(rows); }catch(e){}
       render();
+      return;
     }
+    if(namingViewVisible() && !document.hidden) refreshNamingAndRender();
   },30000);
+  const wake=()=>{ if(state.session && !document.hidden){ refreshNamingAndRender(); } };
+  document.addEventListener('visibilitychange',wake);
+  window.addEventListener('focus',wake);
+  window.addEventListener('online',wake);
 }
 /* Extrae la cantidad neta del nombre (peso en gramos O volumen en mililitros), junto con su
    "tipo" (weight/volume), para poder comparar productos correctamente. Antes esta función solo
@@ -4191,6 +4201,58 @@ async function syncNamingRemoteRows(remoteRows){
   }
   saveNaming(); return allOk;
 }
+/* Sincronización entre dispositivos: trae lo de hoy desde el servidor, quita lo que se borró en otro
+   dispositivo y agrega lo nuevo. Devuelve true si la lista cambió. */
+let namingRefreshing=false;
+function namingSignature(){ return (state.naming&&state.naming.items||[]).map(i=>[i.id,i.codigo,i.nombre,i.duplicado?1:0].join('|')).join('~'); }
+async function refreshNamingFromRemote(){
+  if(namingRefreshing || !state.session || !state.naming) return false;
+  if(state.naming.date!==todayKey()) return false;
+  namingRefreshing=true;
+  try{
+    const rows=await fetchNamingRemote();
+    if(!Array.isArray(rows)) return false; // sin red: no tocamos nada
+    const before=namingSignature();
+    const remoteIds=new Set(rows.map(r=>'remote_'+r.id));
+    state.naming.items=(state.naming.items||[]).filter(it=> !(String(it.id).startsWith('remote_') && !remoteIds.has(it.id)));
+    await syncNamingRemoteRows(rows);
+    // Orden: el del servidor (hora de creación) para que ambos dispositivos vean lo mismo.
+    state.naming.items.sort((a,b)=>(Number(a.createdAt)||0)-(Number(b.createdAt)||0));
+    saveNaming();
+    return namingSignature()!==before;
+  }catch(e){ return false; }
+  finally{ namingRefreshing=false; }
+}
+function namingViewVisible(){ return state.tab==='rep' && state.repView==='naming' && (state.namingListMode||'today')==='today'; }
+async function refreshNamingAndRender(){
+  const changed=await refreshNamingFromRemote();
+  if(!changed || !namingViewVisible()) return;
+  const ae=document.activeElement;
+  // Si la persona está escribiendo, no reconstruimos la pantalla (perdería lo digitado); se verá en la próxima actualización.
+  if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.value) { return; }
+  render();
+}
+/* Nombrados de días anteriores que quedaron solo en este dispositivo (sin internet) se suben con su fecha
+   original para que aparezcan en Archivados. */
+async function pushPendingNamingOfPastDays(){
+  if(!state.session) return;
+  const user=normalize(state.session), today=todayKey(), cutoff=daysAgoKey(7), prefix='vp_naming_'+user+'_';
+  for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i);
+    if(!key || !key.startsWith(prefix)) continue;
+    const date=key.slice(prefix.length);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date) || date>=today || date<cutoff) continue;
+    let data; try{ data=JSON.parse(localStorage.getItem(key)); }catch(e){ continue; }
+    if(!data || !Array.isArray(data.items)) continue;
+    let dirty=false;
+    for(const item of data.items){
+      if(item.id && String(item.id).startsWith('remote_')) continue;
+      try{ const row=await persistNamingRemote(item,date); item.id='remote_'+row.id; item.syncStatus='synced'; dirty=true; }
+      catch(e){ /* se reintenta en el próximo arranque */ }
+    }
+    if(dirty){ try{ localStorage.setItem(key,JSON.stringify(data)); }catch(e){} }
+  }
+}
 async function loadArchivedNaming(force){
   if(state.archived.loading) return; if(state.archived.loaded&&!force) return;
   state.archived.loading=true; render();
@@ -4205,10 +4267,10 @@ async function loadArchivedNaming(force){
   }catch(e){ console.error(e); }
   state.archived.loading=false; state.archived.loaded=true; render();
 }
-async function persistNamingRemote(item){
+async function persistNamingRemote(item, fechaOverride){
   if(!state.session) throw new Error('No hay sesión activa para guardar el nombrado.');
   const createdAt=Number(item.createdAt)||Date.now(); item.createdAt=createdAt; item.syncStatus='syncing';
-  const payload={codigo_persona:normalize(state.session),fecha:state.naming.date||todayKey(),codigo:item.codigo,nombre:item.nombre,duplicado:!!item.duplicado,duplicado_codigo:item.duplicadoCodigo||null,duplicado_nombre:item.duplicadoNombre||null,duplicado_tipo:item.duplicadoTipo||null,duplicado_sesion:!!item.sessionDup,duplicado_sesion_con:item.sessionDupCode||null,creado_en:createdAt};
+  const payload={codigo_persona:normalize(state.session),fecha:fechaOverride||state.naming.date||todayKey(),codigo:item.codigo,nombre:item.nombre,duplicado:!!item.duplicado,duplicado_codigo:item.duplicadoCodigo||null,duplicado_nombre:item.duplicadoNombre||null,duplicado_tipo:item.duplicadoTipo||null,duplicado_sesion:!!item.sessionDup,duplicado_sesion_con:item.sessionDupCode||null,creado_en:createdAt};
   const res=await sb('nombrados_diarios',{method:'POST',body:JSON.stringify([payload]),headers:{'Prefer':'return=representation'}});
   if(!res||!res[0]||res[0].id==null) throw new Error('Supabase no devolvió el registro creado.');
   item.syncStatus='synced'; return res[0];
@@ -4283,6 +4345,7 @@ async function boot(){
     await loadCoreData();
     if(state.session){ state.termsAccepted=await checkTermsAccepted(state.session); state.termsChecked=true; }
     loadNaming();
+    try{ await pushPendingNamingOfPastDays(); }catch(e){}
     try{
       const remoteNaming=await fetchNamingRemote();
       if(Array.isArray(remoteNaming)) await syncNamingRemoteRows(remoteNaming);
@@ -4846,7 +4909,7 @@ document.addEventListener('click', (e)=>{
     const idx = state.index[state.scanBase];
     const producto = idx && idx.map.get(codigo);
     if(producto){
-      state.scanResult = { status:'exact', producto, bySuffix:true };
+      state.scanResult = { status:'exact', producto, bySuffix:true, codigoEscaneado:codigo };
       updateScanResultDOM();
       const input = document.getElementById('scanInput'); if(input) input.value = codigo;
       vibrateFor('exact'); beepFor('exact');
@@ -5527,7 +5590,7 @@ function wireScanResultSheet(){
   const addBtn=document.getElementById('scanSheetAddBtn');
   if(addBtn) addBtn.onclick=()=>{
     const r=state.scanResult;
-    if(r && r.producto) addToCart(r.producto.codigo, r.producto);
+    if(r && r.codigoEscaneado) addToCart(r.codigoEscaneado, null, {excepcion:r.status==='exact'});
     state.scanResult=null; closeScanResultSheet();
   };
 }
@@ -5554,16 +5617,25 @@ function flashScanFrame(status='exact'){
 function scanResultFloatInner(r){
   const meta=scanStatusMeta(r.status);
   const name=r.producto?.nombre || (r.status==='notfound' ? t('notfound') : 'Resultado');
-  const code=r.producto?.codigo || r.codigoEscaneado || '';
+  const code=(toolVisible('carrito') && state.scanMode==='cart' && r.codigoEscaneado) ? r.codigoEscaneado : (r.producto?.codigo || r.codigoEscaneado || '');
   const statusLabel=r.status==='exact'?(r.bySuffix?t('exactBySuffix'):t('exact')):r.status==='similar'?t('similar'):t('notfound');
   const inCart=toolVisible('carrito') && state.scanMode==='cart';
-  const showAdd=inCart && r.producto && (r.status==='exact'||r.status==='similar');
-  const alreadyAdded=inCart && r.producto && findCartDuplicate(r.producto.codigo);
-  const action=showAdd
-    ? (alreadyAdded
-      ? `<button type="button" class="btn secondary block" disabled>${ICONS.check} ${t('alreadyInCart') || 'Ya agregado'}</button>`
-      : `<button type="button" class="btn block" id="scanFloatAddBtn">${ICONS.plus || '+'} ${t('addToCart') || 'Agregar a lista'}</button>`)
-    : '';
+  const scanned=r.codigoEscaneado||'';
+  const alreadyAdded=inCart && scanned && findCartDuplicate(scanned);
+  let action='';
+  if(inCart && (r.status==='exact'||r.status==='similar')){
+    if(alreadyAdded){
+      const who=alreadyAdded.nombre_persona||alreadyAdded.codigo_persona||'';
+      action=`<button type="button" class="btn secondary block" disabled>${ICONS.check} ${t('cartInCartLabel')}${who?` · ${escapeHtml(who)}`:''}</button>`;
+    } else if(r.status==='similar'){
+      action=`<button type="button" class="btn block" id="scanFloatReviewBtn">${ICONS.search||''} ${t('cartReviewBtn')}</button>`;
+    } else {
+      action=`<p class="small-note" style="margin:0 0 8px;">${t('cartInBaseNote')}</p><button type="button" class="btn block cart-exception-btn" id="scanFloatAddBtn">${t('cartAddException')}</button>`;
+    }
+  } else if(inCart && r.status==='notfound'){
+    action=alreadyAdded ? '' : `<p class="small-note" style="margin:0;">${t('cartAddedAuto')}</p>`;
+  }
+  const inCartInfo = alreadyAdded ? `<div class="scan-cart-owner">🛒 ${t('cartInCartOf')} <b>${escapeHtml(alreadyAdded.nombre_persona||alreadyAdded.codigo_persona||'')}</b></div>` : '';
   return `<div class="scan-result-float-card">
     <button type="button" class="scan-result-float-close" id="scanFloatCloseBtn" aria-label="${t('cancel')}">${ICONS.x}</button>
     <div class="scan-result-float-product">
@@ -5574,6 +5646,7 @@ function scanResultFloatInner(r){
         <div class="scan-result-float-status" style="color:${meta.color};">${statusLabel}</div>
       </div>
     </div>
+    ${inCartInfo}
     ${action?`<div class="scan-result-float-actions">${action}</div>`:''}
   </div>`;
 }
@@ -5609,8 +5682,18 @@ function updateScanResultDOM(){
 
   const addBtn=document.getElementById('scanFloatAddBtn');
   if(addBtn)addBtn.onclick=()=>{
-    if(state.scanResult?.producto)addToCart(state.scanResult.producto.codigo,state.scanResult.producto);
+    const sr=state.scanResult;
+    if(sr && sr.codigoEscaneado)addToCart(sr.codigoEscaneado,null,{excepcion:true});
     closeScanResultFloat(true);
+  };
+  const reviewBtn=document.getElementById('scanFloatReviewBtn');
+  if(reviewBtn)reviewBtn.onclick=()=>{
+    const sr=state.scanResult;
+    if(!sr)return;
+    state.cartReview={code:sr.codigoEscaneado, similar:sr.producto||null};
+    closeScanResultFloat(true);
+    stopCamera();
+    state.tab='search'; render();
   };
 
   // Permanece visible hasta otro escaneo, hasta detener la cámara o máximo 1 minuto.
@@ -5730,8 +5813,20 @@ function beepFor(status){
 }
 
 /* ===================== Render: Search ===================== */
+function renderCartReviewBanner(){
+  const rv=state.cartReview; if(!rv) return '';
+  const sim=rv.similar;
+  return `<div class="card glass" id="cartReviewCard">
+      <div class="section-title">${t('cartReviewTitle')}</div>
+      <div class="list-item"><div><div class="name">${t('cartReviewSimilar')}</div><span class="small-note">${sim?escapeHtml(sim.nombre||'(sin nombre)')+' · '+escapeHtml(sim.codigo):t('cartReviewNone')}</span></div><div class="code">${escapeHtml(rv.code)}</div></div>
+      <div class="row" style="gap:10px;margin-top:12px;">
+        <button type="button" class="btn secondary block" id="cartReviewDiscardBtn">${t('cartReviewDiscard')}</button>
+        <button type="button" class="btn block" id="cartReviewAddBtn">${t('cartReviewAdd')}</button>
+      </div>
+    </div>`;
+}
 function renderSearch(){
-  return `
+  return renderCartReviewBanner() + `
     <div class="card glass">
       <div class="section-title">${t('base')}</div>
       <div class="pill-toggle">
@@ -6249,7 +6344,7 @@ function renderAdminBasesCard(){
   return `${['2025','2026'].map(y=>`<div class="settings-row" style="padding-left:4px;padding-right:4px;"><div class="settings-row-main"><div class="settings-row-title">Base ${y}</div><div class="settings-row-sub">${state.bases[y].length.toLocaleString()} ${t('productsLoaded')} · ${formatUpdated(state.baseUpdated[y])}</div></div><label class="btn secondary sm" for="import${y}">${t('updateBase')}</label><input type="file" id="import${y}" accept=".xlsx,.xls,.csv" style="display:none;"></div>`).join('')}`;
 }
 function renderAdminRepToolsCard(){
-  return `<div class="field"><label>${t('repImportFilterLabel')}</label><input type="text" id="repFilterCodeSettings" placeholder="SS13" style="text-transform:uppercase;" /></div><label class="btn secondary sm" for="importRepSettings">${t('importRep')}</label><input type="file" id="importRepSettings" accept=".xlsx,.xls,.csv" style="display:none;" /><div class="section-title" style="margin-top:20px;">${t('repNew')}</div><div class="field"><label>${t('repCodProd')}</label><input type="text" id="repCodProd" style="text-transform:uppercase;" /></div><div class="field"><label>${t('repNomProd')}</label><input type="text" id="repNomProd" style="text-transform:uppercase;" /></div><div class="field"><label>${t('category')}</label><select id="repCategoria"><option value="">${t('uncategorized')}</option>${REP_CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('')}</select></div><div class="field"><label>${t('repFotografo')}</label>${state.personas.length?`<select id="repFotografo">${state.personas.map(p=>`<option value="${p.codigo}" ${p.codigo===normalize(state.session||'')?'selected':''}>${p.codigo}${p.nombre?' — '+p.nombre:''}</option>`).join('')}</select>`:`<p class="small-note">${t('noPeopleShort')}</p>`}</div><div class="field"><label>${t('repBarras')}</label><input type="text" id="repBarras" style="text-transform:uppercase;" /></div><div class="field"><label>${t('repMotivo')}</label><textarea id="repMotivo" rows="2"></textarea></div><div class="field"><label>Fotografía del producto</label><input type="file" id="repPhotoInput" accept="image/*" capture="environment" multiple /></div><p class="small-note">Puedes seleccionar una o varias fotos para la misma repetición. Después se enviarán juntas a revisión.</p><button class="btn block" id="repSaveBtn">${t('repSave')}</button>`;
+  return `<div class="field"><label>${t('repImportFilterLabel')}</label><input type="text" id="repFilterCodeSettings" placeholder="SS13" style="text-transform:uppercase;" /></div><label class="btn secondary sm" for="importRepSettings">${t('importRep')}</label><input type="file" id="importRepSettings" accept=".xlsx,.xls,.csv" style="display:none;" /><div class="section-title" style="margin-top:20px;">${t('repNew')}</div><div class="field"><label>${t('repCodProd')}</label><input type="text" id="repCodProd" style="text-transform:uppercase;" /></div><div class="field"><label>${t('repNomProd')}</label><input type="text" id="repNomProd" style="text-transform:uppercase;" /></div><div class="field"><label>${t('category')}</label><select id="repCategoria"><option value="">${t('uncategorized')}</option>${REP_CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('')}</select></div><div class="field"><label>${t('repPhotographerAuto')}</label><input type="text" id="repFotografo" value="${escapeHtml(normalize(state.session||'')+((myPersona()&&myPersona().nombre)?' — '+myPersona().nombre:''))}" readonly style="opacity:.85;" /></div><div class="field"><label>${t('repBarras')}</label><input type="text" id="repBarras" style="text-transform:uppercase;" /></div><div class="field"><label>${t('repMotivo')}</label><textarea id="repMotivo" rows="2"></textarea></div><div class="field"><label>Fotografía del producto</label><input type="file" id="repPhotoInput" accept="image/*" capture="environment" multiple /></div><p class="small-note">Puedes seleccionar una o varias fotos para la misma repetición. Después se enviarán juntas a revisión.</p><button class="btn block" id="repSaveBtn">${t('repSave')}</button>`;
 }
 function renderAdminToolAccessCard(){
   const rows = state.personas.map(p=>{
@@ -6613,7 +6708,16 @@ async function onCodeScanned(code){
    El carrito se considera "del día": solo se muestran/cuentan como duplicado los productos
    agregados desde la medianoche de hoy (hora local del dispositivo). */
 function cartTodayStartISO(){ const d=new Date(); d.setHours(0,0,0,0); return d.toISOString(); }
-function findCartDuplicate(codigo){ return state.cart.find(it=>it.codigo_producto===codigo); }
+function findCartDuplicate(codigo){ const c=normalize(codigo); return c ? state.cart.find(it=>normalize(it.codigo_producto)===c) : null; }
+// Nombre de referencia: solo se busca en la base 2025 por el código EXACTO escaneado; si no aparece, queda vacío.
+async function cartNameFrom2025(code){
+  try{
+    await ensureBaseLoaded('2025');
+    const idx = state.index && state.index['2025'];
+    const p = idx && idx.map.get(normalize(code));
+    return (p && p.nombre) ? p.nombre : '';
+  }catch(e){ return ''; }
+}
 async function loadCartToday(){
   try{
     const rows = await sb(`carrito?select=*&fecha=gte.${encodeURIComponent(cartTodayStartISO())}&order=fecha.desc`);
@@ -6631,12 +6735,14 @@ async function loadCartToday(){
 function cartPersonOptions(){
   // Lista única de personas que han agregado algo hoy, para el filtro del carrito.
   const map = new Map();
+  const counts = new Map();
   state.cart.forEach(it=>{
     const key = it.codigo_persona||'';
-    if(!key || map.has(key)) return;
-    map.set(key, it.nombre_persona||key);
+    if(!key) return;
+    counts.set(key, (counts.get(key)||0)+1);
+    if(!map.has(key)) map.set(key, it.nombre_persona||key);
   });
-  return [...map.entries()].map(([codigo,nombre])=>({codigo,nombre}));
+  return [...map.entries()].map(([codigo,nombre])=>({codigo,nombre,count:counts.get(codigo)||0}));
 }
 function canDeleteCartItem(it){
   // El admin y co-admin pueden borrar cualquier producto; cualquier otra persona
@@ -6647,28 +6753,28 @@ function canDeleteCartItem(it){
 function renderCartList(){
   const canClear = isAdmin() || isCoAdmin();
   const persons = cartPersonOptions();
-  const filter = state.cartFilterPersona||'';
+  const filter = (state.cartFilterPersonas||[]).filter(c=>persons.some(p=>p.codigo===c));
   // El filtro solo afecta lo que se muestra: la verificación de duplicados (findCartDuplicate)
   // y el conteo del total siempre miran el carrito completo, no el filtrado.
-  const items = filter ? state.cart.filter(it=>it.codigo_persona===filter) : state.cart;
+  const items = filter.length ? state.cart.filter(it=>filter.includes(it.codigo_persona)) : state.cart;
   const rows = items.map(it=>{
     const hora = it.fecha ? new Date(it.fecha).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
     const delBtn = canDeleteCartItem(it) ? `<button type="button" class="btn ghost sm" data-cart-delete="${escapeHtml(String(it.id))}" aria-label="${t('cartDeleteItem')}" title="${t('cartDeleteItem')}">${ICONS.trash}</button>` : '';
-    return `<div class="list-item"><div><div class="name">${escapeHtml(it.nombre_producto||'(sin nombre)')}</div><span class="small-note">${escapeHtml(it.nombre_persona||it.codigo_persona||'')} · ${hora}</span></div><div class="row" style="align-items:center;gap:8px;"><div class="code">${escapeHtml(it.codigo_producto||'')}</div>${delBtn}</div></div>`;
+    const exTag = it.excepcion ? ` <span class="cart-exception-tag">${t('cartExceptionTag')}</span>` : '';
+    return `<div class="list-item${it.excepcion?' cart-exception':''}"><div><div class="name">${escapeHtml(it.nombre_producto||'(sin nombre)')}${exTag}</div><span class="small-note">${escapeHtml(it.nombre_persona||it.codigo_persona||'')} · ${hora}</span></div><div class="row" style="align-items:center;gap:8px;"><div class="code">${escapeHtml(it.codigo_producto||'')}</div>${delBtn}</div></div>`;
   }).join('');
-  const filterSelect = persons.length ? `<div class="field" style="margin-bottom:10px;">
-    <select id="cartFilterSelect">
-      <option value="">${t('cartFilterAll')}</option>
-      ${persons.map(p=>`<option value="${escapeHtml(p.codigo)}" ${filter===p.codigo?'selected':''}>${escapeHtml(p.nombre)}</option>`).join('')}
-    </select>
-  </div>` : '';
+  const chips = persons.length ? `<div class="cart-person-chips" style="margin-bottom:10px;">
+    ${persons.map(p=>`<button type="button" class="chip cart-person-chip${filter.includes(p.codigo)?' active':''}" data-cart-person="${escapeHtml(p.codigo)}" aria-pressed="${filter.includes(p.codigo)}">${escapeHtml(p.nombre)} <b>${p.count}</b></button>`).join('')}
+    ${filter.length ? `<button type="button" class="chip cart-person-chip clear" id="cartFilterClearBtn">${t('cartFilterClear')}</button>` : ''}
+  </div>
+  ${filter.length ? `<p class="small-note" style="margin:0 0 10px;"><b>${filter.length}</b> ${t('cartFilterSelected')} · <b>${items.length}</b> ${t('cartFilterProducts')}</p>` : ''}` : '';
   return `<div class="card glass" id="cartCard">
     <div class="row between" style="margin-bottom:8px;">
-      <div class="section-title" style="margin:0;">${t('cartTitle')} · ${items.length}${filter ? ` / ${state.cart.length}` : ''}</div>
+      <div class="section-title" style="margin:0;">${t('cartTitle')} · ${items.length}${filter.length ? ` / ${state.cart.length}` : ''}</div>
       ${canClear ? `<button class="btn ghost sm" id="cartClearBtn">${t('cartClear')}</button>` : ''}
     </div>
-    ${filterSelect}
-    ${items.length ? rows : `<p class="small-note">${filter ? t('cartFilterEmpty') : t('cartEmpty')}</p>`}
+    ${chips}
+    ${items.length ? rows : `<p class="small-note">${filter.length ? t('cartFilterEmpty') : t('cartEmpty')}</p>`}
   </div>`;
 }
 function updateCartListDOM(){
@@ -6681,8 +6787,13 @@ function updateCartListDOM(){
     wrap.innerHTML = renderCartList();
     const clearBtn = document.getElementById('cartClearBtn');
     if(clearBtn) clearBtn.onclick = clearCartToday;
-    const filterSelect = document.getElementById('cartFilterSelect');
-    if(filterSelect) filterSelect.onchange = ()=>{ state.cartFilterPersona = filterSelect.value; updateCartListDOM(); };
+    wrap.querySelectorAll('[data-cart-person]').forEach(btn=>{ btn.onclick = ()=>{
+      const c = btn.dataset.cartPerson, cur = state.cartFilterPersonas||[];
+      state.cartFilterPersonas = cur.includes(c) ? cur.filter(x=>x!==c) : [...cur, c];
+      updateCartListDOM();
+    }; });
+    const clearF = document.getElementById('cartFilterClearBtn');
+    if(clearF) clearF.onclick = ()=>{ state.cartFilterPersonas = []; updateCartListDOM(); };
     wrap.querySelectorAll('[data-cart-delete]').forEach(btn=>{ btn.onclick = ()=> deleteCartItem(btn.dataset.cartDelete); });
   } else {
     wrap.innerHTML = '';
@@ -6712,24 +6823,40 @@ async function deleteCartItem(id){
     toast(t('cartDeleteError'));
   }
 }
-async function addToCart(codigoRaw, producto){
-  const codigo = producto ? (producto.codigo || normalize(codigoRaw)) : normalize(codigoRaw);
+async function addToCart(codigoRaw, producto, opts){
+  // Siempre se guarda el MISMO código que se escaneó (nunca el de un producto parecido).
+  // El nombre sale de la base 2025 solo si ese código aparece allí.
+  const codigo = normalize(codigoRaw);
   if(!codigo) return;
+  const excepcion = !!(opts && opts.excepcion);
   const dup = findCartDuplicate(codigo);
   if(dup){
     toast(`${t('cartAlreadyAdded')} ${dup.nombre_persona||dup.codigo_persona||''}`);
     vibrateFor('similar'); beepFor('similar');
     return;
   }
+  const nombre = await cartNameFrom2025(codigo);
+  if(findCartDuplicate(codigo)){ // otro escaneo igual pudo entrar mientras se buscaba el nombre
+    const d2 = findCartDuplicate(codigo);
+    toast(`${t('cartAlreadyAdded')} ${d2.nombre_persona||d2.codigo_persona||''}`);
+    return;
+  }
   const persona = myPersona();
   const nombrePersona = (persona && persona.nombre) ? persona.nombre : (state.session||'');
   const tempId = 'tmp_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-  const row = { id:tempId, codigo_producto:codigo, nombre_producto:producto&&producto.nombre?producto.nombre:'', base:state.scanBase, codigo_persona:normalize(state.session||''), nombre_persona:nombrePersona, fecha:new Date().toISOString() };
+  const row = { id:tempId, codigo_producto:codigo, nombre_producto:nombre, base:state.scanBase, codigo_persona:normalize(state.session||''), nombre_persona:nombrePersona, fecha:new Date().toISOString(), excepcion };
   state.cart.unshift(row);
   updateCartListDOM();
   vibrateFor('exact'); beepFor('exact');
+  const payload = {codigo_producto:row.codigo_producto, nombre_producto:row.nombre_producto, base:row.base, codigo_persona:row.codigo_persona, nombre_persona:row.nombre_persona, fecha:row.fecha};
   try{
-    const res = await sb('carrito', {method:'POST', body:JSON.stringify([{codigo_producto:row.codigo_producto, nombre_producto:row.nombre_producto, base:row.base, codigo_persona:row.codigo_persona, nombre_persona:row.nombre_persona, fecha:row.fecha}]), headers:{'Prefer':'return=representation'}});
+    let res;
+    try{
+      res = await sb('carrito', {method:'POST', body:JSON.stringify([{...payload, excepcion}]), headers:{'Prefer':'return=representation'}, silent:true});
+    }catch(e1){
+      // Si la tabla aún no tiene la columna "excepcion", se guarda igual sin ella.
+      res = await sb('carrito', {method:'POST', body:JSON.stringify([payload]), headers:{'Prefer':'return=representation'}});
+    }
     if(res && res[0]){ row.id = res[0].id; }
   }catch(e){
     state.cart = state.cart.filter(it=>it.id!==tempId);
@@ -6775,6 +6902,7 @@ async function processCartScan(code){
     vibrateFor(result.status); beepFor(result.status);
   } else {
     // No está en la base: se agrega directo, guardando solo el código escaneado.
+    if(!findCartDuplicate(code)) toast(t('cartAddedAuto'));
     addToCart(code, null);
   }
   logScan(code, result);
@@ -6882,6 +7010,13 @@ function bindTabEvents(){
     document.querySelectorAll('[data-base]').forEach(b=> b.onclick = ()=>{ const nb=b.dataset.base; if(confirmSwitchBase(nb)){ state.scanBase=nb; render(); doSearch(); } });
     let searchDebounce=null;
     document.getElementById('searchInput').addEventListener('input', ()=>{ clearTimeout(searchDebounce); searchDebounce=setTimeout(doSearch,120); });
+    if(state.cartReview){
+      const si=document.getElementById('searchInput'); if(si && !si.value) si.value=state.cartReview.similar ? state.cartReview.similar.codigo : state.cartReview.code;
+      const addB=document.getElementById('cartReviewAddBtn');
+      if(addB) addB.onclick=()=>{ const rv=state.cartReview; state.cartReview=null; state.tab='scan'; render(); if(rv) addToCart(rv.code,null); };
+      const disB=document.getElementById('cartReviewDiscardBtn');
+      if(disB) disB.onclick=()=>{ state.cartReview=null; state.tab='scan'; render(); };
+    }
     doSearch();
   }
   if(state.tab==='rep'){
@@ -6930,6 +7065,7 @@ function bindTabEvents(){
       ensureBothBasesLoaded();
       document.querySelectorAll('[data-namingsubmode]').forEach(b=> b.onclick = ()=>{ stopCamera(); state.namingSubMode = b.dataset.namingsubmode; render(); });
       document.querySelectorAll('[data-namingmode]').forEach(b=> b.onclick = ()=>{ state.namingListMode = b.dataset.namingmode; render(); });
+      if(!state._namingEntryRefreshed){ state._namingEntryRefreshed=true; refreshNamingAndRender().finally(()=>setTimeout(()=>{state._namingEntryRefreshed=false;},8000)); }
       document.querySelectorAll('[data-archiveddate]').forEach(b=> b.onclick = ()=>{ state.archived.selectedDate = b.dataset.archiveddate; render(); });
       const adBtn = document.getElementById('archivedDownloadBtn');
       if(adBtn) adBtn.onclick = ()=> downloadArchivedExcel(adBtn.dataset.archiveddownload);
@@ -7341,8 +7477,8 @@ async function saveRepetition(){
   const codigoProducto = normalize(document.getElementById('repCodProd').value);
   const nombreProducto = normalize(document.getElementById('repNomProd').value);
   if(!codigoProducto && !nombreProducto){ toast('!'); return; }
-  const fotografoEl = document.getElementById('repFotografo');
-  const fotografo = fotografoEl ? fotografoEl.value : '';
+  // El fotógrafo siempre es la cuenta con la sesión iniciada.
+  const fotografo = normalize(state.session||'');
   const codigoBarras = normalize(document.getElementById('repBarras').value);
   const motivo = document.getElementById('repMotivo').value.trim();
   const categoria = document.getElementById('repCategoria')?.value || inferCategory(nombreProducto);
@@ -7602,4 +7738,20 @@ textarea.notif-field{ resize:vertical; min-height:92px; line-height:1.4; }
   letter-spacing:-.05em!important;margin:0!important;max-width:100%;overflow-wrap:anywhere}
 #root .home-hero .greeting-wave{font-size:.8em;margin-left:6px;transform:translateY(-3px)}
 @media(max-width:700px){#root .home-hero{margin-bottom:30px!important}#root .home-hero h2.home-title-greeting{font-size:clamp(40px,13vw,56px)!important}}
+</style>
+
+<style id="veri-cart-exception">
+.list-item.cart-exception{background:color-mix(in srgb,var(--red,#e5484d) 12%,transparent)!important;border-color:color-mix(in srgb,var(--red,#e5484d) 45%,transparent)!important}
+.list-item.cart-exception .name,.list-item.cart-exception .code{color:var(--red,#e5484d)!important}
+.cart-exception-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;color:#fff;background:var(--red,#e5484d);vertical-align:middle}
+#scanFloatAddBtn.btn,.btn.cart-exception-btn{background:var(--red,#e5484d)!important;border-color:var(--red,#e5484d)!important;color:#fff!important;background-image:none!important}
+</style>
+<style id="veri-cart-filter">
+.cart-person-chips{display:flex;flex-wrap:wrap;gap:8px}
+.cart-person-chip{cursor:pointer;border:1px solid var(--glass-border);background:var(--input-bg);color:var(--text-2);border-radius:999px;padding:7px 12px;font:inherit;font-size:13px}
+.cart-person-chip b{margin-left:4px;color:var(--text-1)}
+.cart-person-chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.cart-person-chip.active b{color:#fff}
+.scan-cart-owner{margin:10px 0 0;padding:8px 10px;border-radius:12px;background:rgba(245,158,11,.14);font-size:13px;line-height:1.35;color:#b45309;font-weight:600;white-space:normal}
+[data-theme="dark"] .scan-cart-owner{color:#fbbf24}
 </style>
