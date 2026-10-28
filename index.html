@@ -11,9 +11,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Verificador">
 <link rel="manifest" href="manifest.json">
+<script>try{if(localStorage.getItem("vp_lite")==="1")document.documentElement.classList.add("lite")}catch(e){}</script>
 <link rel="preconnect" href="https://vgnpwlwkpxcumiqfmbti.supabase.co">
+<link rel="preconnect" href="https://api.groq.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <style>
 :root{
@@ -1593,20 +1594,8 @@ body{background:var(--bg-1)!important;background-image:none!important}
 /* ===== Chat de Veri IA (Groq) ===== */
 .spotlight-ai-item .spotlight-ai-icon{ color:#8b6bff; }
 .spotlight-ai-item strong{ color:#8b6bff; }
-.veri-chat-sheet{ display:flex; flex-direction:column; max-height:80vh; }
 .veri-chat-title{ display:flex; align-items:center; gap:8px; }
 .veri-chat-title svg{ width:18px; height:18px; color:#8b6bff; }
-.veri-chat-messages{ flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding:6px 2px 14px; min-height:120px; }
-.veri-chat-msg{ display:flex; align-items:flex-end; gap:8px; max-width:88%; }
-.veri-chat-msg.veri-chat-user{ align-self:flex-end; flex-direction:row-reverse; }
-.veri-chat-msg.veri-chat-model{ align-self:flex-start; }
-.veri-chat-avatar{ width:26px; height:26px; border-radius:50%; flex:0 0 auto; display:grid; place-items:center; color:#fff; background:linear-gradient(135deg,#8b6bff,#6fb7ff); }
-.veri-chat-avatar svg{ width:13px; height:13px; }
-.veri-chat-bubble{ padding:10px 13px; border-radius:16px; font-size:13.5px; line-height:1.45; }
-.veri-chat-user .veri-chat-bubble{ background:var(--accent); color:#fff; border-bottom-right-radius:5px; }
-.veri-chat-model .veri-chat-bubble{ background:var(--input-bg); border:1px solid var(--glass-border); color:var(--text-1); border-bottom-left-radius:5px; }
-.veri-chat-inputrow{ display:flex; gap:8px; padding-top:8px; border-top:1px solid var(--divider); }
-.veri-chat-inputrow input{ flex:1; min-width:0; }
 .beta-tag{ display:inline-block; font-size:9.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:#fff; background:linear-gradient(135deg,#8b6bff,#6fb7ff); padding:2px 7px; border-radius:999px; vertical-align:middle; margin-left:4px; }
 .quality-item{ align-items:flex-start; }
 .quality-badge{ display:inline-block; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; }
@@ -1650,6 +1639,107 @@ body{background:var(--bg-1)!important;background-image:none!important}
 @keyframes veriFabPulse{ 0%,100%{ transform:scale(1); opacity:0.35; } 50%{ transform:scale(1.18); opacity:0; } }
 @keyframes veriFabIn{ from{ opacity:0; transform:translateY(10px) scale(.8); } to{ opacity:1; transform:translateY(0) scale(1); } }
 @media (min-width:860px){ .veri-fab{ bottom:24px; } }
+
+/* ===== Chat Veri AI v3: panel animado, estrellita con estados y tarjetas de acción ===== */
+.vc-overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 18px calc(18px + env(safe-area-inset-bottom));background:rgba(10,10,24,0);transition:background .3s ease}
+.vc-overlay.in{background:rgba(10,10,24,.40)}
+.vc-panel{--ox:90%;--oy:100%;width:min(410px,100%);height:min(640px,calc(100dvh - 36px));display:flex;flex-direction:column;border-radius:28px;overflow:hidden;background:var(--bg-1);border:1px solid var(--glass-border);box-shadow:0 30px 80px rgba(70,50,160,.38);transform-origin:var(--ox) var(--oy);opacity:0}
+.vc-overlay.in .vc-panel{animation:vcOpen .5s cubic-bezier(.2,1.15,.3,1) both}
+.vc-overlay.out .vc-panel{animation:vcClose .22s ease-in both}
+.vc-overlay.out{background:rgba(10,10,24,0)}
+@keyframes vcOpen{0%{opacity:0;transform:scale(.12) translateY(26px);border-radius:80px}45%{opacity:1}100%{opacity:1;transform:none}}
+@keyframes vcClose{from{opacity:1;transform:none}to{opacity:0;transform:scale(.15) translateY(26px)}}
+@media(max-width:700px){.vc-overlay{padding:0}.vc-panel{width:100%;height:100dvh;max-height:none;border-radius:0;border:0;padding-bottom:env(safe-area-inset-bottom)}.vc-head{padding-top:calc(14px + env(safe-area-inset-top))}}
+.vc-close{width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.22);color:#fff;display:grid;place-items:center;cursor:pointer}.vc-close svg{width:17px;height:17px;stroke:#fff;color:#fff}
+@keyframes vcGrad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}@keyframes vcTint{0%,100%{color:#6fb7ff}33%{color:#4f6bff}66%{color:#a78bfa}}@keyframes vcRingW{0%{box-shadow:0 0 0 0 rgba(255,255,255,.6)}100%{box-shadow:0 0 0 13px rgba(255,255,255,0)}}@keyframes vcSpin{to{transform:rotate(360deg)}}
+@keyframes vcRing{0%{box-shadow:0 0 0 0 rgba(139,107,255,.55)}100%{box-shadow:0 0 0 13px rgba(139,107,255,0)}}
+@keyframes vcPop{0%{transform:scale(.8)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+.vc-msgs{flex:1;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:12px;padding:16px 14px 8px}
+.vc-msg{display:flex;gap:8px;align-items:flex-end;max-width:92%;animation:vcIn .3s cubic-bezier(.2,.9,.3,1) both}
+@keyframes vcIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.vc-user{align-self:flex-end}.vc-model{align-self:flex-start}.vc-col{min-width:0;display:flex;flex-direction:column;gap:8px}
+.vc-bubble{padding:10px 13px;border-radius:18px;font-size:13.5px;line-height:1.5;word-break:break-word}
+.vc-user .vc-bubble{background:var(--accent);color:#fff;border-bottom-right-radius:6px}
+.vc-model .vc-bubble{background:var(--input-bg);border:1px solid var(--glass-border);border-bottom-left-radius:6px}
+.vc-bubble p{margin:0}.vc-bubble p+p,.vc-bubble ol+p,.vc-bubble ul+p,.vc-bubble p+ol,.vc-bubble p+ul{margin-top:7px}.vc-bubble ol,.vc-bubble ul{margin:6px 0 0;padding-left:20px}.vc-bubble li{margin:3px 0}
+.vc-shimmer{background:linear-gradient(90deg,var(--text-2),#8b6bff,var(--text-2));background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:vcShim 1.4s linear infinite;font-weight:650}
+@keyframes vcShim{to{background-position:-200% 0}}
+.vc-dots i{display:inline-block;width:4px;height:4px;margin-left:3px;border-radius:50%;background:#8b6bff;animation:vcDot 1s infinite ease-in-out}.vc-dots i:nth-child(2){animation-delay:.15s}.vc-dots i:nth-child(3){animation-delay:.3s}
+@keyframes vcDot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+.vc-act{padding:11px 12px;border-radius:16px;background:var(--bg-1);border:1px solid rgba(139,107,255,.28);box-shadow:0 4px 14px rgba(139,107,255,.08);display:flex;flex-direction:column;gap:9px;animation:vcIn .35s .1s cubic-bezier(.2,.9,.3,1) both}
+.vc-act-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;font-weight:700}
+.vc-act-sub{font-size:11.5px;color:var(--text-2);font-weight:500}
+.vc-chips{display:flex;flex-wrap:wrap;gap:7px}
+.vc-chip{border:1px solid var(--glass-border);background:var(--input-bg);color:var(--text-1);border-radius:999px;padding:7px 12px;font-size:12.5px;font-weight:650;cursor:pointer;transition:transform .12s,background .2s,color .2s}
+.vc-chip:active{transform:scale(.95)}.vc-chip.on{background:var(--accent);color:#fff;border-color:transparent}
+.vc-link{align-self:flex-start;border:0;background:none;color:var(--accent);font-weight:700;font-size:12.5px;padding:0;cursor:pointer}
+.vc-sw{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer;box-shadow:0 0 0 1px var(--glass-border)}.vc-sw.sel{border-color:var(--bg-1);box-shadow:0 0 0 2.5px var(--accent)}
+.vc-name{display:flex;gap:8px}.vc-name input{flex:1;min-width:0}
+.vc-ok{font-size:12px;color:var(--green);font-weight:650}
+.vc-sugg{display:flex;flex-direction:column;gap:7px;margin-top:2px}.vc-sugg .vc-chip{text-align:left;border-radius:14px;padding:10px 13px}
+.vc-inputrow{display:flex;gap:8px;align-items:center;padding:10px 12px 12px;border-top:1px solid var(--divider)}
+.vc-inputrow input{flex:1;min-width:0;border-radius:999px;padding-left:16px}
+.vc-send{width:42px;height:42px;border-radius:50%;border:0;color:#fff;background:linear-gradient(135deg,#8b6bff,#6fb7ff);display:grid;place-items:center;cursor:pointer;flex:0 0 auto;transition:transform .12s,opacity .2s}.vc-send:active{transform:scale(.92)}.vc-send:disabled{opacity:.45}.vc-send svg{width:19px;height:19px}
+
+
+/* ===== Veri AI v3.1: pantalla de bienvenida centrada, sugerencias con brillo ===== */
+.vc-top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 2px 16px;min-height:54px}
+.vc-brand{display:flex;align-items:center;gap:8px;font-weight:760;font-size:15px;letter-spacing:-.02em;opacity:1;transition:opacity .3s}
+.vc-panel.vc-hero-mode .vc-brand{opacity:0;pointer-events:none}
+.vc-grad-text{background:linear-gradient(120deg,#6fb7ff,#8b6bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.vc-close{background:var(--input-bg);color:var(--text-1)}.vc-close svg{stroke:currentColor;color:var(--text-1)}
+.vc-hero{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:6px 24px;text-align:center;min-height:0}
+.vc-panel.vc-hero-mode .vc-hero{display:flex}.vc-panel.vc-hero-mode .vc-msgs{display:none}
+.vc-hero-star{position:relative;width:100px;height:100px;display:grid;place-items:center;animation:vcFloat 5s ease-in-out infinite}
+.vc-hero-glow{position:absolute;inset:-30px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(111,183,255,.55),rgba(139,107,255,.36) 55%,transparent 72%);filter:blur(16px);animation:vcBreath 4s ease-in-out infinite}
+.vc-hero-orb{position:relative;width:100px;height:100px;border-radius:50%;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#8b6bff,#6fb7ff);box-shadow:0 16px 44px rgba(122,120,255,.45)}
+.vc-hero-orb svg{width:48px;height:48px}
+.vc-panel.typing .vc-hero-orb{background:linear-gradient(120deg,#6fb7ff,#8b6bff,#4f8dff,#a78bfa,#6fb7ff);background-size:300% 300%;animation:vcGrad 2.2s ease-in-out infinite}
+.vc-hero-title{margin:0;font-size:clamp(27px,7.4vw,35px);line-height:1.18;letter-spacing:-.035em;font-weight:780;animation:vcIn .55s .15s cubic-bezier(.2,.9,.3,1) both}
+@keyframes vcFloat{50%{transform:translateY(-7px)}}@keyframes vcBreath{50%{opacity:.6;transform:scale(1.08)}}
+.vc-sugg-wrap{display:flex;flex-direction:column;gap:8px;padding:2px 14px 10px}.vc-sugg-wrap:empty{display:none}
+.vc-s{display:flex;align-items:center;gap:10px;text-align:left;font-size:13.5px;font-weight:620;color:var(--text-1);padding:11px 14px;border-radius:16px;border:1.5px solid transparent;cursor:pointer;background:linear-gradient(var(--bg-1),var(--bg-1)) padding-box,linear-gradient(120deg,rgba(111,183,255,.55),rgba(139,107,255,.55)) border-box;box-shadow:0 0 22px rgba(139,107,255,.12);animation:vcIn .35s calc(var(--i)*70ms) cubic-bezier(.2,.9,.3,1) both;transition:transform .12s,box-shadow .25s}
+.vc-s:hover{box-shadow:0 0 26px rgba(111,140,255,.3)}.vc-s:active{transform:scale(.98)}.vc-s svg{width:14px;height:14px;flex:0 0 auto;color:#8b6bff}
+.vc-inputrow{border-top:0;padding:4px 14px calc(14px + env(safe-area-inset-bottom,0px)*0)}
+.vc-field{flex:1;display:flex;align-items:center;gap:6px;min-width:0;border-radius:999px;padding:3px 3px 3px 18px;border:1.5px solid transparent;background:linear-gradient(var(--input-bg),var(--input-bg)) padding-box,linear-gradient(120deg,rgba(111,183,255,.4),rgba(139,107,255,.4)) border-box;transition:box-shadow .3s,background .3s}
+.vc-field:focus-within,.vc-panel.typing .vc-field{background:linear-gradient(var(--bg-1),var(--bg-1)) padding-box,linear-gradient(120deg,#6fb7ff,#8b6bff,#6fb7ff) border-box;box-shadow:0 0 0 4px rgba(139,107,255,.10),0 8px 28px rgba(111,140,255,.26)}
+.vc-field input{flex:1;min-width:0;border:0!important;background:transparent!important;box-shadow:none!important;outline:none!important;padding:11px 0!important;font-size:16px;color:var(--text-1)}
+@media(max-width:700px){.vc-panel{height:100%}.vc-top{padding-top:calc(10px + env(safe-area-inset-top))}}
+
+
+/* ===== Identidad Veri AI: robot ===== */
+.veri-bot{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;-webkit-user-drag:none;user-select:none}
+.vc-hero-star{width:128px;height:128px}
+.vc-hero-bot{position:relative;width:128px;height:128px;object-fit:contain;filter:drop-shadow(0 16px 22px rgba(90,100,220,.38));pointer-events:none;-webkit-user-drag:none}
+.vc-panel.typing .vc-hero-glow{background:linear-gradient(120deg,#6fb7ff,#8b6bff,#4f8dff,#a78bfa,#6fb7ff);background-size:300% 300%;opacity:.8;animation:vcGrad 2s ease-in-out infinite,vcBreath 3s ease-in-out infinite}
+.vc-panel.typing .vc-hero-bot{animation:vcNod 1s ease-in-out infinite}
+@keyframes vcNod{0%,100%{transform:rotate(0) translateY(0)}35%{transform:rotate(-4deg) translateY(-4px)}70%{transform:rotate(3deg) translateY(-2px)}}
+.veri-fab .veri-bot{width:38px;height:38px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.28))}
+.nav-ai-btn .nav-ai-icon{width:28px!important;height:28px!important;background:linear-gradient(135deg,#8b6bff,#6fb7ff)!important;border-color:transparent!important}
+.nav-ai-btn .nav-ai-icon .veri-bot{width:21px;height:21px}
+
+
+/* ===== Robot libre: sin círculo, solo resplandor y animación ===== */
+.vc-bot{position:relative;width:36px;height:36px;flex:0 0 auto;display:grid;place-items:center}
+.vc-bot::before{content:"";position:absolute;inset:-6px;border-radius:50%;background:radial-gradient(circle,rgba(139,107,255,.55),rgba(111,183,255,.34) 55%,transparent 72%);filter:blur(7px);opacity:.5;transition:opacity .3s}
+.vc-bot .veri-bot{position:relative;width:100%;height:100%;filter:drop-shadow(0 3px 5px rgba(90,100,220,.3))}
+.vc-bot.thinking::before{background:linear-gradient(120deg,#6fb7ff,#8b6bff,#4f8dff,#a78bfa,#6fb7ff);background-size:300% 300%;opacity:.95;animation:vcGrad 1.6s ease-in-out infinite,vcBreath 1.2s ease-in-out infinite}
+.vc-bot.thinking .veri-bot{animation:vcNod .9s ease-in-out infinite}
+.vc-bot.pop .veri-bot{animation:vcHop .6s cubic-bezier(.2,1.4,.4,1)}
+.vc-bot.pop::before{animation:vcFlash .8s ease-out}
+@keyframes vcHop{0%{transform:none}35%{transform:translateY(-8px) scale(1.12)}100%{transform:none}}
+@keyframes vcFlash{0%{opacity:1;transform:scale(1.7)}100%{opacity:.5;transform:scale(1)}}
+.vc-paused *,.vc-paused *::before,.vc-paused *::after{animation-play-state:paused!important}
+
+
+/* ===== Modo ligero (ultra optimizado): sin animaciones, transparencias ni efectos ===== */
+html.lite.lite.lite.lite *,html.lite.lite.lite.lite *::before,html.lite.lite.lite.lite *::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important;transition-delay:0s!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;filter:none!important;text-shadow:none!important;will-change:auto!important;scroll-behavior:auto!important}
+html.lite body:before,html.lite body:after,html.lite .vc-hero-glow,html.lite .vc-bot::before,html.lite .veri-fab::after{display:none!important}
+html.lite .glass,html.lite .card,html.lite .home-card,html.lite .modal-sheet,html.lite .vc-panel{box-shadow:none!important}
+html.lite .topbar,html.lite .bottomnav,html.lite .sidebar{background:var(--bg-1)!important}
+html.lite.lite.lite.lite .vc-dots i{animation:vcDot 1s infinite ease-in-out!important}
+html.lite.lite.lite.lite .vc-dots i:nth-child(2){animation-delay:.15s!important}
+html.lite.lite.lite.lite .vc-dots i:nth-child(3){animation-delay:.3s!important}
 
 </style>
 
@@ -2297,6 +2387,7 @@ const I18N = {
     veriAIKeySaveErrorColumn:"No se pudo guardar: falta la columna 'groq_api_key' en la tabla 'config' de Supabase. Pide que la agreguen (tipo texto) y vuelve a intentar.",
     veriAIKeySaveErrorGeneric:"No se pudo guardar la clave de Veri IA",
     veriFabAria:"Preguntarle a Veri", veriAIBetaTag:"Beta",
+    liteModeLabel:"Modo ligero (ultra optimizado)", liteModeSub:"Quita animaciones, transparencias y efectos para que la app funcione fluida en celulares lentos. Todo sigue funcionando igual.", liteModeHint:"¿Tu celular va lento? Prueba el Modo ligero en Ajustes.",
     preferencesSaved:"Preferencias guardadas", soundTest:"Probar sonido", edit:"Editar", delete:"Eliminar", editSave:"Guardar cambios",
     category:"Categoría", uncategorized:"Sin categoría", reorderHint:"Mantén presionado y arrastra para ordenar",
     importWhiteOnly:"Solo se importaron productos sin color. Amarillo, azul y verde fueron omitidos.",
@@ -2503,6 +2594,7 @@ const I18N = {
     veriAIKeySaveErrorColumn:"Couldn't save: the 'groq_api_key' column is missing from the 'config' table in Supabase. Ask for it to be added (text type) and try again.",
     veriAIKeySaveErrorGeneric:"Couldn't save the Veri AI key",
     veriFabAria:"Ask Veri", veriAIBetaTag:"Beta",
+    liteModeLabel:"Lite mode (ultra optimized)", liteModeSub:"Turns off animations, transparency and effects so the app runs smoothly on slower phones. Everything still works the same.", liteModeHint:"Phone feeling slow? Try Lite mode in Settings.",
     preferencesSaved:"Preferences saved", soundTest:"Test sound", edit:"Edit", delete:"Delete", editSave:"Save changes",
     category:"Category", uncategorized:"Uncategorized", reorderHint:"Press and drag to reorder",
     importWhiteOnly:"Only uncolored products were imported. Yellow, blue and green were skipped.",
@@ -2578,6 +2670,27 @@ const I18N = {
     adminSectionCollapseHint:"Tap a section to expand or collapse it.",
   }
 };
+function applyLiteMode(){
+  const on=!!(state.prefs&&state.prefs.liteMode);
+  document.documentElement.classList.toggle('lite',on);
+  try{ localStorage.setItem('vp_lite',on?'1':'0'); }catch(e){}
+}
+// Aviso único, solo en Android con poca memoria o pocos núcleos: sugiere el Modo ligero.
+setTimeout(()=>{ try{
+  if(state.session && state.prefs.liteMode===undefined && !localStorage.getItem('vp_lite_hint') && /Android/i.test(navigator.userAgent) && ((navigator.deviceMemory&&navigator.deviceMemory<=3)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4))){ localStorage.setItem('vp_lite_hint','1'); toast(t('liteModeHint')); }
+}catch(e){} },8000);
+let __xlsxP=null;
+function ensureXLSX(){
+  if(window.XLSX) return Promise.resolve();
+  if(!__xlsxP) __xlsxP=new Promise((res,rej)=>{ const sc=document.createElement('script'); sc.src='https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js'; sc.onload=()=>res(); sc.onerror=()=>{ __xlsxP=null; rej(new Error('xlsx')); }; document.head.appendChild(sc); });
+  return __xlsxP;
+}
+// La librería de Excel (pesada) ya no frena el arranque: se descarga en segundo plano o al usarla.
+setTimeout(()=>{ const go=()=>{ if(state.prefs&&state.prefs.liteMode) return; ensureXLSX().catch(()=>{}); }; if(window.requestIdleCallback) requestIdleCallback(go,{timeout:8000}); else setTimeout(go,2000); },4000);
+// Con la pestaña oculta se pausan las animaciones infinitas (ahorra batería y CPU).
+document.addEventListener('visibilitychange',()=>document.documentElement.classList.toggle('vc-paused',document.hidden));
+const VERI_BOT_URI='data:image/png;base64,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';
+const VERI_BOT='<img class="veri-bot" src="'+VERI_BOT_URI+'" alt="" draggable="false">';
 function t(k){ return (I18N[state.prefs.lang]||I18N.es)[k] || k; }
 
 /* ===================== State ===================== */
@@ -2652,6 +2765,7 @@ if(state.prefs.soundStyle===undefined) state.prefs.soundStyle = 'modern';
 if(state.prefs.namingFormatCheck===undefined) state.prefs.namingFormatCheck = true;
 if(state.prefs.namingAgreementsCheck===undefined) state.prefs.namingAgreementsCheck = true;
 if(state.prefs.aiEnabled===undefined) state.prefs.aiEnabled = false;
+applyLiteMode();
 let prefsSyncTimer = null;
 async function loadRemotePrefs(codigo){
   if(!codigo) return;
@@ -2731,6 +2845,7 @@ function importQualityExcel(file){
   const reader = new FileReader();
   reader.onload = async (e)=>{
     try{
+      await ensureXLSX();
       const wb = XLSX.read(e.target.result, {type:'array'});
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
@@ -2786,7 +2901,8 @@ function clearQualityAll(){
   saveQuality();
   render();
 }
-function downloadQualityReport(){
+async function downloadQualityReport(){
+  try{ await ensureXLSX(); }catch(e){ toast(t('errorImport')); return; }
   if(!state.quality || !state.quality.items.length) return;
   const data = state.quality.items.map(it=>({
     Codigo: it.codigo||'',
@@ -3339,10 +3455,24 @@ Conoces bien la app y puedes explicar cómo usarla:
 - Escanear producto: usa la cámara del celular o computador para leer un código de barras o QR y verificar si el producto existe en la base 2025 o 2026. Se puede elegir la base y activar el modo de escaneo continuo. En celulares con varios lentes (ej. iPhone con teleobjetivo) se puede elegir qué cámara/lente usar desde un selector que aparece sobre la cámara.
 - Buscar: busca productos por nombre, código de barras o marca, en cualquiera de las dos bases, con resultados ordenados por relevancia.
 - Herramientas: agrupa Repeticiones (productos pendientes, hechos o enviados), Nombrador. El Nombrador ayuda a asignarle nombre a productos nuevos siguiendo el formato: [SMP/VMP ]MARCA, DESCRIPCIÓN, PESO[ PACKX(cantidad)], TIPO DE EMPAQUE — y avisa si falta alguna sección o si el producto parece duplicado (mismo peso, descripción y marca).
-- Ajustes: desde ahí se puede cambiar el tema claro/oscuro, el color de acento (tocando un color de la paleta), el idioma de la app, la base de datos por defecto, el nombre del perfil (con el ícono de lápiz junto al nombre), la vibración y el sonido al escanear, el aviso de formato al nombrar, y activar o no las respuestas de Veri IA.
+- Ajustes: desde ahí se puede cambiar el tema claro/oscuro, el color de acento (tocando un color de la paleta), el idioma de la app, la base de datos por defecto, el nombre del perfil (con el ícono de lápiz junto al nombre), la vibración y el sonido al escanear, el aviso de formato al nombrar, activar o no las respuestas de Veri IA y el Modo ligero (ultra optimizado: quita animaciones, transparencias y efectos para que la app funcione fluida en celulares lentos).
 - Roles: hay administrador y coadministrador. El administrador ve y gestiona todo (personas, roles, bases, la clave de IA de Veri). El coadministrador solo ve Repeticiones y Actualizar bases.
 Cuando la pregunta de la persona pueda referirse a un producto específico, recibirás debajo un bloque "PRODUCTOS ENCONTRADOS" con resultados reales tomados de la base de datos (código y nombre, con la base 2025 o 2026 a la que pertenecen) que coinciden con la pregunta. Básate SOLO en esos datos reales para responder sobre productos concretos (existencia, nombre exacto, en qué base está, etc.); nunca inventes códigos ni nombres de productos. Si el bloque viene vacío o no aparece el producto que preguntan, dilo con honestidad (por ejemplo: "no encontré ese producto en las bases cargadas") en vez de suponer que existe.
-Si te preguntan algo que no tiene que ver con la app, respóndelo igual con tu conocimiento general, manteniendo la brevedad. Si no sabes algo con certeza, dilo honestamente en vez de inventar. No inventes funciones que la app no tiene.`;
+Si te preguntan algo que no tiene que ver con la app, respóndelo igual con tu conocimiento general, manteniendo la brevedad. Si no sabes algo con certeza, dilo honestamente en vez de inventar. No inventes funciones que la app no tiene.
+FORMATO DE RESPUESTA (muy importante): responde corto y ordenado, de unas 60 palabras como máximo salvo que pidan detalle. Si son pasos, usa una lista numerada (1. 2. 3.) con una acción por línea. Usa **negrita** solo para nombres de botones o secciones. Sin saludos largos ni cierres de relleno.
+ACCIONES EN EL CHAT: cuando la pregunta sea sobre cambiar o hacer algo dentro de la app, explica en una o dos líneas dónde está y, AL FINAL, agrega etiquetas, cada una en su propia línea, para que el chat muestre los controles listos para usar (la persona no tiene que ir a Ajustes). Etiquetas disponibles (usa solo estas, máximo 3):
+[[accion:sonido]] activar o desactivar el sonido al escanear
+[[accion:sonido_estilo]] elegir el estilo del sonido (clásico, moderno, neón)
+[[accion:vibracion]] activar o desactivar la vibración
+[[accion:tema]] tema claro u oscuro
+[[accion:idioma]] idioma español o inglés
+[[accion:acento]] color de acento de la app
+[[accion:nombre]] cambiar el nombre del perfil
+[[accion:base_defecto]] base de datos por defecto (2025 o 2026)
+[[accion:formato_nombrar]] aviso de formato al nombrar
+[[accion:modo_ligero]] activar o desactivar el Modo ligero (para celulares lentos o cuando la app se traba)
+[[accion:ir:scan]] botón para ir a una sección; cambia scan por search, rep, settings o home
+No menciones las etiquetas ni las expliques en el texto. Si no aplica ninguna, no pongas etiquetas. Nunca inventes etiquetas nuevas.`;
 
 function buildProductContextForQuestion(question){
   const q = (question||'').trim();
@@ -3370,9 +3500,10 @@ async function askVeriAI(question, historyForContext){
   if(!state.prefs.aiEnabled) throw new Error(t('veriAIDisabled'));
   const key = (state.veriApiKey||'').trim();
   if(!key) throw new Error(t('veriAINoKey'));
-  try{ await ensureBothBasesLoaded(); }catch(e){ /* seguimos sin contexto de productos si falla */ }
+  const appOnly = /^\W*(como|how)\b/.test(vcNorm(question)) && vcInferActions(question).length>0;
+  if(!appOnly){ try{ await ensureBothBasesLoaded(); }catch(e){ /* seguimos sin contexto de productos si falla */ } }
   const turns = (historyForContext||[]).filter(m=>m.text && m.text!==t('veriAIThinking')).slice(-12);
-  const productContext = buildProductContextForQuestion(question);
+  const productContext = appOnly ? '' : buildProductContextForQuestion(question);
   const systemMsgs = [{role:'system', content:VERI_AI_SYSTEM_CONTEXT}];
   if(productContext) systemMsgs.push({role:'system', content:productContext});
   const messages = [...systemMsgs];
@@ -3384,12 +3515,15 @@ async function askVeriAI(question, historyForContext){
   const controller = new AbortController();
   const timeoutId = setTimeout(()=>controller.abort(), 30000);
   try{
-    res = await fetch('https://api.groq.com/openai/v1/chat/completions',{
+    const call=(extra)=>fetch('https://api.groq.com/openai/v1/chat/completions',{
       method:'POST',
       headers:{'Content-Type':'application/json', 'Authorization':`Bearer ${key}`},
-      body: JSON.stringify({ model:VERI_AI_MODEL, messages, max_tokens:600, temperature:0.4 }),
+      body: JSON.stringify({ model:VERI_AI_MODEL, messages, max_tokens:700, temperature:0.4, ...extra }),
       signal:controller.signal
     });
+    // Razonamiento bajo = respuestas bastante más rápidas; si el modelo no lo acepta, reintenta sin él.
+    res = await call({reasoning_effort:'low'});
+    if(res.status===400) res = await call({});
   }catch(e){ console.error('Veri IA (Groq): fallo de red/tiempo de espera', e); throw new Error(e && e.name==='AbortError' ? 'Veri tardó demasiado en responder. Revisa tu conexión e inténtalo de nuevo.' : t('veriAIError')); }
   finally{ clearTimeout(timeoutId); }
   if(!res.ok){
@@ -3408,54 +3542,241 @@ async function askVeriAI(question, historyForContext){
   if(!text) throw new Error(t('veriAIError'));
   return text;
 }
-function closeVeriChat(){ const el=document.getElementById('veriChatOverlay'); if(el) el.remove(); veriChatHistory=[]; }
-function renderVeriChatMessages(){
-  const wrap = document.getElementById('veriChatMessages');
-  if(!wrap) return;
-  wrap.innerHTML = veriChatHistory.map(m=>`<div class="veri-chat-msg veri-chat-${m.role}">${m.role==='model'?`<div class="veri-chat-avatar">${ICONS.sparkle}</div>`:''}<div class="veri-chat-bubble">${escapeHtml(m.text).replace(/\n/g,'<br>')}</div></div>`).join('');
-  wrap.scrollTop = wrap.scrollHeight;
+let vcNameDraft=null, vcNameSaved='';
+const vcL=(es,en)=> state.prefs.lang==='en'?en:es;
+const VC_SEND_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
+const VC_GO_LABELS={scan:['Ir a Escanear','Go to Scan'],search:['Ir a Buscar','Go to Search'],rep:['Ir a Herramientas','Go to Tools'],settings:['Ir a Ajustes','Go to Settings'],home:['Ir al inicio','Go home']};
+function vcNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function vcParseAnswer(raw){
+  const actions=[];
+  const text=String(raw||'').replace(/\[\[\s*accion\s*:\s*([a-z_]+)(?::([a-z]+))?\s*\]\]/gi,(m,id,val)=>{ actions.push({id:id.toLowerCase(),val:(val||'').toLowerCase()}); return ''; }).replace(/\n{3,}/g,'\n\n').trim();
+  return {text,actions};
 }
-function openVeriChat(initialQuestion){
+function vcInferActions(q){
+  const s=vcNorm(q), out=[];
+  if(/sonido|sound|pitido|beep|audio/.test(s)) out.push({id:'sonido'},{id:'sonido_estilo'});
+  if(/vibra/.test(s)) out.push({id:'vibracion'});
+  if(/mi nombre|my name|perfil|profile|usuario|username/.test(s)) out.push({id:'nombre'});
+  if(/color|acento|accent/.test(s)) out.push({id:'acento'});
+  if(/tema|oscuro|claro|dark|light|modo/.test(s)) out.push({id:'tema'});
+  if(/idioma|language|ingles|english|espanol/.test(s)) out.push({id:'idioma'});
+  if(/base.*(defecto|default)|(defecto|default).*base/.test(s)) out.push({id:'base_defecto'});
+  if(/aviso.*(formato|nombr)|formato.*nombr/.test(s)) out.push({id:'formato_nombrar'});
+  if(/\blent[oa]\b|trabad|\btraba\b|\blag\b|fluid|optimiz|ligero|\blite\b|\bslow\b|performance|animaciones/.test(s)) out.push({id:'modo_ligero'});
+  return out;
+}
+function vcFormat(text){
+  const inline=s=>s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  let html='', list=null;
+  const close=()=>{ if(list){ html+='</'+list+'>'; list=null; } };
+  escapeHtml(text).split('\n').forEach(l=>{
+    const ol=l.match(/^\s*(\d+)[.)]\s+(.*)/), ul=l.match(/^\s*[-•*]\s+(.*)/);
+    if(ol){ if(list!=='ol'){ close(); html+='<ol>'; list='ol'; } html+='<li>'+inline(ol[2])+'</li>'; }
+    else if(ul){ if(list!=='ul'){ close(); html+='<ul>'; list='ul'; } html+='<li>'+inline(ul[1])+'</li>'; }
+    else if(!l.trim()){ close(); }
+    else { close(); html+='<p>'+inline(l)+'</p>'; }
+  });
+  close(); return html;
+}
+function vcChips(kind,opts,current){
+  return '<div class="vc-chips">'+opts.map(([v,label])=>`<button type="button" class="vc-chip ${String(current)===String(v)?'on':''}" data-vc="${kind}" data-val="${v}">${label}</button>`).join('')+'</div>';
+}
+function vcHelpLine(){
+  const me=(state.personas||[]).find(x=>x.codigo===normalize(state.session||''));
+  const first=String((me&&me.nombre)||'').trim().split(/\s+/)[0];
+  return first ? vcL('¿Cómo te puedo ayudar, '+first+'?','How can I help you, '+first+'?') : vcL('¿Cómo te puedo ayudar?','How can I help you?');
+}
+function vcSwitchRow(kind,title,on,sub){
+  return `<div class="vc-act-head"><div>${title}${sub?`<div class="vc-act-sub">${sub}</div>`:''}</div><label class="switch"><input type="checkbox" data-vc="${kind}" ${on?'checked':''}><span class="slider"></span></label></div>`;
+}
+function vcActionHTML(a){
+  const p=state.prefs;
+  switch(a.id){
+    case 'sonido': return `<div class="vc-act">${vcSwitchRow('sound',vcL('Sonido al escanear','Scan sound'),p.sound)}<button type="button" class="vc-link" data-vc="testsound">${t('soundTest')}</button></div>`;
+    case 'sonido_estilo': return `<div class="vc-act"><div class="vc-act-head">${t('soundStyleLabel')}</div>${vcChips('soundstyle',[['classic',t('soundClassic')],['modern',t('soundModern')],['neon',t('soundNeon')]],p.soundStyle)}${p.sound?'':`<div class="vc-act-sub">${vcL('El sonido está desactivado: actívalo para escucharlo al escanear.','Sound is off: turn it on to hear it when scanning.')}</div>`}</div>`;
+    case 'vibracion': return ('vibrate' in navigator)?`<div class="vc-act">${vcSwitchRow('vib',t('vibrationLabel'),p.vibration)}</div>`:'';
+    case 'tema': return `<div class="vc-act"><div class="vc-act-head">${t('theme')}</div>${vcChips('theme',[['light',vcL('Claro','Light')],['dark',vcL('Oscuro','Dark')]],p.theme)}</div>`;
+    case 'idioma': return `<div class="vc-act"><div class="vc-act-head">${t('language')}</div>${vcChips('lang',[['es','Español'],['en','English']],p.lang)}</div>`;
+    case 'base_defecto': return `<div class="vc-act"><div class="vc-act-head">${t('defaultBase')}</div>${vcChips('defbase',[['2025','2025'],['2026','2026']],p.defaultBase)}</div>`;
+    case 'modo_ligero': return `<div class="vc-act">${vcSwitchRow('lite',vcL('Modo ligero','Lite mode'),p.liteMode,vcL('Sin animaciones ni transparencias','No animations or transparency'))}</div>`;
+    case 'formato_nombrar': return `<div class="vc-act">${vcSwitchRow('namefmt',t('namingFormatCheckLabel'),p.namingFormatCheck)}</div>`;
+    case 'acento': {
+      const cols=(COLOR_PALETTES.vivos||Object.values(COLOR_PALETTES)[0]).colors;
+      return `<div class="vc-act"><div class="vc-act-head">${t('accentColor')}</div><div class="vc-chips">${cols.map(([c,l])=>`<button type="button" class="vc-sw ${p.accent===c?'sel':''}" style="background:${c}" data-vc="accent" data-val="${c}" aria-label="${l}"></button>`).join('')}</div><button type="button" class="vc-link" data-vc="go" data-val="settings">${vcL('Ver más colores','More colors')}</button></div>`;
+    }
+    case 'nombre': {
+      const me=(state.personas||[]).find(x=>x.codigo===normalize(state.session||''));
+      const cur=vcNameDraft!==null?vcNameDraft:(me&&me.nombre)||'';
+      return `<div class="vc-act"><div class="vc-act-head">${t('usernameLabel')}</div><div class="vc-name"><input type="text" data-vc-name value="${escapeHtml(cur)}" placeholder="${t('usernameLabel')}" autocomplete="off"><button type="button" class="btn primary sm" data-vc="savename">${t('saveName')}</button></div>${vcNameSaved?`<div class="vc-ok">✓ ${t('nameSaved')}</div>`:''}</div>`;
+    }
+    case 'ir': return VC_GO_LABELS[a.val]?`<div class="vc-act"><button type="button" class="vc-chip on" data-vc="go" data-val="${a.val}">${vcL(...VC_GO_LABELS[a.val])} →</button></div>`:'';
+  }
+  return '';
+}
+async function vcSaveName(){
+  const input=document.querySelector('#veriChatMessages [data-vc-name]');
+  const val=((input&&input.value)||'').trim(); if(!val) return;
+  try{
+    await sb(`personas?codigo=eq.${encodeURIComponent(normalize(state.session||''))}`,{method:'PATCH',body:JSON.stringify({nombre:val}),headers:{'Prefer':'return=minimal'}});
+    const me=state.personas.find(p=>p.codigo===normalize(state.session||'')); if(me) me.nombre=val;
+    vcNameSaved=val; vcNameDraft=null; toast(t('nameSaved')); render();
+  }catch(e){ toast(t('errorImport')); }
+  renderVeriChatMessages(true);
+}
+function vcHandle(kind,val){
+  const p=state.prefs;
+  switch(kind){
+    case 'ask': vcSend(val); return;
+    case 'sound': p.sound=!!val; savePrefs(); if(val){ unlockAudio(); playScanSound('exact'); } break;
+    case 'testsound': unlockAudio(); playScanSound('exact'); return;
+    case 'soundstyle': p.soundStyle=val; savePrefs(); unlockAudio(); playScanSound('exact',val); break;
+    case 'vib': p.vibration=!!val; savePrefs(); if(val&&navigator.vibrate) navigator.vibrate(30); break;
+    case 'theme': p.theme=val; savePrefs(); render(); break;
+    case 'lang': p.lang=val; savePrefs(); render(); { const i=document.getElementById('veriChatInput'); if(i) i.placeholder=t('veriAIChatPlaceholder'); } break;
+    case 'accent': p.accent=val; savePrefs(); render(); break;
+    case 'defbase': p.defaultBase=val; state.scanBase=val; savePrefs(); render(); break;
+    case 'namefmt': p.namingFormatCheck=!!val; savePrefs(); break;
+    case 'lite': p.liteMode=!!val; savePrefs(); applyLiteMode(); break;
+    case 'savename': vcSaveName(); return;
+    case 'go': if(!VC_GO_LABELS[val]) return; stopCamera(); state.tab=val; render(); closeVeriChat(true); return;
+    default: return;
+  }
+  renderVeriChatMessages(true);
+}
+function closeVeriChat(animate){
+  const el=document.getElementById('veriChatOverlay');
+  veriChatHistory=[]; vcNameDraft=null; vcNameSaved='';
+  if(!el) return;
+  if(animate===true){ el.classList.add('out'); el.removeAttribute('id'); setTimeout(()=>el.remove(),230); } else el.remove();
+}
+function renderVeriChatMessages(keepScroll){
+  const wrap=document.getElementById('veriChatMessages');
+  if(!wrap) return;
+  const fromBottom=wrap.scrollHeight-wrap.scrollTop;
+  const star=VERI_BOT;
+  let html='';
+  veriChatHistory.forEach(m=>{
+    if(!m) return;
+    if(m.role==='user'){ html+=`<div class="vc-msg vc-user"><div class="vc-bubble">${escapeHtml(m.text)}</div></div>`; return; }
+    if(m.pending){ html+=`<div class="vc-msg vc-model"><div class="vc-bot thinking">${star}</div><div class="vc-col"><div class="vc-bubble"><span class="vc-shimmer">${vcL('Pensando','Thinking')}</span><span class="vc-dots"><i></i><i></i><i></i></span></div></div></div>`; return; }
+    const parsed=vcParseAnswer(m.text);
+    let acts=m.error?[]:(parsed.actions.length?parsed.actions:vcInferActions(m.q));
+    const seen={}; acts=acts.filter(a=>{ const k=a.id+':'+(a.val||''); if(seen[k]) return false; seen[k]=1; return true; }).slice(0,3);
+    html+=`<div class="vc-msg vc-model"><div class="vc-bot${m.fresh?' pop':''}">${star}</div><div class="vc-col"><div class="vc-bubble">${vcFormat(parsed.text||m.text)}</div>${acts.map(vcActionHTML).join('')}</div></div>`;
+  });
+  wrap.innerHTML=html;
+  veriChatHistory.forEach(m=>{ if(m&&m.fresh) m.fresh=false; });
+  wrap.scrollTop = keepScroll ? wrap.scrollHeight-fromBottom : wrap.scrollHeight;
+  const busy=veriChatHistory.some(m=>m&&m.pending);
+  const panel=document.querySelector('#veriChatOverlay .vc-panel');
+  if(panel) panel.classList.toggle('vc-hero-mode',!veriChatHistory.length);
+  const hs=document.getElementById('vcHeadStar');
+  if(hs){ const was=hs.classList.contains('thinking'); hs.classList.toggle('thinking',busy); if(was&&!busy){ hs.classList.remove('pop'); void hs.offsetWidth; hs.classList.add('pop'); } }
+  const sb2=document.getElementById('veriChatSendBtn'); if(sb2) sb2.disabled=busy;
+  vcRefreshHero(); vcOnType();
+}
+function vcSend(raw){
+  const input=document.getElementById('veriChatInput');
+  const val=String(raw!==undefined?raw:(input?input.value:'')).trim();
+  if(!val || veriChatHistory.some(m=>m&&m.pending)) return;
+  if(input) input.value='';
+  const hist=veriChatHistory;
+  hist.push({role:'user',text:val});
+  const snapshot=hist.slice();
+  const idx=hist.push({role:'model',text:t('veriAIThinking'),pending:true})-1;
+  renderVeriChatMessages();
+  askVeriAI(val,snapshot).then(answer=>{ hist[idx]={role:'model',text:answer,q:val,fresh:true}; })
+    .catch(err=>{ hist[idx]={role:'model',text:err.message||t('veriAIError'),error:true}; })
+    .finally(()=>{ renderVeriChatMessages(); const i=document.getElementById('veriChatInput'); if(i&&i.isConnected&&!i.matches(':disabled')) i.focus({preventScroll:true}); });
+}
+const VC_SUGGS=[
+ ['¿Cómo cambio el sonido al escanear?','How do I change the scan sound?','sonido sound escanear escaneo pitido beep audio'],
+ ['¿Cómo cambio el estilo del sonido (clásico, moderno, neón)?','How do I change the sound style?','sonido estilo clasico moderno neon sound style'],
+ ['¿Cómo activo o quito la vibración?','How do I turn vibration on or off?','vibracion vibrar vibration haptic'],
+ ['¿Cómo cambio mi nombre de perfil?','How do I change my profile name?','nombre perfil usuario cambiar name profile username'],
+ ['¿Cómo cambio el color de la app?','How do I change the app color?','color acento paleta accent'],
+ ['¿Cómo pongo el tema oscuro?','How do I switch to dark mode?','tema oscuro claro dark light modo'],
+ ['¿Cómo cambio el idioma de la app?','How do I change the app language?','idioma language ingles english espanol'],
+ ['¿Cómo escaneo un producto?','How do I scan a product?','escanear escaneo camara codigo barras qr scan camera barcode'],
+ ['¿Cómo busco un producto por nombre o código?','How do I search a product by name or code?','buscar busqueda producto nombre codigo search find'],
+ ['¿Cómo hago que la app vaya más fluida en mi celular?','How do I make the app run smoother on my phone?','lento lenta traba trabada fluida fluido rapido optimizar ligero lite lag slow animaciones'],
+ ['¿Cómo funciona el Nombrador?','How does the Naming tool work?','nombrador nombrar formato naming'],
+ ['¿Cómo cambio la base por defecto (2025/2026)?','How do I change the default base (2025/2026)?','base defecto 2025 2026 default database'],
+ ['¿Qué es el aviso de formato al nombrar?','What is the naming format notice?','aviso formato nombrar naming notice'],
+ ['¿Qué puede hacer un coadministrador?','What can a co-administrator do?','coadministrador administrador rol roles admin permisos'],
+ ['¿Para qué sirven las Repeticiones?','What are Repetitions for?','repeticiones herramientas pendientes enviados']
+];
+const VC_STOP=new Set('como que para por de del la el los las un una mi me se en al lo y o a how do i the to my is what can does it of'.split(' '));
+let vcSuggKey='';
+function vcSuggestions(typed,hero){
+  const en=state.prefs.lang==='en', pick=i=>en?VC_SUGGS[i][1]:VC_SUGGS[i][0];
+  const toks=vcNorm(typed).split(/[^a-z0-9]+/).filter(w=>w.length>=2&&!VC_STOP.has(w));
+  if(!toks.length) return hero?[0,3,4,7].map(pick):[];
+  return VC_SUGGS.map((x,i)=>{
+    const hay=' '+vcNorm(x[0]+' '+x[1]+' '+x[2]);
+    let sc=0; toks.forEach(w=>{ if(hay.includes(' '+w)) sc+=2; else if(hay.includes(w)) sc+=1; });
+    return {i,sc};
+  }).filter(o=>o.sc>0).sort((a,b)=>b.sc-a.sc).slice(0,hero?4:3).map(o=>pick(o.i));
+}
+function vcOnType(){
+  const input=document.getElementById('veriChatInput'), box=document.getElementById('vcSugg'), panel=document.querySelector('#veriChatOverlay .vc-panel');
+  if(!input||!box) return;
+  if(panel) panel.classList.toggle('typing',!!input.value.trim());
+  const busy=veriChatHistory.some(m=>m&&m.pending);
+  const list=busy?[]:vcSuggestions(input.value,!veriChatHistory.length);
+  const key=list.join('|');
+  if(key===vcSuggKey) return;
+  vcSuggKey=key;
+  box.innerHTML=list.map((txt,i)=>`<button type="button" class="vc-s" style="--i:${i}" data-vc="ask" data-val="${escapeHtml(txt)}">${ICONS.sparkle}<span>${escapeHtml(txt)}</span></button>`).join('');
+}
+function vcRefreshHero(){
+  const el=document.getElementById('vcHeroTitle'); if(!el) return;
+  const me=(state.personas||[]).find(x=>x.codigo===normalize(state.session||''));
+  const n=String((me&&me.nombre)||'').trim().split(/\s+/)[0];
+  const lead=vcL('¿Cómo te puedo ayudar','How can I help you');
+  const html=n?`${lead},<br><span class="vc-grad-text">${escapeHtml(n)}</span>?`:`${lead}?`;
+  if(el.innerHTML!==html) el.innerHTML=html;
+}
+function openVeriChat(initialQuestion, originEl){
   if(!state.prefs.aiEnabled){ toast(t('veriAIDisabled')); return; }
   if(!(state.veriApiKey||'').trim()){ toast(t('veriAINoKey')); if(isAdmin()){ state.tab='settings'; render(); } return; }
   closeVeriChat();
-  const overlay = document.createElement('div');
-  overlay.id = 'veriChatOverlay';
-  overlay.className = 'modal-overlay';
-  overlay.innerHTML = `<div class="modal-sheet glass veri-chat-sheet">
-    <div class="modal-header"><h3 class="veri-chat-title">${ICONS.sparkle} Veri <span class="beta-tag">${t('veriAIBetaTag')}</span></h3><button type="button" class="modal-close" id="veriChatCloseBtn" aria-label="${t('namingEditDone')}">${ICONS.x}</button></div>
-    <div id="veriChatMessages" class="veri-chat-messages"></div>
-    <div class="veri-chat-inputrow">
-      <input id="veriChatInput" type="text" placeholder="${t('veriAIChatPlaceholder')}" autocomplete="off">
-      <button type="button" class="btn primary sm" id="veriChatSendBtn">${t('veriAISend')}</button>
-    </div>
+  const overlay=document.createElement('div');
+  overlay.id='veriChatOverlay';
+  overlay.className='vc-overlay';
+  overlay.innerHTML=`<div class="vc-panel vc-hero-mode" role="dialog" aria-label="Veri AI">
+    <div class="vc-top"><div class="vc-brand"><div class="vc-bot" id="vcHeadStar">${VERI_BOT}</div><span class="vc-grad-text">Veri AI</span></div><button type="button" class="vc-close" id="veriChatCloseBtn" aria-label="${t('namingEditDone')}">${ICONS.x}</button></div>
+    <div class="vc-hero" id="vcHero"><div class="vc-hero-star"><div class="vc-hero-glow"></div><img class="vc-hero-bot" src="${VERI_BOT_URI}" alt="Veri AI" draggable="false"></div><h2 class="vc-hero-title" id="vcHeroTitle"></h2></div>
+    <div id="veriChatMessages" class="vc-msgs"></div>
+    <div class="vc-sugg-wrap" id="vcSugg"></div>
+    <div class="vc-inputrow"><div class="vc-field"><input id="veriChatInput" type="text" placeholder="${t('veriAIChatPlaceholder')}" autocomplete="off" enterkeyhint="send"><button type="button" class="vc-send" id="veriChatSendBtn" aria-label="${t('veriAISend')}">${VC_SEND_SVG}</button></div></div>
   </div>`;
   document.body.appendChild(overlay);
-  overlay.addEventListener('click',(e)=>{ if(e.target===overlay) closeVeriChat(); });
-  const closeBtn = document.getElementById('veriChatCloseBtn'); if(closeBtn) closeBtn.onclick = closeVeriChat;
-  const input = document.getElementById('veriChatInput');
-  const sendBtn = document.getElementById('veriChatSendBtn');
-  // El layout móvil usa 100dvh y safe-area-inset; no fijamos alturas con visualViewport para evitar que el teclado recorte el chat.
-  const send = ()=>{
-    const val = input.value.trim();
-    if(!val) return;
-    input.value='';
-    if(sendBtn) sendBtn.disabled=true;
-    veriChatHistory.push({role:'user', text: val});
-    const historySnapshot = veriChatHistory.slice();
-    const replyIndex = veriChatHistory.push({role:'model', text: t('veriAIThinking')}) - 1;
-    renderVeriChatMessages();
-    askVeriAI(val, historySnapshot).then(answer=>{
-      veriChatHistory[replyIndex] = {role:'model', text: answer};
-      renderVeriChatMessages();
-    }).catch(err=>{
-      veriChatHistory[replyIndex] = {role:'model', text: err.message || t('veriAIError')};
-      renderVeriChatMessages();
-    }).finally(()=>{if(sendBtn) sendBtn.disabled=false; if(input && input.isConnected) input.focus({preventScroll:true});});
-  };
-  if(sendBtn) sendBtn.onclick = send;
-  if(input) input.addEventListener('keydown', e=>{ if(e.key==='Enter') send(); });
-  if(initialQuestion){ input.value = initialQuestion; send(); } else if(input) { input.focus(); }
+  const panel=overlay.firstElementChild;
+  // La animación nace desde la burbuja o el botón que se tocó.
+  try{
+    const o=originEl&&originEl.getBoundingClientRect&&originEl.getBoundingClientRect(), pr=panel.getBoundingClientRect();
+    if(o&&o.width){ panel.style.setProperty('--ox',(o.left+o.width/2-pr.left)+'px'); panel.style.setProperty('--oy',(o.top+o.height/2-pr.top)+'px'); }
+  }catch(e){}
+  requestAnimationFrame(()=>overlay.classList.add('in'));
+  overlay.addEventListener('click',e=>{ if(e.target===overlay) closeVeriChat(true); });
+  document.getElementById('veriChatCloseBtn').onclick=()=>closeVeriChat(true);
+  if(!window.__vcEsc){ window.__vcEsc=1; document.addEventListener('keydown',e=>{ if(e.key==='Escape' && document.getElementById('veriChatOverlay')) closeVeriChat(true); }); }
+  const wrap=document.getElementById('veriChatMessages');
+  panel.addEventListener('click',e=>{ const b=e.target.closest('[data-vc]'); if(!b||b.tagName==='INPUT') return; vcHandle(b.dataset.vc,b.dataset.val); });
+  wrap.addEventListener('change',e=>{ const b=e.target.closest('input[data-vc]'); if(b) vcHandle(b.dataset.vc,b.checked); });
+  wrap.addEventListener('input',e=>{ if(e.target.matches('[data-vc-name]')){ vcNameDraft=e.target.value; vcNameSaved=''; } });
+  wrap.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.matches('[data-vc-name]')) vcSaveName(); });
+  const input=document.getElementById('veriChatInput');
+  document.getElementById('veriChatSendBtn').onclick=()=>vcSend();
+  input.addEventListener('keydown',e=>{ if(e.key==='Enter') vcSend(); });
+  input.addEventListener('input',vcOnType);
+  vcSuggKey='';
+  // En móvil el teclado reduce el área visible: el panel se ajusta a ella para que la barra de escribir no quede tapada.
+  const vv=window.visualViewport;
+  if(vv){ const fit=()=>{ if(!overlay.isConnected){ vv.removeEventListener('resize',fit); vv.removeEventListener('scroll',fit); return; } if(window.innerWidth<=700){ overlay.style.top=vv.offsetTop+'px'; overlay.style.bottom='auto'; overlay.style.height=vv.height+'px'; } else { overlay.style.top=overlay.style.bottom=overlay.style.height=''; } }; vv.addEventListener('resize',fit); vv.addEventListener('scroll',fit); fit(); }
+  renderVeriChatMessages();
+  if(initialQuestion) vcSend(initialQuestion); else setTimeout(()=>input.focus({preventScroll:true}),450);
 }
 
 /* Verifica que el nombre siga el formato esperado:
@@ -3882,7 +4203,8 @@ async function handleNamingFastFiles(fileList){
   state.namingFast.processing = null;
   render();
 }
-function downloadNamingExcel(){
+async function downloadNamingExcel(){
+  try{ await ensureXLSX(); }catch(e){ toast(t('errorImport')); return; }
   if(!state.naming || !state.naming.items.length){ toast(t('namingEmpty')); return; }
   const data = state.naming.items.map(it=>{
     const dupNombre = it.duplicado ? (it.duplicadoNombre || (findDuplicateByCode2026(it.duplicadoCodigo)||{}).nombre) : null;
@@ -3906,7 +4228,8 @@ function downloadNamingExcel(){
   XLSX.writeFile(wb, `nombrados_${state.naming.date}.xlsx`);
   saveNaming();
 }
-function downloadArchivedExcel(dateKey){
+async function downloadArchivedExcel(dateKey){
+  try{ await ensureXLSX(); }catch(e){ toast(t('errorImport')); return; }
   const items = (state.archived.byDate[dateKey]||[]);
   if(!items.length){ toast(t('archivedDayEmpty')); return; }
   const data = items.map(r=>({
@@ -4398,6 +4721,7 @@ function importExcelProducts(file, year){
   const reader = new FileReader();
   reader.onload = async (e)=>{
     try{
+      await ensureXLSX();
       const wb = XLSX.read(e.target.result, {type:'array'});
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
@@ -4500,6 +4824,7 @@ function importExcelRepeticiones(file, filterCode){
   const reader = new FileReader();
   reader.onload = async (e)=>{
     try{
+      await ensureXLSX();
       const wb = XLSX.read(e.target.result, {type:'array', cellStyles:true});
       let sheetName = wb.SheetNames.find(n=>normalize(n).includes('REPETIC')) || wb.SheetNames[0];
       const sheet = wb.Sheets[sheetName];
@@ -4586,6 +4911,7 @@ function drainToast(){
 
 /* ===================== Theme ===================== */
 function applyTheme(){
+  applyLiteMode();
   document.body.setAttribute('data-theme', state.prefs.theme);
   document.documentElement.style.setProperty('--accent', state.prefs.accent);
   document.documentElement.style.setProperty('--accent-rgb', hexToRgb(state.prefs.accent));
@@ -5191,10 +5517,10 @@ function updateVeriFab(show){
   const fab = document.getElementById('veriFab');
   if(!fab) return;
   if(!fab.dataset.bound){
-    fab.innerHTML = ICONS.sparkle + '<span class="veri-fab-badge">'+t('veriAIBetaTag')+'</span>';
+    fab.innerHTML = VERI_BOT + '<span class="veri-fab-badge">'+t('veriAIBetaTag')+'</span>';
     fab.setAttribute('aria-label', t('veriFabAria'));
     fab.title = 'Veri (Beta)';
-    fab.onclick = ()=>openVeriChat();
+    fab.onclick = ()=>openVeriChat(undefined, fab);
     fab.dataset.bound = '1';
   }
   fab.style.display = (show && toolVisible('veriai')) ? 'flex' : 'none';
@@ -5402,10 +5728,10 @@ function initHomeWidgetControls(){
 
 function renderNav(){
   const items = TABS.map(([id,label,icon])=>`<button class="nav-btn ${state.tab===id?'active':''}" data-tab="${id}">${icon}<span>${label()}</span></button>`).join('');
-  const aiItem = `<button class="nav-btn nav-ai-btn" id="bottomVeriAiBtn" aria-label="Abrir Veri AI" title="Veri AI"><span class="nav-ai-icon">${ICONS.sparkle}</span><span>Veri AI</span></button>`;
+  const aiItem = `<button class="nav-btn nav-ai-btn" id="bottomVeriAiBtn" aria-label="Abrir Veri AI" title="Veri AI"><span class="nav-ai-icon">${VERI_BOT}</span><span>Veri AI</span></button>`;
   document.getElementById('navInner').innerHTML = items + aiItem;
   const aiBtn = document.getElementById('bottomVeriAiBtn');
-  if(aiBtn) aiBtn.onclick = (e)=>{ e.preventDefault(); openVeriChat(); };
+  if(aiBtn) aiBtn.onclick = (e)=>{ e.preventDefault(); openVeriChat(undefined, e.currentTarget); };
   const sidebar = document.getElementById('sidebar');
   sidebar.innerHTML = `<div class="brand"><div class="logo">${LOGO_MARK}</div></div>` + items;
   document.querySelectorAll('.nav-btn:not(.nav-ai-btn)').forEach(b=>{ b.onclick = ()=>{ stopCamera(); state.tab=b.dataset.tab; render(); }; });
@@ -5868,7 +6194,7 @@ function renderRep(){
     ['list','rep', ()=>t('repList')],
     ['naming','naming', ()=>t('repSubNaming')],
     ['quality','quality', ()=>t('repSubQuality')],
-    ...(hasAdminAccess() ? [['review','review', ()=>`Revisión de repeticiones <span class=\"review-count\">${getPendingPhotoReviewCount()}</span>`]] : []),
+    ...(hasAdminAccess() ? [['review','review', ()=>`Revisión <span class=\"review-count\">${getPendingPhotoReviewCount()}</span>`]] : []),
   ].filter(([id,flag])=>id==='review' ? hasAdminAccess() : toolVisible(flag));
   if(!subViews.some(([id])=>id===state.repView)){ state.repView = subViews.length ? subViews[0][0] : 'list'; }
   if(!subViews.length){ return `<div class="empty">${t('qualityEmpty')}</div>`; }
@@ -6321,6 +6647,7 @@ function renderSettings(){
     ${avatarPickerHTML()}<div class="settings-group glass"><div class="settings-group-title">${t('settingsGeneral')}</div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('language')}</div></div><div class="settings-row-control"><div class="pill-toggle"><button data-lang="es" class="${state.prefs.lang==='es'?'active':''}">ES</button><button data-lang="en" class="${state.prefs.lang==='en'?'active':''}">EN</button></div></div></div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('theme')}</div></div><div class="settings-row-control"><div class="pill-toggle"><button data-theme-btn="light" class="${state.prefs.theme==='light'?'active':''}">${t('light')}</button><button data-theme-btn="dark" class="${state.prefs.theme==='dark'?'active':''}">${t('dark')}</button></div></div></div>
+      <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('liteModeLabel')}</div><div class="settings-row-sub">${t('liteModeSub')}</div></div><div class="settings-row-control"><label class="switch"><input type="checkbox" id="liteModeSwitch" ${state.prefs.liteMode?'checked':''}><span class="slider"></span></label></div></div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('defaultBase')}</div></div><div class="settings-row-control"><div class="pill-toggle"><button data-defbase="2025" class="${state.prefs.defaultBase==='2025'?'active':''}">2025</button><button data-defbase="2026" class="${state.prefs.defaultBase==='2026'?'active':''}">2026</button></div></div></div>
       <div class="settings-row color-palette-row"><div class="settings-row-main"><div class="settings-row-title">${t('accentColor')}</div><div class="settings-row-sub">${t('colorPaletteHint')}</div></div><div class="settings-row-control color-palettes">${Object.values(COLOR_PALETTES).map(p=>`<div class="palette-group"><div class="palette-label">${p.label}</div><div class="palette-swatches">${p.colors.map(([c,label])=>`<button type="button" class="palette-swatch ${state.prefs.accent===c?'sel':''}" style="--swatch:${c}" data-accent="${c}" title="${label}" aria-label="${label}"></button>`).join('')}</div></div>`).join('')}</div></div>
     </div>
@@ -6930,6 +7257,7 @@ function unsubscribeCartRealtime(){ stopCartPolling(); }
 function startCartPolling(){
   if(state.cartPollTimer) return;
   state.cartPollTimer = setInterval(()=>{
+    if(document.hidden) return;
     if(state.scanMode==='cart' && toolVisible('carrito')) loadCartToday();
     else stopCartPolling();
   }, CART_POLL_INTERVAL_MS);
@@ -7339,6 +7667,8 @@ function bindTabEvents(){
     if(feedbackMsg) feedbackMsg.oninput = (e)=>{ state.feedbackForm.mensaje = e.target.value; };
     const feedbackSendBtn = document.getElementById('feedbackSendBtn');
     if(feedbackSendBtn) feedbackSendBtn.onclick = sendFeedback;
+    const liteSwitch = document.getElementById('liteModeSwitch');
+    if(liteSwitch) liteSwitch.onchange = (e)=>{ state.prefs.liteMode = e.target.checked; savePrefs(); applyLiteMode(); };
     const vibSwitch = document.getElementById('vibrationSwitch');
     if(vibSwitch) vibSwitch.onchange = (e)=>{ state.prefs.vibration = e.target.checked; savePrefs(); };
     const soundSwitch = document.getElementById('soundSwitch');
@@ -7812,4 +8142,46 @@ textarea.notif-field{ resize:vertical; min-height:92px; line-height:1.4; }
 <style id="veri-cart-key">
 .cart-key-chip{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 6px;padding:10px 12px;border-radius:14px;background:rgba(var(--accent-rgb),.10);border:1px solid rgba(var(--accent-rgb),.22);font-size:13px;font-weight:650}
 .cart-key-chip b{font-size:20px;letter-spacing:.18em;font-variant-numeric:tabular-nums;color:var(--accent)}
+</style>
+
+<style id="veri-final-nav-topbar-fab">
+/* ---- Barra flotante inferior (móvil / iPhone): más redondeada y dentro de los bordes redondeados del equipo ---- */
+@media(max-width:700px){
+  #root .bottomnav,.bottomnav{
+    left:50%!important;right:auto!important;transform:translateX(-50%)!important;
+    width:calc(100% - 32px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px))!important;max-width:520px!important;
+    bottom:max(14px,calc(env(safe-area-inset-bottom,0px) + 6px))!important;
+    border-radius:34px!important;padding:7px 8px!important;
+    overflow:hidden;
+  }
+  .bottomnav .nav-btn{border-radius:26px!important}
+  .bottomnav .nav-btn.active{border-radius:26px!important}
+  .app{padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))!important}
+  /* Avatar legible: el fondo transparente dejaba las iniciales blancas invisibles en modo claro */
+  .topbar .topbar-avatar{background:var(--accent)!important;color:#fff!important;width:34px!important;height:34px!important;border-radius:50%!important;overflow:hidden}
+}
+/* ---- Escritorio: notificaciones y perfil arriba a la derecha ---- */
+@media(min-width:701px){
+  .topbar .topbar-actions{display:flex!important;align-items:center;gap:10px!important;margin-left:14px!important;flex:none}
+  .topbar .topbar-icon-btn{display:inline-flex!important;width:38px!important;height:38px!important;border-radius:50%!important;background:rgba(var(--accent-rgb),.09)!important;border:1px solid rgba(var(--accent-rgb),.2)!important;color:var(--accent)!important;position:relative}
+  .topbar .topbar-icon-btn svg{width:18px;height:18px}
+  .topbar .topbar-avatar{display:inline-flex!important;width:38px!important;height:38px!important;border-radius:50%!important;background:var(--accent)!important;color:#fff!important;border:0!important;overflow:hidden;align-items:center;justify-content:center;cursor:pointer}
+  /* ---- Botón Veri AI de escritorio con el mismo diseño que en el celular ---- */
+  .veri-fab{
+    width:56px!important;height:56px!important;border-radius:50%!important;
+    background:rgba(var(--accent-rgb),.10)!important;border:1.5px solid rgba(var(--accent-rgb),.30)!important;
+    color:var(--accent)!important;box-shadow:0 10px 28px rgba(var(--accent-rgb),.18),0 2px 6px rgba(0,0,0,.08)!important;
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  }
+  .veri-fab::after{display:none!important}
+  .veri-fab svg{width:26px!important;height:26px!important;color:var(--accent)!important;stroke:var(--accent)!important}
+  .veri-fab .veri-fab-badge{display:none!important}
+  .veri-fab:hover{box-shadow:0 14px 32px rgba(var(--accent-rgb),.28),0 2px 6px rgba(0,0,0,.1)!important}
+}
+</style>
+
+<style id="veri-rep-subtabs-fit">
+.pill-toggle:has([data-repview]){display:flex!important;overflow:hidden!important;width:100%;gap:2px}
+.pill-toggle:has([data-repview]) button{flex:1 1 auto!important;min-width:0!important;padding-left:8px!important;padding-right:8px!important;font-size:14px!important;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.pill-toggle:has([data-repview]) .review-count{min-width:17px;height:17px;font-size:10px;padding:0 4px;flex:none}
 </style>
