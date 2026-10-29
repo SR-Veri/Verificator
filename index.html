@@ -171,6 +171,47 @@ button{font-family:var(--font);cursor:pointer;border:none;}
 .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}
 .status-dot.pending{background:#8E8E93;border:1px solid rgba(0,0,0,0.15);} .status-dot.done{background:#32ADE6;} .status-dot.sent{background:#FFD60A;}
 .status-dot.archived{background:#8E8E93;opacity:.5;}
+.status-dot.working{background:#FF9F0A;}
+.cart-search{margin:0 0 10px;}
+.cart-search input{width:100%;}
+.rep-cap{padding-bottom:0}
+.rep-cap-body{flex:1;min-height:0;overflow-y:auto;padding:4px 2px 14px;-webkit-overflow-scrolling:touch}
+.rep-cap-info h3{margin:2px 0 8px;font-size:17px;line-height:1.25}
+.rep-cap-info div{font-size:13px;opacity:.92;margin:2px 0}.rep-cap-info span{opacity:.65;margin-right:4px}
+.rep-cap-motivo{margin:12px 0;padding:11px 13px;border-radius:12px;background:rgba(255,159,10,.16);border:1px solid rgba(255,159,10,.5);font-size:14px;line-height:1.4}
+.rep-cap-actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px}
+.rep-cap-btn{font:inherit;font-size:14px;color:#fff;background:#242832;border:1px solid #4b505b;border-radius:12px;padding:11px 14px;cursor:pointer;text-align:center;display:inline-block}
+.rep-cap-btn.primary{background:#0a84ff;border-color:#0a84ff;font-weight:650}.rep-cap-btn:disabled{opacity:.45}
+.rep-cap-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-top:8px}
+.rep-cap-thumb{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#0b0d11}
+.rep-cap-thumb .rep-cap-img{all:unset;display:block;width:100%;height:100%;cursor:zoom-in}.rep-cap-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.rep-cap-del{position:absolute;top:5px;right:5px;width:28px;height:28px;border-radius:50%!important;padding:0!important;background:rgba(0,0,0,.65)!important;border:0!important;font-size:13px}
+.rep-cap-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0 calc(10px + env(safe-area-inset-bottom));border-top:1px solid #333845;flex-shrink:0}
+.rep-cap-foot #repCapCount{font-size:13px;opacity:.85}.rep-cap-foot .rep-cap-btn{min-width:130px}
+.rep-filter-panel{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .35s cubic-bezier(.22,1,.36,1),opacity .3s ease,margin .3s ease;margin:0}
+.rep-filter-panel.open{grid-template-rows:1fr;opacity:1;margin:0 0 10px}
+.rep-filter-inner{overflow:hidden;min-height:0}
+.rep-filter-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:12px;border-radius:14px;background:rgba(127,127,127,.09);transform:translateY(-8px);transition:transform .35s cubic-bezier(.22,1,.36,1)}
+.rep-filter-panel.open .rep-filter-grid{transform:none}
+.rep-filter-field{display:flex;flex-direction:column;gap:4px;font-size:12px}
+.rep-filter-field>span{opacity:.7;font-weight:600;letter-spacing:.02em}
+.rep-filter-field select,.rep-filter-field .btn{width:100%}
+.rep-filter-caret{display:inline-block;transition:transform .3s ease}
+.rep-filter-toggle.open .rep-filter-caret{transform:rotate(180deg)}
+.rep-filter-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#0a84ff;color:#fff;font-size:11px;font-weight:700}
+@media (prefers-reduced-motion:reduce){.rep-filter-panel,.rep-filter-grid,.rep-filter-caret{transition:none}}
+.scan-rep-chip{all:unset;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;margin:10px 0 0;padding:9px 12px;border-radius:12px;background:rgba(10,132,255,.14);color:#0a6fd8;font-size:13px;font-weight:650;cursor:pointer}
+[data-theme="dark"] .scan-rep-chip{color:#6cb6ff}
+.rep-cap-live-thumbs{display:flex;gap:8px;overflow-x:auto;padding:8px 0;min-height:64px}
+.rep-cap-live-thumbs .rep-cap-thumb{flex:0 0 56px;width:56px;height:56px;aspect-ratio:auto}
+.rep-cap-live-bar{display:flex;align-items:center;justify-content:center;padding:8px 0 12px;gap:16px}
+.rep-cap-shutter{width:72px;height:72px;border-radius:50%;border:4px solid #fff;background:#fff;box-shadow:inset 0 0 0 4px #05080e;cursor:pointer;padding:0}
+.rep-cap-shutter:active{transform:scale(.92)}
+.rep-cap-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
+.rep-cap-live{position:absolute;inset:0;z-index:2;background:#05080e;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom)}
+.rep-cap-live-stage{flex:1;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#000;border-radius:12px}
+.rep-cap-live-stage video{max-width:100%;max-height:100%;transform-origin:center center}
+
 .file-drop{border:1.5px dashed var(--glass-border);border-radius:var(--radius-sm);padding:18px;text-align:center;font-size:12.5px;color:var(--text-2);cursor:pointer;display:block;}
 .file-drop:hover{border-color:var(--accent);}
 .file-drop svg{width:20px;height:20px;margin-bottom:4px;}
@@ -1741,6 +1782,18 @@ html.lite.lite.lite.lite .vc-dots i{animation:vcDot 1s infinite ease-in-out!impo
 html.lite.lite.lite.lite .vc-dots i:nth-child(2){animation-delay:.15s!important}
 html.lite.lite.lite.lite .vc-dots i:nth-child(3){animation-delay:.3s!important}
 
+
+/* ===== Carrito: tarjeta de resultado con código escaneado y botones Buscar / Agregar ===== */
+.scan-result-float-scanned{font-size:12px;color:var(--text-2);padding:0 34px 8px 2px;letter-spacing:.01em}
+.scan-result-float-scanned b{color:var(--text-1);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.scan-result-float-match{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);margin-bottom:2px}
+.scan-float-btnrow{display:flex;gap:8px;width:100%}.scan-float-btnrow .btn{flex:1;width:auto}
+
+
+/* ===== Buscador: "¿Quisiste decir…?" ===== */
+.dym{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px 2px;font-size:13px;color:var(--text-2)}
+.dym button{border:1.5px solid transparent;border-radius:999px;padding:6px 12px;font-weight:700;font-size:13px;cursor:pointer;color:var(--text-1);background:linear-gradient(var(--bg-1),var(--bg-1)) padding-box,linear-gradient(120deg,#6fb7ff,#8b6bff) border-box}
+
 </style>
 
 <!-- Veri Photo Quality: originales sin compresión; retención prevista de 7 días configurada mediante proceso programado de limpieza en Supabase. -->
@@ -2268,7 +2321,7 @@ const I18N = {
     exact:"Coincide en base", exactBySuffix:"Coincide por los últimos dígitos", similar:"Parecido, revisa", notfound:"No está en la base",
     multipleTitle:"Varias coincidencias", multipleSub:"Encontrados con esos últimos dígitos:",
     searchPlaceholder:"Buscar por código o nombre...",
-    searchResults:"resultados", noResults:"Sin coincidencias", fuzzyNote:"Sin coincidencia exacta, mostrando productos parecidos:",
+    searchResults:"resultados", noResults:"Sin coincidencias", didYouMean:"¿Quisiste decir", searchShowing:"mostrando", searchShowMore:"Ver más", fuzzyNote:"Sin coincidencia exacta, mostrando productos parecidos:",
     copyName:"Copiar nombre", copied:"Copiado",
     scanContinuous:"Escaneo continuo", scanCart:"Carrito",
     toolCartLabel:"Carrito compartido (contar productos al escanear)",
@@ -2387,6 +2440,8 @@ const I18N = {
     veriAIKeySaveErrorColumn:"No se pudo guardar: falta la columna 'groq_api_key' en la tabla 'config' de Supabase. Pide que la agreguen (tipo texto) y vuelve a intentar.",
     veriAIKeySaveErrorGeneric:"No se pudo guardar la clave de Veri IA",
     veriFabAria:"Preguntarle a Veri", veriAIBetaTag:"Beta",
+    cartSearchBtn:"Buscar", cartSearchPlaceholder:"Buscar en el carrito: nombre o últimos 6 dígitos", cartSearchNone:"Sin coincidencias: ese producto no está en el carrito.", cartQuickAddBtn:"Agregar", cartScannedLabel:"Código escaneado:", cartMatchLabel:"Coincide con",
+    savePhotosLabel:"Guardar fotos de repeticiones en el celular", savePhotosSub:"Cada foto que tomes se descarga también al teléfono como respaldo (en iPhone queda en Archivos › Descargas).",
     liteModeLabel:"Modo ligero (ultra optimizado)", liteModeSub:"Quita animaciones, transparencias y efectos para que la app funcione fluida en celulares lentos. Todo sigue funcionando igual.", liteModeHint:"¿Tu celular va lento? Prueba el Modo ligero en Ajustes.",
     preferencesSaved:"Preferencias guardadas", soundTest:"Probar sonido", edit:"Editar", delete:"Eliminar", editSave:"Guardar cambios",
     category:"Categoría", uncategorized:"Sin categoría", reorderHint:"Mantén presionado y arrastra para ordenar",
@@ -2475,7 +2530,7 @@ const I18N = {
     exact:"Match found", exactBySuffix:"Match by last digits", similar:"Similar, please check", notfound:"Not in database",
     multipleTitle:"Several matches", multipleSub:"Found with those last digits:",
     searchPlaceholder:"Search by code or name...",
-    searchResults:"results", noResults:"No matches", fuzzyNote:"No exact match, showing similar products:",
+    searchResults:"results", noResults:"No matches", didYouMean:"Did you mean", searchShowing:"showing", searchShowMore:"Show more", fuzzyNote:"No exact match, showing similar products:",
     copyName:"Copy name", copied:"Copied",
     scanContinuous:"Continuous scan", scanCart:"Cart",
     toolCartLabel:"Shared cart (count products while scanning)",
@@ -2594,6 +2649,8 @@ const I18N = {
     veriAIKeySaveErrorColumn:"Couldn't save: the 'groq_api_key' column is missing from the 'config' table in Supabase. Ask for it to be added (text type) and try again.",
     veriAIKeySaveErrorGeneric:"Couldn't save the Veri AI key",
     veriFabAria:"Ask Veri", veriAIBetaTag:"Beta",
+    cartSearchBtn:"Search", cartSearchPlaceholder:"Search the cart: name or last 6 digits", cartSearchNone:"No matches: that product is not in the cart.", cartQuickAddBtn:"Add", cartScannedLabel:"Scanned code:", cartMatchLabel:"Matches",
+    savePhotosLabel:"Save repetition photos to this phone", savePhotosSub:"Every photo you take is also downloaded to the phone as a backup (on iPhone it goes to Files › Downloads).",
     liteModeLabel:"Lite mode (ultra optimized)", liteModeSub:"Turns off animations, transparency and effects so the app runs smoothly on slower phones. Everything still works the same.", liteModeHint:"Phone feeling slow? Try Lite mode in Settings.",
     preferencesSaved:"Preferences saved", soundTest:"Test sound", edit:"Edit", delete:"Delete", editSave:"Save changes",
     category:"Category", uncategorized:"Uncategorized", reorderHint:"Press and drag to reorder",
@@ -2709,7 +2766,7 @@ const state = {
   scanBase:null,
   scanResult:null,
   repFilterStatus:'pending',
-  repFilterCode:'',
+  repFilterCode:'', repFiltersOpen:false, repFilterDate:'', repFilterStore:'', repSearch:'',
   repSort:'desc',
   cameraStream:null, cameraLoopId:null, scanZoom:1, scanZoomCaps:null,
   scanMode:'continuous', cart:[], cartReview:null, cartLoaded:false, cartChannel:null, cartPollTimer:null, cartFilterPersonas:[],
@@ -2749,12 +2806,15 @@ function personaToolAccess(persona){
   try{ return typeof raw==='string' ? JSON.parse(raw) : raw; }catch(e){ return {}; }
 }
 function toolVisibleFor(persona, id){
-  if(persona && ['admin','administrador','coadmin','coadministrador','co-admin'].includes(String(persona.rol||'').toLowerCase())) return true;
+  const rol = String((persona&&persona.rol)||'').toLowerCase();
+  if(['admin','administrador'].includes(rol)) return true;
   const ta = personaToolAccess(persona);
+  // Coadministrador: ve todo salvo lo que el administrador le haya desactivado.
+  if(['coadmin','coadministrador','co-admin'].includes(rol)) return ta[id]===undefined ? true : !!ta[id];
   return ta[id]===undefined ? !!DEFAULT_TOOL_ACCESS[id] : !!ta[id];
 }
 function toolVisible(id){
-  if(hasAdminAccess()) return true;
+  if(isAdmin()) return true;
   return toolVisibleFor(myPersona(), id);
 }
 if(state.session){ const u=localStorage.getItem('vp_prefs_'+normalize(state.session)); if(u){ try{ state.prefs={...state.prefs,...JSON.parse(u)}; }catch(e){} } }
@@ -3458,6 +3518,7 @@ Conoces bien la app y puedes explicar cómo usarla:
 - Ajustes: desde ahí se puede cambiar el tema claro/oscuro, el color de acento (tocando un color de la paleta), el idioma de la app, la base de datos por defecto, el nombre del perfil (con el ícono de lápiz junto al nombre), la vibración y el sonido al escanear, el aviso de formato al nombrar, activar o no las respuestas de Veri IA y el Modo ligero (ultra optimizado: quita animaciones, transparencias y efectos para que la app funcione fluida en celulares lentos).
 - Roles: hay administrador y coadministrador. El administrador ve y gestiona todo (personas, roles, bases, la clave de IA de Veri). El coadministrador solo ve Repeticiones y Actualizar bases.
 Cuando la pregunta de la persona pueda referirse a un producto específico, recibirás debajo un bloque "PRODUCTOS ENCONTRADOS" con resultados reales tomados de la base de datos (código y nombre, con la base 2025 o 2026 a la que pertenecen) que coinciden con la pregunta. Básate SOLO en esos datos reales para responder sobre productos concretos (existencia, nombre exacto, en qué base está, etc.); nunca inventes códigos ni nombres de productos. Si el bloque viene vacío o no aparece el producto que preguntan, dilo con honestidad (por ejemplo: "no encontré ese producto en las bases cargadas") en vez de suponer que existe.
+Si recibes un bloque "BÚSQUEDA EN LA BASE", son resultados reales calculados con el mismo buscador de la app: usa esos números exactos, nunca los estimes ni los recalcules. Si hubo una corrección de ortografía, dilo en una frase corta (por ejemplo: "Entendí ALQUERIA"). Si muestras productos, da máximo 5 y di cuántos hay en total; no pegues listas largas.
 Si te preguntan algo que no tiene que ver con la app, respóndelo igual con tu conocimiento general, manteniendo la brevedad. Si no sabes algo con certeza, dilo honestamente en vez de inventar. No inventes funciones que la app no tiene.
 FORMATO DE RESPUESTA (muy importante): responde corto y ordenado, de unas 60 palabras como máximo salvo que pidan detalle. Si son pasos, usa una lista numerada (1. 2. 3.) con una acción por línea. Usa **negrita** solo para nombres de botones o secciones. Sin saludos largos ni cierres de relleno.
 ACCIONES EN EL CHAT: cuando la pregunta sea sobre cambiar o hacer algo dentro de la app, explica en una o dos líneas dónde está y, AL FINAL, agrega etiquetas, cada una en su propia línea, para que el chat muestre los controles listos para usar (la persona no tiene que ir a Ajustes). Etiquetas disponibles (usa solo estas, máximo 3):
@@ -3496,14 +3557,22 @@ function buildProductContextForQuestion(question){
 }
 
 let veriChatHistory = [];
+let vcSearchMeta = null;
 async function askVeriAI(question, historyForContext){
   if(!state.prefs.aiEnabled) throw new Error(t('veriAIDisabled'));
   const key = (state.veriApiKey||'').trim();
   if(!key) throw new Error(t('veriAINoKey'));
   const appOnly = /^\W*(como|how)\b/.test(vcNorm(question)) && vcInferActions(question).length>0;
   if(!appOnly){ try{ await ensureBothBasesLoaded(); }catch(e){ /* seguimos sin contexto de productos si falla */ } }
+  vcSearchMeta=null;
+  let run = appOnly ? null : vsRun(question);
+  if(run && !run.wantsCount && run.years.every(y=>!y.total && !y.corrected)) run=null;
+  if(run){
+    vcSearchMeta=vsMeta(run);
+    if(run.wantsCount){ const local=vsLocalAnswer(run); if(local) return local; }   // conteos: respuesta exacta e inmediata, sin esperar a la IA
+  }
   const turns = (historyForContext||[]).filter(m=>m.text && m.text!==t('veriAIThinking')).slice(-12);
-  const productContext = appOnly ? '' : buildProductContextForQuestion(question);
+  const productContext = appOnly ? '' : (run ? vsContext(run) : buildProductContextForQuestion(question));
   const systemMsgs = [{role:'system', content:VERI_AI_SYSTEM_CONTEXT}];
   if(productContext) systemMsgs.push({role:'system', content:productContext});
   const messages = [...systemMsgs];
@@ -3623,6 +3692,12 @@ async function vcSaveName(){
   }catch(e){ toast(t('errorImport')); }
   renderVeriChatMessages(true);
 }
+function vcSearchCardHTML(sm){
+  if(!sm || !sm.years) return '';
+  const ys=sm.years.filter(y=>y.total>0);
+  if(!ys.length) return '';
+  return `<div class="vc-act"><div class="vc-act-head"><span>${escapeHtml(String(sm.terms).toUpperCase())}</span></div><div class="vc-chips">${ys.map(y=>`<button type="button" class="vc-chip on" data-vc="opensearch" data-val="${y.year}|${escapeHtml(y.terms)}">${vcL('Ver en Buscar','Open in Search')} · ${y.year} (${y.total.toLocaleString()})</button>`).join('')}</div></div>`;
+}
 function vcHandle(kind,val){
   const p=state.prefs;
   switch(kind){
@@ -3638,6 +3713,7 @@ function vcHandle(kind,val){
     case 'namefmt': p.namingFormatCheck=!!val; savePrefs(); break;
     case 'lite': p.liteMode=!!val; savePrefs(); applyLiteMode(); break;
     case 'savename': vcSaveName(); return;
+    case 'opensearch': { const i=String(val).indexOf('|'); const yr=String(val).slice(0,i), q=String(val).slice(i+1); if(yr!=='2025'&&yr!=='2026') return; stopCamera(); state.scanBase=yr; state.searchPrefill=q; state.cartReview=null; state.tab='search'; render(); closeVeriChat(true); return; }
     case 'go': if(!VC_GO_LABELS[val]) return; stopCamera(); state.tab=val; render(); closeVeriChat(true); return;
     default: return;
   }
@@ -3662,7 +3738,7 @@ function renderVeriChatMessages(keepScroll){
     const parsed=vcParseAnswer(m.text);
     let acts=m.error?[]:(parsed.actions.length?parsed.actions:vcInferActions(m.q));
     const seen={}; acts=acts.filter(a=>{ const k=a.id+':'+(a.val||''); if(seen[k]) return false; seen[k]=1; return true; }).slice(0,3);
-    html+=`<div class="vc-msg vc-model"><div class="vc-bot${m.fresh?' pop':''}">${star}</div><div class="vc-col"><div class="vc-bubble">${vcFormat(parsed.text||m.text)}</div>${acts.map(vcActionHTML).join('')}</div></div>`;
+    html+=`<div class="vc-msg vc-model"><div class="vc-bot${m.fresh?' pop':''}">${star}</div><div class="vc-col"><div class="vc-bubble">${vcFormat(parsed.text||m.text)}</div>${acts.map(vcActionHTML).join('')}${vcSearchCardHTML(m.search)}</div></div>`;
   });
   wrap.innerHTML=html;
   veriChatHistory.forEach(m=>{ if(m&&m.fresh) m.fresh=false; });
@@ -3685,7 +3761,8 @@ function vcSend(raw){
   const snapshot=hist.slice();
   const idx=hist.push({role:'model',text:t('veriAIThinking'),pending:true})-1;
   renderVeriChatMessages();
-  askVeriAI(val,snapshot).then(answer=>{ hist[idx]={role:'model',text:answer,q:val,fresh:true}; })
+  vcSearchMeta=null;
+  askVeriAI(val,snapshot).then(answer=>{ hist[idx]={role:'model',text:answer,q:val,fresh:true,search:vcSearchMeta}; vcSearchMeta=null; })
     .catch(err=>{ hist[idx]={role:'model',text:err.message||t('veriAIError'),error:true}; })
     .finally(()=>{ renderVeriChatMessages(); const i=document.getElementById('veriChatInput'); if(i&&i.isConnected&&!i.matches(':disabled')) i.focus({preventScroll:true}); });
 }
@@ -3700,6 +3777,7 @@ const VC_SUGGS=[
  ['¿Cómo escaneo un producto?','How do I scan a product?','escanear escaneo camara codigo barras qr scan camera barcode'],
  ['¿Cómo busco un producto por nombre o código?','How do I search a product by name or code?','buscar busqueda producto nombre codigo search find'],
  ['¿Cómo hago que la app vaya más fluida en mi celular?','How do I make the app run smoother on my phone?','lento lenta traba trabada fluida fluido rapido optimizar ligero lite lag slow animaciones'],
+ ['¿Cuántos productos de Colanta hay en la base 2026?','How many Colanta products are in the 2026 base?','cuantos cuantas productos marca base colanta alqueria alpina conteo cantidad how many count'],
  ['¿Cómo funciona el Nombrador?','How does the Naming tool work?','nombrador nombrar formato naming'],
  ['¿Cómo cambio la base por defecto (2025/2026)?','How do I change the default base (2025/2026)?','base defecto 2025 2026 default database'],
  ['¿Qué es el aviso de formato al nombrar?','What is the naming format notice?','aviso formato nombrar naming notice'],
@@ -4324,16 +4402,125 @@ function matchCode(rawCode, year){
   if(best && bestDist<=2) return { status:'similar', producto:best, dist:bestDist };
   return { status:'notfound' };
 }
-function searchProducts(query, year){
+/* ===== Corrector de búsqueda ("¿Quisiste decir…?") y consultas por conteo (compartido con Veri AI) ===== */
+function vsDist(a,b,max){
+  const la=a.length, lb=b.length;
+  if(Math.abs(la-lb)>max) return max+1;
+  let prev2=null, prev=new Array(lb+1), cur=new Array(lb+1);
+  for(let j=0;j<=lb;j++) prev[j]=j;
+  for(let i=1;i<=la;i++){
+    cur[0]=i; let rowMin=i;
+    for(let j=1;j<=lb;j++){
+      const cost=a.charCodeAt(i-1)===b.charCodeAt(j-1)?0:1;
+      let v=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+cost);
+      if(i>1&&j>1&&a.charCodeAt(i-1)===b.charCodeAt(j-2)&&a.charCodeAt(i-2)===b.charCodeAt(j-1)) v=Math.min(v,prev2[j-2]+1); // letras cambiadas de lugar
+      cur[j]=v; if(v<rowMin) rowMin=v;
+    }
+    if(rowMin>max) return max+1;
+    prev2=prev; prev=cur; cur=new Array(lb+1);
+  }
+  return prev[lb];
+}
+function vsVocab(year){
+  const idx=state.index[year]; if(!idx) return null;
+  if(idx.vocab) return idx.vocab;
+  const m=new Map();
+  for(const p of idx.list){ const ns=p.nombreSearch||''; if(!ns) continue; for(const w of ns.split(' ')){ if(w.length>=3 && /^[A-Z]+$/.test(w)) m.set(w,(m.get(w)||0)+1); } }
+  idx.vocab=m; return m;
+}
+function vsCollect(terms,year){
+  const idx=state.index[year]; let total=0; const sample=[];
+  if(!idx) return {total,sample};
+  for(const p of idx.list){
+    if(terms.every(tk=>(p.nombreSearch||'').includes(tk) || (/^\d{4,}$/.test(tk) && p.codigo && p.codigo.includes(tk)))){ total++; if(sample.length<12) sample.push(p); }
+  }
+  return {total,sample};
+}
+function vsSuggest(query,year){
+  const vocab=vsVocab(year); if(!vocab||!vocab.size) return null;
+  const toks=normalizeForSearch(query).split(' ').filter(Boolean);
+  let changed=false;
+  const fixed=toks.map(tk=>{
+    if(tk.length<4 || !/^[A-Z]+$/.test(tk)) return tk;
+    for(const w of vocab.keys()){ if(w.includes(tk)) return tk; }   // la palabra existe: no se toca
+    const max=tk.length<=5?1:2; let best=null,bd=99,bc=0;
+    for(const [w,c] of vocab){
+      if(Math.abs(w.length-tk.length)>max) continue;
+      const d=vsDist(tk,w,max);
+      if(d<=max && (d<bd || (d===bd && c>bc))){ best=w; bd=d; bc=c; }
+    }
+    if(best){ changed=true; return best; }
+    return tk;
+  });
+  if(!changed) return null;
+  const r=vsCollect(fixed,year);
+  return r.total ? {text:fixed.join(' '),count:r.total} : null;
+}
+const VS_STOP=new Set(('CUANTO CUANTOS CUANTA CUANTAS CUAL CUALES QUE QUIEN HAY EXISTE EXISTEN TIENE TIENEN TENGO TENEMOS TOTAL CANTIDAD NUMERO NUM PRODUCTO PRODUCTOS PROD REFERENCIA REFERENCIAS ARTICULO ARTICULOS ITEM ITEMS MARCA MARCAS DE DEL LA EL LOS LAS LO EN CON SIN POR PARA AL UN UNA UNOS UNAS Y O U A ES SON SER ESTA ESTAN BASE BASES BD DATOS DATO LISTA LISTAME DAME DIME MUESTRAME MUESTRA MOSTRAR VER BUSCA BUSCAR BUSCAME ENCUENTRA ENCONTRAR NECESITO QUIERO PUEDES PUEDO PODRIAS FAVOR PORFA ME MI SE SI NO YA COMO CUANDO DONDE REGISTRADOS REGISTRADO CARGADOS CARGADO SOBRE ENTRE HOW MANY ARE THERE IN THE DATABASE OF PRODUCTS PRODUCT LIST SHOW FIND SEARCH AN FOR WITH TO IS HAVE HAS DO DOES BRAND').split(' '));
+function vsParseQuestion(q){
+  const raw=normalizeForSearch(q);
+  const years=[];
+  if(/\b2026\b/.test(raw)) years.push('2026');
+  if(/\b2025\b/.test(raw)) years.push('2025');
+  if(!years.length) years.push(...(state.prefs.defaultBase==='2025'?['2025','2026']:['2026','2025']));
+  const terms=raw.split(' ').filter(w=>w.length>=2 && !VS_STOP.has(w) && !/^20(25|26)$/.test(w));
+  const wantsCount=/cuant[oa]s|how many|\btotal\b|cantidad|numero de/.test(vcNorm(q));
+  return {terms,years,wantsCount};
+}
+// Hace con la pregunta lo mismo que haría el buscador: cuenta coincidencias reales en cada base y corrige errores de escritura.
+function vsRun(question){
+  const pr=vsParseQuestion(question);
+  if(!pr.terms.length || pr.terms.length>5) return null;
+  const years=[];
+  for(const y of pr.years){
+    if(!state.index[y] || !(state.bases[y]||[]).length) continue;
+    let terms=pr.terms, corrected=false, r=vsCollect(terms,y);
+    if(!r.total){ const sg=vsSuggest(terms.join(' '),y); if(sg){ corrected=true; terms=sg.text.split(' '); r=vsCollect(terms,y); } }
+    const item={year:y,terms:terms.join(' '),orig:pr.terms.join(' '),corrected,total:r.total,sample:r.sample};
+    if(!r.total && terms.length>1) item.partial=terms.map(tk=>({term:tk,total:vsCollect([tk],y).total}));
+    years.push(item);
+  }
+  return years.length ? {wantsCount:pr.wantsCount,terms:pr.terms.join(' '),years} : null;
+}
+function vsMeta(run){
+  const ok=run.years.find(y=>y.total>0);
+  return {terms:(ok?ok.terms:run.terms), years:run.years.map(y=>({year:y.year,terms:y.terms,total:y.total}))};
+}
+function vsLocalAnswer(run){
+  const en=state.prefs.lang==='en';
+  const any=run.years.some(y=>y.total>0), corr=run.years.find(y=>y.corrected);
+  if(!any && !corr && run.years[0].terms.split(' ').length>1) return null;   // consulta compuesta sin resultados: que la IA la interprete
+  const TERM=(corr?corr.terms:run.years[0].terms).toUpperCase();
+  const pre=corr ? (en?`I understood **${corr.terms.toUpperCase()}** (you typed “${corr.orig.toLowerCase()}”). `:`Entendí **${corr.terms.toUpperCase()}** (escribiste «${corr.orig.toLowerCase()}»). `) : '';
+  const fmt=n=>Number(n).toLocaleString(en?'en-US':'es-CO');
+  if(run.years.length===1){
+    const y=run.years[0];
+    return pre+(en ? `There ${y.total===1?'is':'are'} **${fmt(y.total)}** product${y.total===1?'':'s'} matching **${TERM}** in the ${y.year} base.`
+                   : `${y.total===1?'Hay':'Hay'} **${fmt(y.total)}** producto${y.total===1?'':'s'} que coinciden con **${TERM}** en la base **${y.year}**.`);
+  }
+  return pre+(en?`Products matching **${TERM}**:`:`Productos que coinciden con **${TERM}**:`)+'\n'+run.years.map(y=>`- Base ${y.year}: **${fmt(y.total)}**`).join('\n');
+}
+function vsContext(run){
+  const L=['BÚSQUEDA EN LA BASE (misma lógica del buscador de la app; los números son exactos, úsalos tal cual):','Términos buscados: '+run.terms];
+  run.years.forEach(y=>{
+    L.push(`Base ${y.year}: ${y.total} productos coinciden${y.corrected?` (término corregido de "${y.orig}" a "${y.terms}")`:''}.`);
+    if(y.sample.length) L.push('Ejemplos: '+y.sample.slice(0,8).map(p=>`${p.codigo} - ${(p.nombre||'').slice(0,60)}`).join(' | '));
+    if(y.partial) L.push('Por palabra suelta: '+y.partial.map(x=>`${x.term}=${x.total}`).join(', '));
+  });
+  L.push('Totales cargados: '+['2025','2026'].map(y=>`Base ${y}: ${(state.bases[y]?state.bases[y].length:0).toLocaleString()} productos`).join(' · '));
+  return L.join('\n');
+}
+function searchProducts(query, year, limit){
   const idx = state.index[year];
+  const LIM = limit || 60;
   const qRaw = normalize(query);
   const qTokens = normalizeForSearch(query).split(' ').filter(Boolean);
-  if(!qRaw && !qTokens.length) return { results:[], fuzzy:false };
-  let out = [];
+  if(!qRaw && !qTokens.length) return { results:[], fuzzy:false, total:0 };
+  let out = [], total = 0;
   for(const p of idx.list){
     const codeMatch = p.codigo && p.codigo.includes(qRaw);
     const nameMatch = qTokens.length>0 && qTokens.every(tok=> p.nombreSearch.includes(tok));
-    if(codeMatch || nameMatch){ out.push(p); if(out.length>=60) break; }
+    if(codeMatch || nameMatch){ total++; if(out.length<LIM) out.push(p); }
   }
   let fuzzy = false;
   if(out.length===0 && qTokens.length){
@@ -4341,8 +4528,9 @@ function searchProducts(query, year){
       if(qTokens.some(tok=> tok.length>=3 && p.nombreSearch.includes(tok))){ out.push(p); if(out.length>=20) break; }
     }
     fuzzy = out.length>0;
+    total = out.length;
   }
-  return { results:out, fuzzy };
+  return { results:out, fuzzy, total };
 }
 
 /* ===================== Data loading (Supabase) ===================== */
@@ -4631,11 +4819,7 @@ async function loadCoreData(){
   state.termsVersion = adminPw && adminPw.terminos_version ? String(adminPw.terminos_version) : (state.termsVersion || '1.0');
   state.veriApiKey = adminPw && adminPw.groq_api_key ? adminPw.groq_api_key : null;
   try{ state.toolAccess = (adminPw && adminPw.tools_visibility) ? (typeof adminPw.tools_visibility==='string' ? JSON.parse(adminPw.tools_visibility) : adminPw.tools_visibility) : {}; }catch(e){ state.toolAccess = {}; }
-  state.repeticiones = (reps||[]).map(r=>({
-    id:r.id, codigoProducto:r.codigo_producto, nombreProducto:r.nombre_producto,
-    fotografo:r.fotografo, codigoBarras:r.codigo_barras, motivo:r.motivo,
-    estado:r.estado, fecha:r.fecha, archivado: !!r.archivado, fotoPath:r.foto_path||null, fotoSubidaEn:r.foto_subida_en||null, revisionEstado:r.revision_estado||'pendiente', revisionMotivo:r.revision_motivo||'', revisionPor:r.revision_por||'', revisionFecha:r.revision_fecha||null
-  }));
+  state.repeticiones = (reps||[]).map(mapRepRow);
   await refreshRepPhotos();
   refreshVeriPhotoUrls();
   try{ initNotifications(); }catch(e){ console.error('Notificaciones:',e); }
@@ -4750,6 +4934,18 @@ function importExcelProducts(file, year){
 }
 
 /* ===================== Repeticiones import (color amarillo) ===================== */
+function cellHasFill(cell){
+  if(!cell||!cell.s) return false;
+  const st=cell.s, fl=st.fill||st;
+  const pt=fl.patternType||st.patternType;
+  if(pt==='none') return false;
+  const fg=fl.fgColor||st.fgColor;
+  if(!fg) return false;
+  if(fg.rgb){ const raw=String(fg.rgb), hex=raw.slice(-6).toUpperCase(); if(hex==='FFFFFF') return false; if(raw.length===8 && raw.slice(0,2)==='00' && hex==='000000') return false; return true; }
+  if(fg.theme!==undefined) return !(Number(fg.theme)===0 && !fg.tint);
+  if(fg.indexed!==undefined) return ![64,65,9].includes(Number(fg.indexed));
+  return false;
+}
 function cellIsYellow(cell){
   if(!cell || !cell.s) return false;
   const fill = cell.s.fgColor || cell.s.bgColor;
@@ -4819,79 +5015,102 @@ function categoryFromRow(r, categoryIdx, nombre){
 async function insertRepeticionesRemote(list){
   await uploadInChunks('repeticiones', list, 300, 4);
 }
+/* Lee la hoja "REPETICIONES" (o, si no existe, todas las hojas con encabezado ID / NOMBRE / FOTOGRAFO …).
+   Regla: es pendiente solo si la celda del NOMBRE no tiene color de relleno (sin relleno o blanco) y trae algo en
+   OBSERVACIONES (lo que hay que repetir). Azul, amarillo, verde, etc. = ya tomado / en revisión → se ignora. */
+function repKey(cod,mot){ return normalize(cod)+'|'+normalize(mot); }
+function repCellText(cell){
+  if(!cell||cell.v===undefined||cell.v===null) return '';
+  if(typeof cell.v==='number'){
+    if(cell.w && /^\d+$/.test(String(cell.w).trim())) return String(cell.w).trim();   // conserva ceros a la izquierda del código de barras
+    return Number.isInteger(cell.v) ? String(Math.round(cell.v)) : String(cell.v);
+  }
+  return String(cell.v).trim();
+}
+function parseRepeticionesWorkbook(wb, filterCode, existing){
+  const filterNorm = filterCode ? normalize(filterCode) : '';
+  const seen = new Set((existing||[]).map(r=>repKey(r.codigoProducto, r.motivo)));
+  const out=[]; const st={hojas:0, conColor:0, sinObservacion:0, duplicados:0, otroFotografo:0, sinId:0, columnas:''};
+  const idRx=/^\d{8}[_\-][^_\-\s]+[_\-]\d+/;
+  const pref=wb.SheetNames.filter(n=>normalize(n).includes('REPETIC'));
+  const rest=wb.SheetNames.filter(n=>!pref.includes(n));
+  for(const sn of pref.concat(rest)){
+    const sheet = wb.Sheets[sn]; if(!sheet || !sheet['!ref']) continue;
+    const range = XLSX.utils.decode_range(sheet['!ref']);
+    let hr=-1, H=[];
+    for(let R=range.s.r; R<=Math.min(range.e.r, range.s.r+40) && hr<0; R++){
+      const row=[]; for(let C=range.s.c; C<=range.e.c; C++) row[C]=normalize(repCellText(sheet[XLSX.utils.encode_cell({r:R,c:C})])).replace(/\s+/g,' ');
+      if(row.some(h=>h&&h.startsWith('NOMBRE')) && row.some(h=>h && h.startsWith('FOTOGRAF'))){ hr=R; H=row; }
+    }
+    if(hr<0) continue;
+    if(pref.length && !pref.includes(sn) && st.hojas) continue;   // si ya se leyó la hoja REPETICIONES, no se mezclan otras hojas
+    st.hojas++;
+    const colOf=(fn)=>{ for(let C=range.s.c; C<=range.e.c; C++){ if(fn(H[C]||'')) return C; } return -1; };
+    const iNom = colOf(h=>h==='NOMBRE') >=0 ? colOf(h=>h==='NOMBRE') : colOf(h=>h.startsWith('NOMBRE'));
+    const iFoto = colOf(h=>h.startsWith('FOTOGRAF'));
+    const iBar = colOf(h=>h.includes('BARRA') || h==='EAN' || h==='GTIN');
+    const iObs = colOf(h=>h.startsWith('OBSERVACION') || h==='MOTIVO' || h.startsWith('DETALLE') || h.startsWith('COMENTARIO'));
+    const iCat = colOf(h=>h.includes('CATEGOR'));
+    let iCod = colOf(h=>h==='ID' || h==='CODIGO' || h.startsWith('ID ') || h.includes('COD PRODUCTO') || h.includes('CODIGO PRODUCTO') || h.includes('CODIGO UNICO'));
+    if(iCod<0){   // se busca la columna cuyos valores tienen forma AAAAMMDD_TT_NNN
+      for(let C=range.s.c; C<=range.e.c && iCod<0; C++){
+        let hit=0; for(let R=hr+1; R<=Math.min(range.e.r,hr+15); R++){ if(idRx.test(repCellText(sheet[XLSX.utils.encode_cell({r:R,c:C})]))) hit++; }
+        if(hit>=2) iCod=C;
+      }
+    }
+    if(iCod<0) iCod = iNom>range.s.c ? iNom-1 : -1;
+    st.columnas=`ID:${iCod>=0?'sí':'NO'} · Nombre:${iNom>=0?'sí':'NO'} · Fotógrafo:${iFoto>=0?'sí':'NO'} · Barras:${iBar>=0?'sí':'NO'} · Observaciones:${iObs>=0?'sí':'NO'}`;
+    for(let R=hr+1; R<=range.e.r; R++){
+      const cell=(C)=> C>=0 ? sheet[XLSX.utils.encode_cell({r:R,c:C})] : undefined;
+      const nombre = normalize(repCellText(cell(iNom)));
+      if(!nombre || nombre.startsWith('BASE ACTUAL')) continue;
+      if(cellHasFill(cell(iNom))){ st.conColor++; continue; }           // azul, amarillo, verde… → se ignora; solo nombre en blanco
+      const motivo = repCellText(cell(iObs));
+      if(iObs>=0 && !motivo){ st.sinObservacion++; continue; }
+      const fotografo = normalize(repCellText(cell(iFoto)));
+      if(filterNorm && fotografo!==filterNorm){ st.otroFotografo++; continue; }
+      const codigo = repCellText(cell(iCod)).replace(/\s+/g,'').toUpperCase();
+      if(!codigo) st.sinId++;
+      const key = repKey(codigo||nombre, motivo);
+      if(seen.has(key)){ st.duplicados++; continue; }
+      seen.add(key);
+      const catRaw = iCat>=0 ? repCellText(cell(iCat)) : '';
+      const categoria = catRaw ? ((REP_CATEGORIES.find(c=>normalize(c)===normalize(catRaw))) || catRaw) : inferCategory(nombre);
+      out.push({ codigo_producto:codigo, nombre_producto:nombre, categoria, fotografo, codigo_barras:repCellText(cell(iBar)).replace(/\s+/g,''), motivo, estado:'pending', archivado:false, fecha:Date.now() });
+    }
+  }
+  return {items:out, stats:st};
+}
 function importExcelRepeticiones(file, filterCode){
   if(!confirm(t('confirmImportRep'))) return;
   const reader = new FileReader();
   reader.onload = async (e)=>{
     try{
       await ensureXLSX();
-      const wb = XLSX.read(e.target.result, {type:'array', cellStyles:true});
-      let sheetName = wb.SheetNames.find(n=>normalize(n).includes('REPETIC')) || wb.SheetNames[0];
-      const sheet = wb.Sheets[sheetName];
-      const range = XLSX.utils.decode_range(sheet['!ref']);
-      const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
-      if(!rows.length) throw new Error('empty');
-      const headers = rows[0].map(h=>normalize(h));
-      const find = (...keys)=> headers.findIndex(h=>keys.some(k=>h.includes(k)));
-      const iCod = find('COD PRODUCTO','CODIGO PRODUCTO','CODIGO');
-      const iNom = find('NOMBRE');
-      const iFoto = find('FOTOGRAF');
-      const iBar = find('BARRA');
-      const iMot = find('MOTIVO','DETALLE','DESCRIPCION','REPETIC');
-      const iCat = find('CATEGORIA','CATEGOR','CATEGORY','GRUPO','SECCION');
-      const filterNorm = filterCode ? normalize(filterCode) : '';
-      const toInsert = [];
-      let skippedYellow = 0, skippedBlue = 0, skippedGreen = 0;
-      for(let R=1; R<=range.e.r; R++){
-        const r = rows[R];
-        if(!r) continue;
-        let rowIsYellow = false, rowIsBlue = false;
-        for(let C=range.s.c; C<=range.e.c; C++){
-          const addr = XLSX.utils.encode_cell({r:R,c:C});
-          const cell = sheet[addr];
-          if(cellIsYellow(cell)) rowIsYellow = true;
-          else if(cellIsBlue(cell)) rowIsBlue = true;
-        }
-        const codigoProducto = iCod>=0 ? normalize(r[iCod]) : '';
-        const nombreProducto = iNom>=0 ? normalize(r[iNom]) : '';
-        const fotografo = iFoto>=0 ? normalize(r[iFoto]) : '';
-        if(!codigoProducto && !nombreProducto) continue;
-        if(filterNorm && fotografo !== filterNorm) continue;
-        let rowIsGreen = false;
-        for(let C=range.s.c; C<=range.e.c; C++){
-          const cell = sheet[XLSX.utils.encode_cell({r:R,c:C})];
-          if(cellIsGreen(cell)) rowIsGreen = true;
-        }
-        if(rowIsYellow){ skippedYellow++; continue; }
-        if(rowIsBlue){ skippedBlue++; continue; }
-        if(rowIsGreen){ skippedGreen++; continue; }
-        toInsert.push({
-          codigo_producto: codigoProducto, nombre_producto: nombreProducto,
-          categoria: categoryFromRow(r, iCat, nombreProducto),
-          fotografo,
-          codigo_barras: iBar>=0 ? normalize(r[iBar]) : '',
-          motivo: iMot>=0 ? String(r[iMot]||'').trim() : '',
-          estado:'pending', archivado:false, fecha: Date.now()
-        });
-      }
+      const wb = XLSX.read(e.target.result, {type:'array', cellStyles:true, sheetStubs:true});
+      const {items, stats} = parseRepeticionesWorkbook(wb, filterCode, state.repeticiones);
+      if(!stats.hojas) throw new Error('sin-hoja-repeticiones');
+      if(!items.length){ toast(`No se importó nada (${stats.conColor} con color, ${stats.sinObservacion} sin observación, ${stats.duplicados} ya existían). Columnas: ${stats.columnas}`); return; }
       toast(t('loginLoading'));
-      await insertRepeticionesRemote(toInsert);
+      if(items.length) await insertRepeticionesRemote(items);
       await refreshRepeticiones();
-      const pendCount = toInsert.filter(x=>x.estado==='pending').length;
-      const takenCount = toInsert.filter(x=>x.estado==='done').length;
-      toast(`${t('imported')}: ${pendCount} ${t('statusPending')} · ${skippedYellow+skippedBlue+skippedGreen} omitidos`);
+      toast(`${t('imported')}: ${items.length} ${t('statusPending')} · ${stats.conColor} con color omitidos${stats.duplicados?` · ${stats.duplicados} ya existían`:''}${stats.sinId?` · ⚠ ${stats.sinId} sin ID`:''} · ${stats.columnas}`);
       renderRoot();
-    }catch(err){ console.error(err); toast(t('errorImport')); }
+    }catch(err){ console.error(err); toast(err&&err.message==='sin-hoja-repeticiones' ? 'No encontré una hoja con las columnas ID, NOMBRE y FOTOGRAFO en ese Excel.' : t('errorImport')); }
   };
   reader.readAsArrayBuffer(file);
 }
-async function refreshRepeticiones(){
-  const reps = await fetchRepeticiones();
-  state.repeticiones = (reps||[]).map(r=>({
+function mapRepRow(r){
+  return {
     id:r.id, codigoProducto:r.codigo_producto, nombreProducto:r.nombre_producto,
     fotografo:r.fotografo, codigoBarras:r.codigo_barras, motivo:r.motivo,
-    estado:r.estado, fecha:r.fecha, archivado: !!r.archivado, fotoPath:r.foto_path||null, fotoSubidaEn:r.foto_subida_en||null, revisionEstado:r.revision_estado||'pendiente', revisionMotivo:r.revision_motivo||'', revisionPor:r.revision_por||'', revisionFecha:r.revision_fecha||null
-  }));
+    estado:r.estado, fecha:r.fecha, archivado: !!r.archivado, fotoPath:r.foto_path||null, fotoSubidaEn:r.foto_subida_en||null, revisionEstado:r.revision_estado||'pendiente', revisionMotivo:r.revision_motivo||'', revisionPor:r.revision_por||'', revisionFecha:r.revision_fecha||null,
+    enProcesoPor:r.en_proceso_por||'', enProcesoDesde:r.en_proceso_desde||null
+  };
+}
+async function refreshRepeticiones(){
+  const reps = await fetchRepeticiones();
+  state.repeticiones = (reps||[]).map(mapRepRow);
   await refreshRepPhotos();
   refreshVeriPhotoUrls();
 }
@@ -5963,7 +6182,7 @@ function flashScanFrame(status='exact'){
 function scanResultFloatInner(r){
   const meta=scanStatusMeta(r.status);
   const name=r.producto?.nombre || (r.status==='notfound' ? t('notfound') : 'Resultado');
-  const code=(toolVisible('carrito') && state.scanMode==='cart' && r.codigoEscaneado) ? r.codigoEscaneado : (r.producto?.codigo || r.codigoEscaneado || '');
+  const code=(toolVisible('carrito') && state.scanMode==='cart') ? (r.producto?.codigo || '') : (r.producto?.codigo || r.codigoEscaneado || '');
   const statusLabel=r.status==='exact'?(r.bySuffix?t('exactBySuffix'):t('exact')):r.status==='similar'?t('similar'):t('notfound');
   const inCart=toolVisible('carrito') && state.scanMode==='cart';
   const scanned=r.codigoEscaneado||'';
@@ -5974,7 +6193,7 @@ function scanResultFloatInner(r){
       const who=alreadyAdded.nombre_persona||alreadyAdded.codigo_persona||'';
       action=`<button type="button" class="btn secondary block" disabled>${ICONS.check} ${t('cartInCartLabel')}${who?` · ${escapeHtml(who)}`:''}</button>`;
     } else if(r.status==='similar'){
-      action=`<button type="button" class="btn block" id="scanFloatReviewBtn">${ICONS.search||''} ${t('cartReviewBtn')}</button>`;
+      action=`<div class="scan-float-btnrow"><button type="button" class="btn secondary block" id="scanFloatReviewBtn">${ICONS.search||''} ${t('cartSearchBtn')}</button><button type="button" class="btn block" id="scanFloatQuickAddBtn">${ICONS.check||''} ${t('cartQuickAddBtn')}</button></div>`;
     } else {
       action=`<p class="small-note" style="margin:0 0 8px;">${t('cartInBaseNote')}</p><button type="button" class="btn block cart-exception-btn" id="scanFloatAddBtn">${t('cartAddException')}</button>`;
     }
@@ -5984,15 +6203,18 @@ function scanResultFloatInner(r){
   const inCartInfo = alreadyAdded ? `<div class="scan-cart-owner">🛒 ${t('cartInCartOf')} <b>${escapeHtml(alreadyAdded.nombre_persona||alreadyAdded.codigo_persona||'')}</b></div>` : '';
   return `<div class="scan-result-float-card">
     <button type="button" class="scan-result-float-close" id="scanFloatCloseBtn" aria-label="${t('cancel')}">${ICONS.x}</button>
+    ${inCart && scanned ? `<div class="scan-result-float-scanned">${t('cartScannedLabel')} <b>${escapeHtml(scanned)}</b></div>` : ''}
     <div class="scan-result-float-product">
       <div class="scan-result-float-badge" style="background:${meta.color};">${meta.icon}</div>
       <div class="scan-result-float-info">
+        ${inCart && r.producto ? `<div class="scan-result-float-match">${t('cartMatchLabel')}</div>` : ''}
         <div class="scan-result-float-name">${escapeHtml(name)}</div>
         ${code?`<div class="scan-result-float-code">${escapeHtml(code)}</div>`:''}
         <div class="scan-result-float-status" style="color:${meta.color};">${statusLabel}</div>
       </div>
     </div>
     ${inCartInfo}
+    ${(()=>{ const rp=repFindPendingByCode(r.codigoEscaneado,r.producto?.codigo,r.producto?.codigoBarras); return rp?`<button type="button" class="scan-rep-chip" id="scanFloatRepBtn" data-rep-id="${escapeHtml(String(rp.id))}"><span>🔁 Este producto tiene una repetición</span><span aria-hidden="true">→</span></button>`:''; })()}
     ${action?`<div class="scan-result-float-actions">${action}</div>`:''}
   </div>`;
 }
@@ -6026,11 +6248,27 @@ function updateScanResultDOM(){
   const closeBtn=document.getElementById('scanFloatCloseBtn');
   if(closeBtn)closeBtn.onclick=()=>closeScanResultFloat(true);
 
+  const repBtn=document.getElementById('scanFloatRepBtn');
+  if(repBtn)repBtn.onclick=()=>{
+    const rp=state.repeticiones.find(x=>String(x.id)===repBtn.dataset.repId);
+    closeScanResultFloat(true); stopCamera();
+    state.tab='rep'; state.repView='list'; state.repShowForm=false;
+    state.repFilterStatus='all'; state.repFilterCode=''; state.repFilterDate=''; state.repFilterStore='';
+    state.repSearch=rp?(rp.codigoProducto||rp.codigoBarras||''):'';
+    render();
+  };
+
   const addBtn=document.getElementById('scanFloatAddBtn');
   if(addBtn)addBtn.onclick=()=>{
     const sr=state.scanResult;
     if(sr && sr.codigoEscaneado)addToCart(sr.codigoEscaneado,null,{excepcion:true});
     closeScanResultFloat(true);
+  };
+  const quickAddBtn=document.getElementById('scanFloatQuickAddBtn');
+  if(quickAddBtn)quickAddBtn.onclick=()=>{
+    const sr=state.scanResult;
+    if(sr && sr.codigoEscaneado)addToCart(sr.codigoEscaneado,null);
+    closeScanResultFloat(true); // la cámara sigue activa, lista para el siguiente producto
   };
   const reviewBtn=document.getElementById('scanFloatReviewBtn');
   if(reviewBtn)reviewBtn.onclick=()=>{
@@ -6448,10 +6686,10 @@ function openNamingEditModal(itemId){
   };
 }
 function getPendingPhotoReviewItems(){
-  const multi=(state.repetitionPhotos||[]).filter(f=>f.path && f.estado!=='aprobada' && (f.estado==='pendiente'||f.estado==='repetir'));
+  const multi=(state.repetitionPhotos||[]).filter(f=>f.path && f.estado!=='aprobada' && f.estado==='pendiente');
   const hasMultiRows=(state.repetitionPhotos||[]).length>0;
   const multiRepIds=new Set((state.repetitionPhotos||[]).map(f=>String(f.repeticionId)));
-  const legacy=(state.repeticiones||[]).filter(r=>!multiRepIds.has(String(r.id))&&!r.archivado&&r.fotoPath&&(r.revisionEstado||'pendiente')!=='aprobada'&&(r.estado==='sent'||(r.revisionEstado||'pendiente')==='repetir'||(r.revisionEstado||'pendiente')==='pendiente')).map(r=>({...r,legacy:true,repetition:r}));
+  const legacy=(state.repeticiones||[]).filter(r=>!multiRepIds.has(String(r.id))&&!r.archivado&&r.fotoPath&&(r.revisionEstado||'pendiente')!=='aprobada'&&(r.revisionEstado||'pendiente')!=='repetir'&&(r.estado==='sent'||(r.revisionEstado||'pendiente')==='repetir'||(r.revisionEstado||'pendiente')==='pendiente')).map(r=>({...r,legacy:true,repetition:r}));
   if(hasMultiRows){
     const pendingMulti=multi.map(f=>({ ...f, repetition:state.repeticiones.find(r=>String(r.id)===String(f.repeticionId)) })).filter(x=>x.repetition&&!x.repetition.archivado);
     return pendingMulti.concat(legacy).sort((a,b)=>String(a.subidaEn||a.fecha||'').localeCompare(String(b.subidaEn||b.fecha||'')));
@@ -6459,7 +6697,23 @@ function getPendingPhotoReviewItems(){
   return legacy.sort((a,b)=>(Number(a.fecha)||0)-(Number(b.fecha)||0));
 }
 function getPendingPhotoReviewCount(){ return getPendingPhotoReviewItems().length; }
+function veriClampPan(img,stage,s,r,x,y,curX,curY){
+  // Mantiene la foto dentro del marco: al arrastrar hace tope en el borde y, si cabe completa, queda centrada.
+  try{
+    if(!img||!stage) return [x,y];
+    const sw=stage.clientWidth, sh=stage.clientHeight;
+    let bw=img.offsetWidth, bh=img.offsetHeight;
+    if(!sw||!sh||!bw||!bh) return [x,y];
+    if(Math.round((Number(r)||0)/90)%2!==0){ const t0=bw; bw=bh; bh=t0; }
+    const sr=stage.getBoundingClientRect(), ir=img.getBoundingClientRect();
+    const ox=(sr.left+sr.width/2)-(ir.left+ir.width/2-(curX||0));
+    const oy=(sr.top+sr.height/2)-(ir.top+ir.height/2-(curY||0));
+    const mx=Math.max(0,(bw*s-sw)/2), my=Math.max(0,(bh*s-sh)/2);
+    return [ox+Math.max(-mx,Math.min(mx,x-ox)), oy+Math.max(-my,Math.min(my,y-oy))];
+  }catch(e){ return [x,y]; }
+}
 function applyInlineReviewTransform(img,scale,rotation,x,y){
+  [x,y]=veriClampPan(img,img.closest('[data-review-stage]'),scale,rotation,x,y,Number(img.dataset.x||0),Number(img.dataset.y||0));
   img.dataset.zoom=String(scale);img.dataset.rotation=String(rotation);img.dataset.x=String(x);img.dataset.y=String(y);
   img.style.transform=`translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;
   const label=document.querySelector(`[data-review-zoom-label="${CSS.escape(img.dataset.reviewInlineImage||'')}"]`);if(label)label.textContent=`${Math.round(scale*100)}%`;
@@ -6475,7 +6729,23 @@ function renderRepReview(){
   return `<div class="card glass" style="padding:16px 18px;margin-bottom:12px"><div class="row" style="justify-content:space-between;align-items:center;gap:12px"><div><strong>Revisión de repeticiones</strong><div class="small-note" style="margin-top:3px">Foto ${idx+1} de ${queue.length} pendientes · ${state.repetitionPhotos.length?`${(state.repetitionPhotos.filter(f=>String(f.repeticionId)===String(r.id)).filter(f=>f.estado==='aprobada').length)} aprobadas de ${(state.repetitionPhotos.filter(f=>String(f.repeticionId)===String(r.id)).length)}`:'foto individual'}</div></div><span class="review-count" style="font-size:12px;height:25px;min-width:25px">${queue.length}</span></div><div class="rep-review-progress"><span style="width:${pct}%"></span></div></div>
   <div class="rep-review-shell"><section class="card glass rep-review-info"><div><div class="small-note">PRODUCTO</div><h2 style="font-size:22px;margin:4px 0 10px">${escapeHtml(r.nombreProducto||'Producto sin nombre')}</h2><div class="rep-detail"><strong>Código:</strong> ${escapeHtml(r.codigoProducto||'—')}</div><div class="rep-detail"><strong>Código de barras:</strong> ${escapeHtml(r.codigoBarras||'—')}</div><div class="rep-detail"><strong>Fotógrafo:</strong> ${escapeHtml(r.fotografo||'—')}</div><div class="rep-detail"><strong>Archivo:</strong> ${escapeHtml(item.nombreArchivo||String(photoPath||'').split('/').pop())}</div></div><div class="warning-banner"><span><strong>Motivo de repetición</strong><br>${escapeHtml(r.motivo||'No se indicó un motivo.')}</span></div>${reason?`<div class="warning-banner"><span><strong>Motivo de devolución</strong><br>${escapeHtml(reason)}</span></div>`:''}<div class="row wrap" style="gap:8px"><button class="btn rep-review-action" data-review-approve="${reviewId}" data-review-photo-mode="${item.legacy?'legacy':'multi'}">✓ Aprobar foto</button><button class="btn secondary rep-review-action" data-review-retake="${reviewId}" data-review-photo-mode="${item.legacy?'legacy':'multi'}">↻ Devolver para repetir</button></div><button class="btn ghost rep-review-action" data-review-next="${reviewId}">Siguiente foto →</button><div class="small-note">El producto se archiva automáticamente cuando todas sus fotos están aprobadas. La descarga usa el código del producto.</div></section><section class="card glass" style="padding:12px"><div class="rep-review-photo" data-review-stage="${reviewId}">${url?`<img src="${url}" alt="Foto de ${escapeHtml(r.nombreProducto||r.codigoProducto||'producto')}" data-review-inline-image="${reviewId}" draggable="false">`:'<p class="small-note">No hay imagen disponible.</p>'}</div>${url?`<div class="rep-review-inline-controls"><button type="button" class="btn secondary sm" data-review-zoom="out" aria-label="Alejar">−</button><span class="rep-review-zoom-label" data-review-zoom-label="${reviewId}">100%</span><button type="button" class="btn secondary sm" data-review-zoom="in" aria-label="Acercar">＋</button><button type="button" class="btn secondary sm" data-review-reset="${reviewId}">Ajustar</button><button type="button" class="btn secondary sm" data-review-rotate="${reviewId}">↻ Girar</button><a class="btn secondary sm" href="${url}" target="_blank" rel="noopener">Abrir original ↗</a></div>`:''}</section></div>`;
 }
+function repParseId(code){
+  const m=String(code||'').trim().match(/^(\d{8})[_\-]([^_\-\s]+)[_\-](\d+)/);
+  return m?{date:m[1],store:m[2],seq:m[3]}:null;
+}
+function repDateKey(r){
+  const p=repParseId(r.codigoProducto); if(p) return p.date;
+  const d=new Date(r.fecha); return isNaN(d)?'':d.toISOString().slice(0,10).replace(/-/g,'');
+}
+function repFmtDate(k){ return k&&k.length===8?`${k.slice(0,4)}-${k.slice(4,6)}-${k.slice(6,8)}`:k; }
+function repStoreKey(r){ const p=repParseId(r.codigoProducto); return p?p.store:''; }
+function repFindPendingByCode(...codes){
+  const cs=codes.map(c=>String(c||'').trim().toUpperCase()).filter(Boolean); if(!cs.length) return null;
+  return (state.repeticiones||[]).find(r=>!r.archivado && (r.estado==='pending'||r.estado==='done') &&
+    cs.some(c=>String(r.codigoBarras||'').trim().toUpperCase()===c || String(r.codigoProducto||'').trim().toUpperCase()===c)) || null;
+}
 function renderRepList(){
+  const q=normalize(state.repSearch||'');
   let list = state.repeticiones
     .filter(r=>{
       if(state.repFilterStatus==='all') return true;
@@ -6485,32 +6755,52 @@ function renderRepList(){
       if(state.repFilterStatus==='archived') return !!r.archivado;
       return true;
     })
-    .filter(r=> !state.repFilterCode ? true : (r.fotografo===state.repFilterCode));
-  list = list.sort((a,b)=> state.repSort==='desc' ? b.fecha-a.fecha : a.fecha-b.fecha);
+    .filter(r=> !state.repFilterCode ? true : (r.fotografo===state.repFilterCode))
+    .filter(r=> !state.repFilterDate ? true : repDateKey(r)===state.repFilterDate)
+    .filter(r=> !state.repFilterStore ? true : repStoreKey(r)===state.repFilterStore)
+    .filter(r=> !q ? true : normalize([r.codigoProducto,r.nombreProducto,r.codigoBarras].join(' ')).includes(q));
+  list = list.sort((a,b)=>{ const ka=repDateKey(a), kb=repDateKey(b); const c=ka<kb?-1:ka>kb?1:0; const base=c||(String(a.codigoProducto||'')<String(b.codigoProducto||'')?-1:1); return state.repSort==='desc'?-base:base; });
   const codes = Array.from(new Set(state.repeticiones.map(r=>r.fotografo).filter(Boolean)));
+  const dates = Array.from(new Set(state.repeticiones.map(repDateKey).filter(Boolean))).sort().reverse();
+  const stores = Array.from(new Set(state.repeticiones.map(repStoreKey).filter(Boolean))).sort();
+  const nPend = state.repeticiones.filter(r=>r.estado==='pending').length, nWork = state.repeticiones.filter(r=>r.estado==='done').length;
   const groups = REP_CATEGORIES.concat(['']).map(cat=>({cat,items:list.filter(r=>(r.categoria||'')===cat)})).filter(g=>g.items.length);
+  const hasFilters = state.repFilterCode||state.repFilterDate||state.repFilterStore||state.repSearch;
+  const nActive = [state.repFilterCode,state.repFilterDate,state.repFilterStore].filter(Boolean).length;
   return `
     <div class="card glass">
       ${hasAdminAccess()?`<div class="row wrap" style="gap:8px;margin-bottom:12px"><button class="btn" type="button" id="repQuickAdd">＋ Agregar nueva repetición</button><label class="btn secondary" for="repQuickImport">Importar repeticiones Excel</label><input type="file" id="repQuickImport" accept=".xlsx,.xls,.csv" style="display:none"></div>`:''}
-      <div class="row wrap" style="margin-bottom:12px;">
+      <div class="row" style="margin-bottom:10px;gap:8px;">
+        <input type="search" id="repSearchInput" placeholder="Buscar producto, código o código de barras" value="${escapeHtml(state.repSearch||'')}" style="flex:1;min-width:0;" autocomplete="off">
+        <button class="btn secondary sm" type="button" id="repScanBtn" aria-label="Escanear producto">${ICONS.camera||'📷'} Escanear</button>
+      </div>
+      <div id="repScanWrap"></div>
+      <div class="row wrap" style="margin-bottom:8px;">
         <select id="repStatusFilter" style="flex:1;min-width:150px;">
-          <option value="pending" ${state.repFilterStatus==='pending'?'selected':''}>${t('statusPending')}</option>
-          <option value="taken" ${state.repFilterStatus==='taken'?'selected':''}>${t('statusDone')}</option>
+          <option value="pending" ${state.repFilterStatus==='pending'?'selected':''}>${t('statusPending')} (${nPend})</option>
+          <option value="taken" ${state.repFilterStatus==='taken'?'selected':''}>${t('statusDone')} (${nWork})</option>
           <option value="sent" ${state.repFilterStatus==='sent'?'selected':''}>${t('statusSent')}</option>
           <option value="archived" ${state.repFilterStatus==='archived'?'selected':''}>${t('archivedLabel')}</option>
           <option value="all" ${state.repFilterStatus==='all'?'selected':''}>${t('repAll')}</option>
         </select>
       </div>
-      <div class="row wrap" style="margin-bottom:6px;">
-        <select id="repCodeFilter" style="flex:1;min-width:150px;"><option value="">${t('filterAll')}</option>${codes.map(c=>`<option value="${c}" ${state.repFilterCode===c?'selected':''}>${c}</option>`).join('')}</select>
-        <button class="btn secondary sm" id="sortBtn">${ICONS.sort} ${state.repSort==='desc'?t('sortNewest'):t('sortOldest')}</button>
+      <div class="row" style="margin-bottom:8px;gap:8px;align-items:center;">
+        <button class="btn secondary sm rep-filter-toggle ${state.repFiltersOpen?'open':''}" type="button" id="repFiltersToggle" aria-expanded="${state.repFiltersOpen?'true':'false'}">${ICONS.sort||''} Filtros${nActive?` <span class="rep-filter-badge">${nActive}</span>`:''} <span class="rep-filter-caret">▾</span></button>
+        ${hasFilters?`<button class="btn ghost sm" type="button" id="repClearFilters">✕ Limpiar</button>`:''}
+        <span class="small-note">${list.length} resultado${list.length===1?'':'s'}</span>
       </div>
+      <div class="rep-filter-panel ${state.repFiltersOpen?'open':''}" id="repFilterPanel"><div class="rep-filter-inner"><div class="rep-filter-grid">
+        <label class="rep-filter-field"><span>Persona</span><select id="repCodeFilter"><option value="">Todas</option>${codes.map(c=>`<option value="${escapeHtml(c)}" ${state.repFilterCode===c?'selected':''}>${escapeHtml(c)}</option>`).join('')}</select></label>
+        <label class="rep-filter-field"><span>Fecha de la foto</span><select id="repDateFilter"><option value="">Todas</option>${dates.map(d=>`<option value="${d}" ${state.repFilterDate===d?'selected':''}>${repFmtDate(d)}</option>`).join('')}</select></label>
+        <label class="rep-filter-field"><span>Almacén</span><select id="repStoreFilter"><option value="">Todos</option>${stores.map(c=>`<option value="${escapeHtml(c)}" ${state.repFilterStore===c?'selected':''}>Almacén ${escapeHtml(c)}</option>`).join('')}</select></label>
+        <div class="rep-filter-field"><span>Orden</span><button class="btn secondary sm" id="sortBtn" type="button">${ICONS.sort} ${state.repSort==='desc'?'Más recientes primero':'Más antiguas primero'}</button></div>
+      </div></div></div>
       <div style="margin-top:8px;">${list.length ? groups.map(g=>`<div class="category-head"><span>${g.cat||t('uncategorized')}</span><span class="category-count">${g.items.length}</span></div>${g.items.map(renderRepItem).join('')}`).join('') : `<div class="empty">${t('repositoryEmpty')}</div>`}</div>
     </div>
   `;
 }
 function renderRepItem(r){
-  const statusLabel = r.estado==='pending'?t('statusPending'):r.estado==='done'?t('statusDone'):t('statusSent');
+  const statusLabel = r.estado==='pending'?t('statusPending'):r.estado==='done'?('En proceso de fotografías'+(r.enProcesoPor?' · '+escapeHtml(repWorkerName(r.enProcesoPor)):'')):t('statusSent');
   const review = r.revisionEstado || 'pendiente';
   const photoUrl = (!r.archivado && r.fotoPath) ? veriPhotoUrl(r.fotoPath) : '';
   const multiPhotos=(state.repetitionPhotos||[]).filter(f=>String(f.repeticionId)===String(r.id));
@@ -6520,16 +6810,18 @@ function renderRepItem(r){
   const reviewer = hasAdminAccess();
   const photographerOwns = normalize(r.fotografo||'')===normalize(state.session||'');
   return `<div class="rep-item">
-    <div class="rep-top"><div><div class="rep-title">${r.nombreProducto || r.codigoProducto || '—'}</div>
-      ${r.codigoProducto ? `<div class="rep-detail">${t('repCodProd')}: ${r.codigoProducto} <button class="btn ghost sm" data-copy="${encodeURIComponent(r.codigoProducto)}" style="padding:2px 6px;">${ICONS.copy}</button></div>` : ''}
-      ${r.motivo ? `<div class="rep-detail">Motivo: ${r.motivo}</div>` : ''}</div>
+    <div class="rep-top"><div><div class="rep-title">${escapeHtml(r.nombreProducto || r.codigoProducto || '—')}</div>
+      ${r.codigoProducto ? `<div class="rep-detail"><strong>ID:</strong> ${escapeHtml(r.codigoProducto)} <button class="btn ghost sm" data-copy="${encodeURIComponent(r.codigoProducto)}" style="padding:2px 6px;">${ICONS.copy}</button></div>` : ''}
+      ${r.codigoBarras ? `<div class="rep-detail"><strong>Código de barras:</strong> ${escapeHtml(r.codigoBarras)}</div>` : ''}
+      ${r.motivo ? `<div class="rep-detail"><strong>Motivo de la repetición:</strong> ${escapeHtml(r.motivo)}</div>` : ''}</div>
       ${reviewer ? `<button class="btn ghost sm" data-del="${r.id}">${ICONS.trash}</button>`:''}</div>
-    <div class="rep-meta">${r.categoria ? `<span class="chip">${r.categoria}</span>`:''}${r.fotografo ? `<span class="chip">Fotógrafo: ${r.fotografo}</span>`:''}${r.codigoBarras ? `<span class="chip">${r.codigoBarras}</span>`:''}<span class="chip"><span class="status-dot ${r.estado}"></span>${statusLabel}</span><span class="chip">${reviewLabel}</span>${r.archivado ? `<span class="chip">${t('archivedLabel')}</span>` : ''}</div>
+    <div class="rep-meta">${r.categoria ? `<span class="chip">${r.categoria}</span>`:''}${r.fotografo ? `<span class="chip">Fotógrafo: ${escapeHtml(r.fotografo)}</span>`:''}${repParseId(r.codigoProducto)?`<span class="chip">${repFmtDate(repParseId(r.codigoProducto).date)} · Almacén ${escapeHtml(repParseId(r.codigoProducto).store)}</span>`:''}<span class="chip"><span class="status-dot ${r.estado=='done'?'working':r.estado}"></span>${statusLabel}</span><span class="chip">${reviewLabel}</span>${r.archivado ? `<span class="chip">${t('archivedLabel')}</span>` : ''}</div>
     ${!r.archivado && multiPhotos.length ? `<div class="rep-photo-strip" style="display:flex;gap:8px;overflow:auto;margin-top:10px">${multiPhotos.map(f=>{const u=veriPhotoUrl(f.path);return `<div style="min-width:100px;width:100px">${u?`<img src="${u}" alt="Foto" style="width:100px;height:86px;object-fit:cover;border-radius:10px">`:''}<div class="small-note">${escapeHtml(f.estado)}</div>${photographerOwns && f.estado==='repetir'?`<label class="btn secondary sm" for="retake-photo-${f.id}">Reemplazar</label><input id="retake-photo-${f.id}" data-retake-photo="${f.id}" type="file" accept="image/*" capture="environment" style="display:none">`:''}</div>`}).join('')}</div>`:''}
     ${photoUrl && !multiPhotos.length ? `<button type="button" class="veri-photo-preview-trigger" data-photo-preview="${encodeURIComponent(photoUrl)}" data-photo-title="${String(r.nombreProducto||r.codigoProducto||'Fotografía del producto').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}"><img src="${photoUrl}" alt="Vista previa de fotografía de ${r.nombreProducto||r.codigoProducto||'producto'}" style="display:block;width:min(100%,420px);max-height:360px;object-fit:contain;border-radius:14px;background:var(--surface,#f4f4f4);"><span>⤢ Ver imagen en grande · zoom y revisión de enfoque</span></button>`:''}
     ${review==='repetir' && r.revisionMotivo ? `<div class="warning-banner" style="margin-top:10px;"><span><strong>Motivo para repetir:</strong> ${r.revisionMotivo}</span></div>`:''}
     <div class="row wrap" style="margin-top:10px;gap:8px;">
-      ${photographerOwns && review!=='aprobada' ? `<label class="btn secondary sm" for="retake-${r.id}">${r.fotoPath?'Tomar/subir nueva foto':'Tomar/subir foto'}</label><input id="retake-${r.id}" data-retake="${r.id}" type="file" accept="image/*" capture="environment" style="display:none;">` : ''}
+      ${repStartButtonHTML(r)}
+      ${photographerOwns && review!=='aprobada' && r.estado==='sent' ? `<label class="btn secondary sm" for="retake-${r.id}">${r.fotoPath?'Tomar/subir nueva foto':'Tomar/subir foto'}</label><input id="retake-${r.id}" data-retake="${r.id}" type="file" accept="image/*" capture="environment" style="display:none;">` : ''}
       ${reviewer && r.fotoPath ? `<a class="btn secondary sm" href="${photoUrl}" target="_blank" rel="noopener" download>Descargar foto original</a>`:''}
       ${reviewer && r.fotoPath && review!=='aprobada' ? `<button class="btn sm" data-approve-photo="${r.id}">Aprobar foto</button>`:''}
       ${reviewer && r.fotoPath ? `<button class="btn secondary sm" data-request-retake="${r.id}">Solicitar nueva foto</button>`:''}
@@ -6567,6 +6859,11 @@ async function patchRepPhoto(photoId,payload){
   const f=state.repetitionPhotos.find(x=>String(x.id)===String(photoId));
   if(f){if(payload.estado!==undefined)f.estado=payload.estado;if(payload.estado_revision!==undefined)f.estado=payload.estado_revision;if(payload.motivo_devolucion!==undefined)f.motivo=payload.motivo_devolucion;if(payload.foto_path!==undefined)f.path=payload.foto_path;if(payload.ruta_archivo!==undefined)f.path=payload.ruta_archivo;}
 }
+async function veriTryPatchRepPhoto(photoId,payloads){
+  let last=null;
+  for(const pl of payloads){ try{ await patchRepPhoto(photoId,pl); return; }catch(e){ last=e; console.warn('Reintentando con menos campos',e); } }
+  throw last||new Error('sin respuesta');
+}
 async function syncRepetitionCompletion(repId){
   const rep=state.repeticiones.find(r=>String(r.id)===String(repId));
   const photos=state.repetitionPhotos.filter(f=>String(f.repeticionId)===String(repId));
@@ -6598,10 +6895,27 @@ async function refreshVeriPhotoUrls(){
   await Promise.all(paths.map(async p=>{try{await refreshVeriPhotoUrl(p);}catch(e){console.warn('No se pudo generar URL firmada para una foto de Veri:',e.message||e);}}));
   if(state.tab==='rep') render();
 }
+let __saveQ=Promise.resolve();
+function saveRepPhotoToDevice(file, repId){
+  // Copia local automática de cada foto (por defecto activada). Una web no puede escribir directo en Fotos:
+  // se descarga el archivo original y queda en Descargas / Archivos del teléfono.
+  try{
+    if(state.prefs.savePhotosToDevice===false || !file) return;
+    const row=(state.repeticiones||[]).find(r=>String(r.id)===String(repId));
+    const ext=((file.name||'').match(/\.([a-zA-Z0-9]{2,5})$/)||[])[1]||'jpg';
+    const base=String((row&&row.codigoProducto)||repId||'foto').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,40);
+    const name='Veri_'+base+'_'+Date.now()+'.'+ext;
+    __saveQ=__saveQ.then(()=>new Promise(res=>{
+      try{ const url=URL.createObjectURL(file), a=document.createElement('a'); a.href=url; a.download=name; a.style.display='none'; document.body.appendChild(a); a.click(); setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); },4000); }catch(e){ console.warn('No se pudo guardar la foto en el celular',e); }
+      setTimeout(res,700);
+    }));
+  }catch(e){ console.warn(e); }
+}
 async function uploadVeriPhoto(file, repId){
   if(!file) return null;
   if(!file.type || !file.type.startsWith('image/')) throw new Error('Selecciona un archivo de imagen.');
-  if(file.size>12*1024*1024) throw new Error('La foto debe pesar menos de 12 MB.');
+  saveRepPhotoToDevice(file, repId);
+  if(file.size>30*1024*1024) throw new Error('La foto debe pesar menos de 30 MB.');
   const path=`${normalize(state.session||'anon')}/${repId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
   // Se pasa el File original directamente a Storage; no hay canvas ni compresión intermedia.
   const {error}=await veriStorageClient().storage.from('veri-repetition-photos').upload(path,file,{upsert:false,contentType:file.type,cacheControl:'3600'});
@@ -6656,6 +6970,7 @@ function renderSettings(){
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('soundLabel')}</div><div class="settings-row-sub">Sonido de confirmación del escaneo</div></div><div class="settings-row-control"><div class="row" style="align-items:center;gap:8px;"><label class="switch"><input type="checkbox" id="soundSwitch" ${state.prefs.sound?'checked':''}><span class="slider"></span></label><button class="btn ghost sm" id="soundTestBtn">${t('soundTest')}</button></div></div></div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('soundStyleLabel')}</div><div class="settings-row-sub">Elige cómo quieres que suene Veri al reconocer un código</div></div><div class="settings-row-control"><div class="sound-style-picker" role="group" aria-label="${t('soundStyleLabel')}"><button type="button" data-sound-style="classic" class="${state.prefs.soundStyle==='classic'?'active':''}">${t('soundClassic')}</button><button type="button" data-sound-style="modern" class="${state.prefs.soundStyle==='modern'?'active':''}">${t('soundModern')}</button><button type="button" data-sound-style="neon" class="${state.prefs.soundStyle==='neon'?'active':''}">${t('soundNeon')}</button></div></div></div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('namingFormatCheckLabel')}</div><div class="settings-row-sub">${t('namingFormatCheckSub')}</div></div><div class="settings-row-control"><label class="switch"><input type="checkbox" id="namingFormatCheckSwitch" ${state.prefs.namingFormatCheck?'checked':''}><span class="slider"></span></label></div></div>
+      ${toolVisible('rep') ? `<div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('savePhotosLabel')}</div><div class="settings-row-sub">${t('savePhotosSub')}</div></div><div class="settings-row-control"><label class="switch"><input type="checkbox" id="savePhotosSwitch" ${state.prefs.savePhotosToDevice!==false?'checked':''}><span class="slider"></span></label></div></div>` : ''}
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('namingAgreementsCheckLabel')}</div><div class="settings-row-sub">${t('namingAgreementsCheckSub')}</div></div><div class="settings-row-control"><label class="switch"><input type="checkbox" id="namingAgreementsCheckSwitch" ${state.prefs.namingAgreementsCheck?'checked':''}><span class="slider"></span></label></div></div>
       ${toolVisible('carrito') ? `<div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('cartDefaultOnLabel')}</div><div class="settings-row-sub">${t('cartDefaultOnHint')}</div></div><div class="settings-row-control"><label class="switch"><input type="checkbox" id="cartDefaultOnSwitch" ${state.prefs.cartDefaultOn?'checked':''}><span class="slider"></span></label></div></div>` : ''}
     </div>
@@ -7122,7 +7437,9 @@ function renderCartList(){
   const filter = (state.cartFilterPersonas||[]).filter(c=>persons.some(p=>p.codigo===c));
   // El filtro solo afecta lo que se muestra: la verificación de duplicados (findCartDuplicate)
   // y el conteo del total siempre miran el carrito completo, no el filtrado.
-  const items = filter.length ? state.cart.filter(it=>filter.includes(it.codigo_persona)) : state.cart;
+  const byPerson = filter.length ? state.cart.filter(it=>filter.includes(it.codigo_persona)) : state.cart;
+  const q = String(state.cartSearch||'').trim();
+  const items = q ? byPerson.filter(it=>cartSearchMatch(it,q)) : byPerson;
   const rows = items.map(it=>{
     const hora = it.fecha ? new Date(it.fecha).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
     const delBtn = canDeleteCartItem(it) ? `<button type="button" class="btn ghost sm" data-cart-delete="${escapeHtml(String(it.id))}" aria-label="${t('cartDeleteItem')}" title="${t('cartDeleteItem')}">${ICONS.trash}</button>` : '';
@@ -7135,14 +7452,24 @@ function renderCartList(){
   </div>
   ${filter.length ? `<p class="small-note" style="margin:0 0 10px;"><b>${filter.length}</b> ${t('cartFilterSelected')} · <b>${items.length}</b> ${t('cartFilterProducts')}</p>` : ''}` : '';
   return `<div class="card glass" id="cartCard">
+    <div id="cartHead">
     <div class="row between" style="margin-bottom:8px;">
-      <div class="section-title" style="margin:0;">${t('cartTitle')} · ${items.length}${filter.length ? ` / ${state.cart.length}` : ''}</div>
+      <div class="section-title" style="margin:0;">${t('cartTitle')} · ${items.length}${(filter.length||q) ? ` / ${state.cart.length}` : ''}</div>
       ${canClear ? `<button class="btn ghost sm" id="cartClearBtn">${t('cartClear')}</button>` : ''}
     </div>
     ${cartKeyChipHTML()}
+    </div>
+    <div class="cart-search" id="cartSearchRow"><input type="search" id="cartSearchInput" placeholder="${escapeHtml(t('cartSearchPlaceholder'))}" value="${escapeHtml(state.cartSearch||'')}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" /></div>
+    <div id="cartDynamic">
     ${chips}
-    ${items.length ? rows : `<p class="small-note">${filter.length ? t('cartFilterEmpty') : t('cartEmpty')}</p>`}
+    ${items.length ? rows : `<p class="small-note">${q ? t('cartSearchNone') : filter.length ? t('cartFilterEmpty') : t('cartEmpty')}</p>`}
+    </div>
   </div>`;
+}
+function cartSearchMatch(it,q){
+  const toks = normalize(q).split(/\s+/).filter(Boolean); if(!toks.length) return true;
+  const hay = normalize((it.nombre_producto||'')+' '+(it.codigo_producto||'')+' '+(it.nombre_persona||'')+' '+(it.codigo_persona||''));
+  return toks.every(tk=>hay.includes(tk));   // dígitos sueltos (ej. los últimos 6) coinciden con el final/parte del código
 }
 function updateCartListDOM(){
   const wrap = document.getElementById('cartListWrap');
@@ -7151,7 +7478,14 @@ function updateCartListDOM(){
   if(badge) badge.innerHTML = `🛒 ${inCartNow ? state.cart.length : ''}`;
   if(!wrap) return;
   if(inCartNow){
-    wrap.innerHTML = renderCartList();
+    // El buscador no se vuelve a dibujar en cada actualización (cada 10 s o al escribir): así no pierde el foco ni cierra el teclado.
+    if(document.getElementById('cartSearchRow') && document.getElementById('cartCard')){
+      const tmp = document.createElement('div'); tmp.innerHTML = renderCartList();
+      document.getElementById('cartHead').innerHTML = tmp.querySelector('#cartHead').innerHTML;
+      document.getElementById('cartDynamic').innerHTML = tmp.querySelector('#cartDynamic').innerHTML;
+    } else { wrap.innerHTML = renderCartList(); }
+    const si = document.getElementById('cartSearchInput');
+    if(si && !si.dataset.bound){ si.dataset.bound='1'; si.oninput = ()=>{ state.cartSearch = si.value; updateCartListDOM(); }; }
     const clearBtn = document.getElementById('cartClearBtn');
     if(clearBtn) clearBtn.onclick = clearCartToday;
     wrap.querySelectorAll('[data-cart-person]').forEach(btn=>{ btn.onclick = ()=>{
@@ -7378,6 +7712,8 @@ function bindTabEvents(){
       if(!state.cartLoaded) loadCartToday(); else updateCartListDOM();
     }
     document.getElementById('camBtn').onclick = ()=>{ state.cameraStream ? stopCamera() : startCamera('cameraWrap','camBtn', onCodeScanned); };
+    // Al volver de Buscar (agregar o descartar), la cámara se enciende sola para el siguiente producto.
+    if(state.autoStartCamera){ state.autoStartCamera=false; setTimeout(()=>{ if(state.tab==='scan' && !state.cameraStream && document.getElementById('cameraWrap')) startCamera('cameraWrap','camBtn', onCodeScanned); },80); }
     document.getElementById('verifyBtn').onclick = ()=> runVerify();
     document.getElementById('scanInput').addEventListener('keydown', e=>{ if(e.key==='Enter') runVerify(); });
     const cartModeQuickBtn = document.getElementById('cartModeQuickBtn');
@@ -7395,10 +7731,11 @@ function bindTabEvents(){
     if(state.cartReview){
       const si=document.getElementById('searchInput'); if(si && !si.value) si.value=state.cartReview.similar ? state.cartReview.similar.codigo : state.cartReview.code;
       const addB=document.getElementById('cartReviewAddBtn');
-      if(addB) addB.onclick=()=>{ const rv=state.cartReview; state.cartReview=null; state.tab='scan'; render(); if(rv) addToCart(rv.code,null); };
+      if(addB) addB.onclick=()=>{ const rv=state.cartReview; state.cartReview=null; state.autoStartCamera=true; state.tab='scan'; render(); if(rv) addToCart(rv.code,null); };
       const disB=document.getElementById('cartReviewDiscardBtn');
-      if(disB) disB.onclick=()=>{ state.cartReview=null; state.tab='scan'; render(); };
+      if(disB) disB.onclick=()=>{ state.cartReview=null; state.autoStartCamera=true; state.tab='scan'; render(); };
     }
+    if(state.searchPrefill){ const si2=document.getElementById('searchInput'); if(si2) si2.value=state.searchPrefill; state.searchPrefill=''; }
     doSearch();
   }
   if(state.tab==='rep'){
@@ -7412,7 +7749,27 @@ function bindTabEvents(){
       document.querySelectorAll('[data-photo-preview]').forEach(el=>el.onclick=()=>openVeriPhotoPreview(decodeURIComponent(el.dataset.photoPreview||''),el.dataset.photoTitle||'Revisión de fotografía'));
       document.getElementById('repStatusFilter').onchange = (e)=>{ state.repFilterStatus = e.target.value; render(); };
       document.getElementById('repCodeFilter').onchange = (e)=>{ state.repFilterCode = e.target.value; render(); };
+      document.getElementById('repDateFilter').onchange = (e)=>{ state.repFilterDate = e.target.value; render(); };
+      document.getElementById('repStoreFilter').onchange = (e)=>{ state.repFilterStore = e.target.value; render(); };
+      const repFT=document.getElementById('repFiltersToggle'); if(repFT) repFT.onclick=()=>{ state.repFiltersOpen=!state.repFiltersOpen; repFT.classList.toggle('open',state.repFiltersOpen); repFT.setAttribute('aria-expanded',state.repFiltersOpen); const pn=document.getElementById('repFilterPanel'); if(pn) pn.classList.toggle('open',state.repFiltersOpen); };
+      const repClear=document.getElementById('repClearFilters'); if(repClear) repClear.onclick=()=>{ state.repFilterCode='';state.repFilterDate='';state.repFilterStore='';state.repSearch='';render(); };
+      const repSI=document.getElementById('repSearchInput');
+      if(repSI){ let tmr=null; repSI.oninput=()=>{ clearTimeout(tmr); tmr=setTimeout(()=>{ state.repSearch=repSI.value; render(); const n=document.getElementById('repSearchInput'); if(n){ n.focus(); const l=n.value.length; try{n.setSelectionRange(l,l);}catch(e){} } },300); }; }
+      const repScanBtn=document.getElementById('repScanBtn');
+      if(repScanBtn) repScanBtn.onclick=()=>{
+        if(state.cameraStream){ stopCamera(); return; }
+        repScanBtn.innerHTML=`${ICONS.x||'✕'} Cerrar cámara`;
+        startCamera('repScanWrap','repScanBtn',(code)=>{
+          const found=repFindPendingByCode(code);
+          stopCamera();
+          state.repSearch=String(code); state.repFilterStatus='all'; state.repFilterCode=''; state.repFilterDate=''; state.repFilterStore='';
+          render();
+          toast(found?`✓ Repetición: ${found.nombreProducto||found.codigoProducto}`:'Ese producto no tiene repetición registrada.');
+        });
+      };
       document.getElementById('sortBtn').onclick = ()=>{ state.repSort = state.repSort==='desc'?'asc':'desc'; render(); };
+      document.querySelectorAll('[data-rep-start]').forEach(b=> b.onclick = ()=> repStart(b.dataset.repStart));
+      document.querySelectorAll('[data-rep-release]').forEach(b=> b.onclick = ()=> repRelease(b.dataset.repRelease));
       document.querySelectorAll('[data-advance]').forEach(b=> b.onclick = async ()=>{
         const r = state.repeticiones.find(x=>x.id===b.dataset.advance);
         const next = r.estado==='pending' ? 'done' : r.estado==='done' ? 'sent' : 'pending';
@@ -7667,6 +8024,8 @@ function bindTabEvents(){
     if(feedbackMsg) feedbackMsg.oninput = (e)=>{ state.feedbackForm.mensaje = e.target.value; };
     const feedbackSendBtn = document.getElementById('feedbackSendBtn');
     if(feedbackSendBtn) feedbackSendBtn.onclick = sendFeedback;
+    const savePhotosSwitch = document.getElementById('savePhotosSwitch');
+    if(savePhotosSwitch) savePhotosSwitch.onchange = (e)=>{ state.prefs.savePhotosToDevice = e.target.checked; savePrefs(); };
     const liteSwitch = document.getElementById('liteModeSwitch');
     if(liteSwitch) liteSwitch.onchange = (e)=>{ state.prefs.liteMode = e.target.checked; savePrefs(); applyLiteMode(); };
     const vibSwitch = document.getElementById('vibrationSwitch');
@@ -7839,7 +8198,33 @@ function bindTabEvents(){
       const end=()=>{drag=null;};stage?.addEventListener('pointerup',end);stage?.addEventListener('pointercancel',end);
     });
     document.querySelectorAll('[data-review-approve]').forEach(b=>b.onclick=async()=>{const id=b.dataset.reviewApprove;const mode=b.dataset.reviewPhotoMode;const item=mode==='multi'?state.repetitionPhotos.find(x=>String(x.id)===String(id)):null;const r=item?state.repeticiones.find(x=>String(x.id)===String(item.repeticionId)):state.repeticiones.find(x=>String(x.id)===String(id));const path=item?.path||r?.fotoPath;const url=path?veriPhotoUrl(path):'';if(url) downloadApprovedPhoto(url,safePhotoFilename({...r,path}));try{const now=new Date().toISOString();if(item){await patchRepPhoto(item.id,{estado:'aprobada',estado_revision:'aprobada',motivo_devolucion:'',revisada_en:now,fecha_revision:now,revisada_por:normalize(state.session||''),revisado_por:normalize(state.session||''),aprobada_en:now,eliminar_despues_de:new Date(Date.now()+3*86400000).toISOString()});await syncRepetitionCompletion(item.repeticionId);}else{await patchPhotoReview(id,{revision_estado:'aprobada',revision_motivo:'',revision_por:normalize(state.session||''),revision_fecha:now});if(r)r.estado='sent';}await refreshRepPhotos();state.repReviewIndex=0;toast('Foto aprobada; descarga iniciada');render();}catch(e){console.error(e);toast('No se pudo aprobar la foto.');}});
-    document.querySelectorAll('[data-review-retake]').forEach(b=>b.onclick=async()=>{const motivo=prompt('¿Qué debe corregir el fotógrafo?');if(!motivo||!motivo.trim()){toast('El motivo es obligatorio.');return;}try{const mode=b.dataset.reviewPhotoMode;if(mode==='multi'){const item=state.repetitionPhotos.find(x=>String(x.id)===String(b.dataset.reviewRetake));if(!item)throw new Error('Foto no encontrada');const now=new Date().toISOString();await patchRepPhoto(item.id,{estado:'repetir',estado_revision:'repetir',motivo_devolucion:motivo.trim(),revisada_en:now,fecha_revision:now,revisada_por:normalize(state.session||''),revisado_por:normalize(state.session||'')});await syncRepetitionCompletion(item.repeticionId);}else{await patchPhotoReview(b.dataset.reviewRetake,{revision_estado:'repetir',revision_motivo:motivo.trim(),revision_por:normalize(state.session||''),revision_fecha:new Date().toISOString()});}await refreshRepPhotos();toast('Foto devuelta con motivo');render();}catch(e){console.error(e);toast('No se pudo devolver la foto.');}});
+    document.querySelectorAll('[data-review-retake]').forEach(b=>b.onclick=async()=>{
+      if(b.dataset.busy==='1') return;
+      const motivo=prompt('¿Qué debe corregir el fotógrafo?');
+      if(!motivo||!motivo.trim()){ toast('El motivo es obligatorio.'); return; }
+      b.dataset.busy='1';
+      try{
+        const m=motivo.trim(), now=new Date().toISOString(), who=normalize(state.session||'');
+        if(b.dataset.reviewPhotoMode==='multi'){
+          const item=state.repetitionPhotos.find(x=>String(x.id)===String(b.dataset.reviewRetake));
+          if(!item) throw new Error('Foto no encontrada');
+          // Si la tabla no tiene alguna de las columnas opcionales, se reintenta con menos campos.
+          await veriTryPatchRepPhoto(item.id,[
+            {estado:'repetir',estado_revision:'repetir',motivo_devolucion:m,revisada_en:now,fecha_revision:now,revisada_por:who,revisado_por:who},
+            {estado:'repetir',estado_revision:'repetir',motivo_devolucion:m},
+            {estado:'repetir',motivo_devolucion:m},
+            {estado_revision:'repetir',motivo_devolucion:m}
+          ]);
+          item.estado='repetir'; item.motivo=m;
+          try{ await syncRepetitionCompletion(item.repeticionId); }catch(_){}
+        } else {
+          await patchPhotoReview(b.dataset.reviewRetake,{revision_estado:'repetir',revision_motivo:m,revision_por:who,revision_fecha:now});
+        }
+        try{ await refreshRepPhotos(); }catch(e2){ console.warn(e2); }
+        toast('Foto devuelta con motivo'); render(); // la foto devuelta sale de la cola y aparece la siguiente
+      }catch(e){ console.error(e); toast('No se pudo devolver la foto'+(e&&e.message?': '+String(e.message).slice(0,100):'.')); }
+      finally{ delete b.dataset.busy; }
+    });
   }
   bindAdminGateIfPresent();
 }
@@ -7850,12 +8235,22 @@ async function doSearch(){
   if(!input || !wrap) return;
   const q = input.value;
   if(!q){ wrap.innerHTML=''; return; }
-  const {results, fuzzy} = searchProducts(q, state.scanBase);
-  if(!results.length){ wrap.innerHTML = `<div class="empty">${t('noResults')}</div>`; return; }
-  wrap.innerHTML = (fuzzy
+  const qKey = q+'|'+state.scanBase;
+  if(state.searchLastKey!==qKey){ state.searchLastKey=qKey; state.searchLimit=60; }
+  const {results, fuzzy, total} = searchProducts(q, state.scanBase, state.searchLimit||60);
+  let dym='';
+  if(!results.length || fuzzy){
+    const sg=vsSuggest(q, state.scanBase);
+    if(sg) dym=`<div class="dym">${t('didYouMean')} <button type="button" data-dym="${escapeHtml(sg.text)}">${escapeHtml(sg.text)}</button>? <span>(${sg.count.toLocaleString()})</span></div>`;
+  }
+  const bindDym=()=>{ wrap.querySelectorAll('[data-dym]').forEach(b=>b.onclick=()=>{ input.value=b.dataset.dym; doSearch(); }); const mb=document.getElementById('searchMoreBtn'); if(mb) mb.onclick=()=>{ state.searchLimit=(state.searchLimit||60)+100; doSearch(); }; };
+  if(!results.length){ wrap.innerHTML = dym+`<div class="empty">${t('noResults')}</div>`; bindDym(); return; }
+  wrap.innerHTML = dym + (fuzzy
     ? `<p class="small-note" style="margin:0 0 8px 2px;">${t('fuzzyNote')}</p>`
-    : `<p class="small-note" style="margin:0 0 8px 2px;">${results.length} ${t('searchResults')}</p>`)
-    + results.map(p=>`<div class="list-item"><div><div class="name">${p.nombre||'(sin nombre)'}</div></div><div class="code">${p.codigo}</div></div>`).join('');
+    : `<p class="small-note" style="margin:0 0 8px 2px;">${total.toLocaleString()} ${t('searchResults')}${total>results.length?` · ${t('searchShowing')} ${results.length}`:''}</p>`)
+    + results.map(p=>`<div class="list-item"><div><div class="name">${p.nombre||'(sin nombre)'}</div></div><div class="code">${p.codigo}</div></div>`).join('')
+    + (!fuzzy && total>results.length ? `<button type="button" class="btn secondary block" id="searchMoreBtn" style="margin-top:12px;">${t('searchShowMore')} (${Math.min(100,total-results.length)})</button>` : '');
+  bindDym();
 }
 async function saveRepetition(){
   const codigoProducto = normalize(document.getElementById('repCodProd').value);
@@ -7885,6 +8280,210 @@ async function saveRepetition(){
   }catch(err){ console.error(err); toast(t('errorImport')); }
 }
 
+/* ===================== Repeticiones: Iniciar → fotos → Enviar ===================== */
+/* Estados (ya existentes): pending = Pendiente · done = En progreso (alguien lo está fotografiando) · sent = Enviada, esperando revisión.
+   Quién lo tiene en proceso se guarda en repeticiones.en_proceso_por (ver veri_repeticiones_en_proceso.sql). */
+const REP_LOCK_STALE_MS = 3*60*60*1000;
+function repWorkerName(code){ const p=(state.personas||[]).find(x=>x.codigo===code); return p&&p.nombre ? `${code} — ${p.nombre}` : (code||''); }
+function repIsWorking(r){ return r.estado==='done'; }
+function repLockStale(r){ return !!r.enProcesoDesde && (Date.now()-new Date(r.enProcesoDesde).getTime())>REP_LOCK_STALE_MS; }
+function repStartButtonHTML(r){
+  const me=normalize(state.session||''); if(!me) return '';
+  if(r.estado==='pending') return `<button type="button" class="btn sm" data-rep-start="${r.id}">📷 Iniciar</button>`;
+  if(r.estado==='done'){
+    if(!r.enProcesoPor || r.enProcesoPor===me) return `<button type="button" class="btn sm" data-rep-start="${r.id}">📷 Continuar</button><button type="button" class="btn ghost sm" data-rep-release="${r.id}">Cancelar</button>`;
+    if(repLockStale(r)) return `<button type="button" class="btn sm" data-rep-start="${r.id}">📷 Tomar (lo tenía ${escapeHtml(repWorkerName(r.enProcesoPor))})</button>`;
+    return hasAdminAccess() ? `<button type="button" class="btn secondary sm" data-rep-release="${r.id}">Liberar</button>` : '';
+  }
+  return '';
+}
+// Si las columnas en_proceso_* aún no existen en Supabase, la app sigue funcionando (sin mostrar quién).
+async function repPatchSafe(id, full, basic){
+  const path=`repeticiones?id=eq.${encodeURIComponent(id)}`;
+  try{ await sb(path,{method:'PATCH',body:JSON.stringify(full),headers:{'Prefer':'return=minimal'},silent:true}); }
+  catch(e){ if(!/en_proceso/i.test(String(e&&e.message))) throw e; state.repNoLockCols=true; await sb(path,{method:'PATCH',body:JSON.stringify(basic),headers:{'Prefer':'return=minimal'}}); }
+}
+async function repClaim(r, me){
+  const now=new Date().toISOString();
+  const base=`repeticiones?id=eq.${encodeURIComponent(r.id)}&estado=eq.${r.estado}`;
+  const owner = r.estado==='done' ? (r.enProcesoPor ? `&en_proceso_por=eq.${encodeURIComponent(r.enProcesoPor)}` : '&en_proceso_por=is.null') : '';
+  const hdr={'Prefer':'return=representation'};
+  try{ return await sb(base+owner,{method:'PATCH',body:JSON.stringify({estado:'done',en_proceso_por:me,en_proceso_desde:now}),headers:hdr,silent:true}); }
+  catch(e){ if(!/en_proceso/i.test(String(e&&e.message))) throw e; state.repNoLockCols=true; return await sb(base,{method:'PATCH',body:JSON.stringify({estado:'done'}),headers:hdr}); }
+}
+async function repStart(id){
+  const r=state.repeticiones.find(x=>String(x.id)===String(id)); const me=normalize(state.session||''); if(!r||!me) return;
+  if(r.estado==='done' && r.enProcesoPor===me){ openRepCapture(r); return; }
+  if(r.estado==='done' && r.enProcesoPor && !repLockStale(r)){ toast('Ya lo está fotografiando '+repWorkerName(r.enProcesoPor)); return; }
+  try{
+    const rows=await repClaim(r, me);
+    if(!rows||!rows.length){ toast('Otra persona acaba de tomar este producto.'); await pollRepeticiones(true); return; }
+    r.estado='done'; r.enProcesoPor=me; r.enProcesoDesde=new Date().toISOString();
+    render(); openRepCapture(r);
+  }catch(e){ console.error(e); toast('No se pudo iniciar. Revisa tu conexión e inténtalo de nuevo.'); }
+}
+async function repRelease(id, silent){
+  const r=state.repeticiones.find(x=>String(x.id)===String(id)); if(!r) return;
+  if(!silent && !confirm('¿Liberar este producto y dejarlo otra vez en pendientes?')) return;
+  try{
+    await repPatchSafe(id,{estado:'pending',en_proceso_por:null,en_proceso_desde:null},{estado:'pending'});
+    r.estado='pending'; r.enProcesoPor=''; r.enProcesoDesde=null; render();
+  }catch(e){ console.error(e); toast('No se pudo liberar el producto.'); }
+}
+
+/* ---- Ventana temporal de captura ---- */
+function repCapRow(){ const c=state.repCapture; return c ? state.repeticiones.find(x=>String(x.id)===String(c.id)) : null; }
+function openRepCapture(r){
+  closeRepCapture(false);
+  state.repCapture={id:r.id, files:[], busy:false, stream:null};
+  const m=document.createElement('div'); m.id='repCaptureModal'; m.className='veri-photo-modal rep-cap';
+  m.innerHTML=`<div class="veri-photo-modal-head"><div class="veri-photo-modal-title">Fotografiar repetición</div><button type="button" id="repCapClose">✕ Cancelar</button></div>
+  <div class="rep-cap-body">
+    <div class="rep-cap-info"><h3>${escapeHtml(r.nombreProducto||'Producto sin nombre')}</h3>
+      <div><span>Código</span> <b>${escapeHtml(r.codigoProducto||'—')}</b></div>
+      <div><span>Código de barras</span> <b>${escapeHtml(r.codigoBarras||'—')}</b></div>
+      ${r.fotografo?`<div><span>Fotógrafo original</span> <b>${escapeHtml(r.fotografo)}</b></div>`:''}</div>
+    <div class="rep-cap-motivo"><strong>Qué hay que repetir</strong><br>${escapeHtml(r.motivo||'No se indicó un motivo.')}</div>
+    <div class="rep-cap-actions">
+      <button type="button" class="rep-cap-btn primary" id="repCapTake">📷 Tomar foto</button>
+      <label class="rep-cap-btn" for="repCapPick">🖼️ Adjuntar foto</label>
+      <input id="repCapCam" type="file" accept="image/*" capture="environment" style="display:none">
+      <input id="repCapPick" type="file" accept="image/*" multiple style="display:none">
+    </div>
+    <p class="veri-photo-modal-note">Toma todas las fotos seguidas, revísalas y quita con ✕ las que no te gusten. Cuando estés seguro, toca Enviar.</p>
+    <div id="repCapThumbs" class="rep-cap-thumbs"></div>
+  </div>
+  <div class="rep-cap-foot"><span id="repCapCount"></span><button type="button" id="repCapSend" class="rep-cap-btn primary" disabled>Enviar</button></div>`;
+  document.body.appendChild(m);
+  m.querySelector('#repCapClose').onclick=()=>{ const c=state.repCapture; if(c&&c.files.length && !confirm('Se descartarán las fotos de esta ventana y el producto volverá a pendientes. ¿Continuar?')) return; closeRepCapture(true); };
+  const cam=m.querySelector('#repCapCam'), pick=m.querySelector('#repCapPick');
+  cam.onchange=()=>{ repCapAddFiles(Array.from(cam.files||[])); cam.value=''; };
+  pick.onchange=()=>{ repCapAddFiles(Array.from(pick.files||[])); pick.value=''; };
+  m.querySelector('#repCapTake').onclick=()=>{ if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia) repCapLiveStart(); else cam.click(); };
+  m.querySelector('#repCapSend').onclick=repCapSubmit;
+  repCapRenderThumbs();
+}
+function repCapAddFiles(files){
+  const c=state.repCapture; if(!c||c.busy) return;
+  files.forEach(f=>{
+    if(!f) return;
+    if(f.type && !f.type.startsWith('image/')){ toast('Solo se pueden adjuntar imágenes.'); return; }
+    c.files.push({file:f, url:URL.createObjectURL(f), path:null, saved:false});
+  });
+  repCapRenderThumbs();
+}
+function repCapRenderThumbs(){
+  const c=state.repCapture, box=document.getElementById('repCapThumbs'); if(!c||!box) return;
+  box.innerHTML=c.files.map((f,i)=>`<div class="rep-cap-thumb"><button type="button" class="rep-cap-img" data-cap-view="${i}" aria-label="Ver foto ${i+1}"><img src="${f.url}" alt="Foto ${i+1}"></button>${c.busy?'':`<button type="button" class="rep-cap-del" data-cap-del="${i}" aria-label="Quitar foto ${i+1}">✕</button>`}</div>`).join('') || '<p class="small-note" style="opacity:.7;text-align:center;margin:14px 0">Aún no hay fotos.</p>';
+  box.querySelectorAll('[data-cap-view]').forEach(b=>b.onclick=()=>{ const f=c.files[Number(b.dataset.capView)]; if(!f) return; openVeriPhotoPreview(f.url,'Foto '+(Number(b.dataset.capView)+1)); const v=document.getElementById('veriPhotoModal'); if(v) v.style.zIndex=100002; });
+  box.querySelectorAll('[data-cap-del]').forEach(b=>b.onclick=()=>{ const i=Number(b.dataset.capDel); const f=c.files[i]; if(!f) return; try{URL.revokeObjectURL(f.url);}catch(e){} c.files.splice(i,1); repCapRenderThumbs(); });
+  const n=c.files.length, cnt=document.getElementById('repCapCount'), send=document.getElementById('repCapSend');
+  if(cnt) cnt.textContent = n ? `${n} foto${n===1?'':'s'}` : 'Sin fotos';
+  if(send){ send.disabled = !n || c.busy; send.textContent = c.busy ? 'Enviando…' : 'Enviar'; }
+}
+async function repCapSubmit(){
+  const c=state.repCapture, r=repCapRow(); if(!c||!r||c.busy||!c.files.length) return;
+  c.busy=true; repCapLiveStop(); repCapRenderThumbs();
+  try{
+    let first=null;
+    for(const it of c.files){            // cada archivo se sube una sola vez, aunque haya que reintentar el envío
+      if(!it.path){ it.path=await uploadVeriPhoto(it.file, r.id); }
+      if(!it.saved){ await insertRepPhoto(r.id, it.path, it.file.name); it.saved=true; }
+      if(!first) first=it.path;
+    }
+    const now=new Date().toISOString();
+    await repPatchSafe(r.id,
+      {estado:'sent', archivado:false, foto_path:first, foto_subida_en:now, revision_estado:'pendiente', revision_motivo:'', en_proceso_por:null, en_proceso_desde:null},
+      {estado:'sent', archivado:false, foto_path:first, foto_subida_en:now, revision_estado:'pendiente', revision_motivo:''});
+    Object.assign(r,{estado:'sent',archivado:false,fotoPath:first,fotoSubidaEn:now,revisionEstado:'pendiente',revisionMotivo:'',enProcesoPor:'',enProcesoDesde:null});
+    const n=c.files.length;
+    await refreshRepPhotos();
+    await closeRepCapture(false);
+    toast(`✓ ${n} foto${n===1?'':'s'} enviada${n===1?'':'s'} · quedó en revisión`);
+    render();
+  }catch(e){
+    console.error(e); c.busy=false; repCapRenderThumbs();
+    toast('No se pudo enviar. Tus fotos siguen aquí: toca Enviar para reintentar.');
+  }
+}
+async function closeRepCapture(release){
+  const c=state.repCapture; repCapLiveStop();
+  const m=document.getElementById('repCaptureModal'); if(m) m.remove();
+  if(c){ c.files.forEach(f=>{ try{URL.revokeObjectURL(f.url);}catch(e){} }); state.repCapture=null; if(release) await repRelease(c.id,true); }
+}
+
+/* ---- Cámara continua dentro de la app (sin zoom propio: el celular ya cambia de lente) ---- */
+function repCapLiveStop(){
+  const c=state.repCapture; if(c&&c.stream){ try{ c.stream.getTracks().forEach(t=>t.stop()); }catch(e){} c.stream=null; }
+  const b=document.getElementById('repCapLive'); if(b) b.remove();
+  if(c) repCapRenderThumbs();
+}
+async function repCapLiveStart(){
+  const m=document.getElementById('repCaptureModal'), c=state.repCapture; if(!m||!c||c.busy) return;
+  repCapLiveStop();
+  let stream;
+  try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:4096},height:{ideal:3072}},audio:false}); }
+  catch(e){ toast('No se pudo abrir la cámara. Revisa el permiso del navegador.'); const cam=document.getElementById('repCapCam'); if(cam) cam.click(); return; }
+  c.stream=stream;
+  const track=stream.getVideoTracks()[0];
+  const box=document.createElement('div'); box.id='repCapLive'; box.className='rep-cap-live';
+  box.innerHTML=`<div class="veri-photo-modal-head"><div class="veri-photo-modal-title">Tomar fotos</div><button type="button" id="repCapLiveClose">✓ Listo</button></div>
+    <div class="rep-cap-live-stage" style="position:relative"><video id="repCapVideo" autoplay playsinline muted></video><div class="rep-cap-flash" id="repCapFlash"></div></div>
+    <div id="repCapLiveThumbs" class="rep-cap-live-thumbs"></div>
+    <div class="rep-cap-live-bar"><span id="repCapLiveN" class="veri-photo-modal-note"></span><button type="button" id="repCapShoot" class="rep-cap-shutter" aria-label="Tomar foto"></button></div>`;
+  m.appendChild(box);
+  const video=box.querySelector('#repCapVideo');
+  video.srcObject=stream;
+  const paint=()=>{
+    const tb=box.querySelector('#repCapLiveThumbs'); if(!tb) return;
+    tb.innerHTML=c.files.map((f,i)=>`<div class="rep-cap-thumb"><img src="${f.url}" alt="Foto ${i+1}"><button type="button" class="rep-cap-del" data-live-del="${i}" aria-label="Quitar foto ${i+1}">✕</button></div>`).join('');
+    tb.querySelectorAll('[data-live-del]').forEach(b=>b.onclick=()=>{ const i=Number(b.dataset.liveDel), f=c.files[i]; if(!f) return; try{URL.revokeObjectURL(f.url);}catch(e){} c.files.splice(i,1); paint(); });
+    tb.scrollLeft=tb.scrollWidth;
+    const n=box.querySelector('#repCapLiveN'); if(n) n.textContent=c.files.length?`${c.files.length} foto${c.files.length===1?'':'s'}`:'';
+  };
+  paint();
+  box.querySelector('#repCapLiveClose').onclick=repCapLiveStop;
+  let shooting=false;
+  box.querySelector('#repCapShoot').onclick=async()=>{
+    if(shooting) return; shooting=true;
+    try{
+      let blob=null;
+      if(window.ImageCapture){ try{ blob=await new ImageCapture(track).takePhoto(); }catch(e){ blob=null; } }
+      if(!blob){
+        const vw=video.videoWidth, vh=video.videoHeight; if(!vw||!vh){ toast('La cámara aún no está lista.'); return; }
+        const cv=document.createElement('canvas'); cv.width=vw; cv.height=vh;
+        cv.getContext('2d').drawImage(video,0,0,vw,vh);
+        blob=await new Promise(res=>cv.toBlob(res,'image/jpeg',0.95));
+      }
+      if(!blob){ toast('No se pudo capturar la foto.'); return; }
+      const fl=box.querySelector('#repCapFlash'); if(fl){ fl.style.opacity='.8'; setTimeout(()=>fl.style.opacity='0',90); }
+      c.files.push({file:new File([blob],`veri_${Date.now()}.jpg`,{type:blob.type||'image/jpeg'}), url:null, path:null, saved:false});
+      const it=c.files[c.files.length-1]; it.url=URL.createObjectURL(it.file);
+      paint();
+    } finally { shooting=false; }
+  };
+}
+
+/* ---- Actualización en vivo (cada 10 s, igual que el carrito) ---- */
+let __repPolling=false;
+function repSig(list){ return (list||[]).map(r=>[r.id,r.estado,r.archivado?1:0,r.enProcesoPor||'',r.revisionEstado||'',r.fotoPath||''].join('~')).join('|'); }
+async function pollRepeticiones(force){
+  if(__repPolling) return; __repPolling=true;
+  try{
+    const raw=await sb('repeticiones?select=*&order=fecha.desc',{silent:true});
+    const mapped=(raw||[]).map(mapRepRow);
+    if(force || repSig(mapped)!==repSig(state.repeticiones)){
+      state.repeticiones=mapped;
+      await refreshRepPhotos();
+      if(state.tab==='rep' && state.repView==='list') render();
+      refreshVeriPhotoUrls();
+    }
+  }catch(e){ /* sin red: se reintenta en el siguiente ciclo */ }
+  finally{ __repPolling=false; }
+}
+setInterval(()=>{ if(document.hidden || !state.session) return; if(state.tab==='rep' && state.repView==='list') pollRepeticiones(); }, 10000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden && state.session && state.tab==='rep' && state.repView==='list') pollRepeticiones(); });
+
 /* Visor de revisión de fotografías: zoom, giro, ajuste y arrastre */
 function openVeriPhotoPreview(url, title){
   let modal=document.getElementById('veriPhotoModal');
@@ -7894,7 +8493,7 @@ function openVeriPhotoPreview(url, title){
     document.body.appendChild(modal);
     const img=modal.querySelector('#veriPhotoLarge'), stage=modal.querySelector('#veriPhotoStage');
     let scale=1, rotation=0, x=0, y=0, dragging=false, startX=0, startY=0, originX=0, originY=0;
-    const update=()=>{img.style.transform=`translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;modal.querySelector('#veriPhotoZoomLabel').textContent=`${Math.round(scale*100)}%`;};
+    let ax=0,ay=0;const update=()=>{const c=veriClampPan(img,stage,scale,rotation,x,y,ax,ay);x=c[0];y=c[1];ax=x;ay=y;img.style.transform=`translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;modal.querySelector('#veriPhotoZoomLabel').textContent=`${Math.round(scale*100)}%`;};
     const reset=(fit=true)=>{scale=fit?1:1;rotation=0;x=0;y=0;update();};
     const zoom=(delta)=>{scale=Math.max(0.5,Math.min(6,scale+delta));update();};
     modal.querySelector('#veriPhotoZoomIn').onclick=()=>zoom(.25);
