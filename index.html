@@ -4742,6 +4742,14 @@ async function deleteExpiredNamingRemote(){
   try{ await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=lt.${encodeURIComponent(cutoff)}`,{method:'DELETE'}); }
   catch(e){ console.error('No se pudo limpiar el archivo vencido:',e); }
 }
+/* Si un ítem quedó marcado como duplicado pero sin el producto con el que coincide (por ejemplo porque venía de un servidor sin esas columnas),
+   se vuelve a buscar en la base 2026 para mostrarlo. */
+function healNamingDup(it){
+  if(!it || !it.duplicado || it.duplicadoCodigo || it._dupHealed) return;
+  if(!state.index || !state.index['2026']) return;
+  it._dupHealed=true;
+  try{ const d=findNameDuplicate2026(it.nombre, it.codigo); if(d){ it.duplicadoCodigo=d.codigo||null; it.duplicadoNombre=d.nombre||null; if(!it.duplicadoTipo) it.duplicadoTipo=d.__dupReason||null; } }catch(e){}
+}
 function remoteRowToNamingItem(x){
   return {id:'remote_'+x.id,codigo:x.codigo,nombre:x.nombre,duplicado:!!x.duplicado,duplicadoCodigo:x.duplicado_codigo||null,duplicadoNombre:x.duplicado_nombre||null,duplicadoTipo:x.duplicado_tipo||null,sessionDup:!!x.duplicado_sesion,sessionDupCode:x.duplicado_sesion_con||null,createdAt:Number(x.creado_en)||Date.now(),syncStatus:'synced'};
 }
@@ -4753,9 +4761,21 @@ async function syncNamingRemoteRows(remoteRows){
     let idx=localItems.findIndex((it,i)=>!used.has(i)&&it.id===('remote_'+row.id));
     if(idx<0&&rc) idx=localItems.findIndex((it,i)=>!used.has(i)&&Number(it.createdAt)===rc&&it.codigo===row.codigo);
     if(idx<0) idx=localItems.findIndex((it,i)=>!used.has(i)&&!it.createdAt&&it.codigo===row.codigo&&it.nombre===row.nombre);
-    if(idx>=0){ Object.assign(localItems[idx],remoteRowToNamingItem(row)); used.add(idx); }
+    if(idx>=0){
+      const loc=localItems[idx], rem=remoteRowToNamingItem(row);
+      // Si en el servidor faltan los datos del duplicado (columnas opcionales ausentes), no se pisa lo que ya sabe este dispositivo.
+      if(loc.veriChecked && !loc.duplicado){ rem.duplicado=false; rem.duplicadoCodigo=null; rem.duplicadoNombre=null; rem.duplicadoTipo=null; }
+      else if(rem.duplicado && loc.duplicado){
+        if(!rem.duplicadoCodigo) rem.duplicadoCodigo=loc.duplicadoCodigo||null;
+        if(!rem.duplicadoNombre) rem.duplicadoNombre=loc.duplicadoNombre||null;
+        if(!rem.duplicadoTipo) rem.duplicadoTipo=loc.duplicadoTipo||null;
+      }
+      if(rem.sessionDup && loc.sessionDup && !rem.sessionDupCode) rem.sessionDupCode=loc.sessionDupCode||null;
+      Object.assign(loc,rem); used.add(idx);
+    }
     else localItems.push(remoteRowToNamingItem(row));
   });
+  localItems.forEach(healNamingDup);
   state.naming.items=localItems; saveNaming();
   let allOk=true;
   for(const item of state.naming.items){
@@ -6644,11 +6664,12 @@ function renderNamingArchivedPanel(){
   `;
 }
 function renderNamingItem(it, order){
+  healNamingDup(it);
   const editMode = state.namingEditMode;
   const selected = state.namingSelected.includes(it.id);
   return `<div class="drag-item naming-item${editMode?' edit-mode':''}" data-dragid="${it.id}">
     ${editMode ? `<div class="naming-select${selected?' selected':''}" data-selectnaming="${it.id}" role="checkbox" aria-checked="${selected}">${selected?NAMING_CHECK_ICON:''}</div>` : `<div class="naming-order">${order}</div>`}
-    <div class="naming-item-info"${editMode?` data-selectnaming="${it.id}"`:''}><div class="name">${it.nombre}</div><div class="code">${it.codigo}${it.duplicado ? ` · <span class="naming-dup-badge severity-${dupSeverity(it.duplicadoTipo)}">${dupSeverity(it.duplicadoTipo)==='alta'?'🔴':'⚠️'} ${t('namingDupWith')} ${it.duplicadoCodigo}</span>`:''}${it.sessionDup ? ` · 🔁 ${t('namingSessionDupBadge')} ${it.sessionDupCode||''}`:''}</div>${it.veriChecking ? `<div class="small-note" style="margin-top:2px;">${t('namingVeriChecking')}</div>` : (it.veriChecked && it.veriReason ? `<div class="small-note" style="margin-top:2px;font-style:italic;">"${escapeHtml(it.veriReason)}"</div>` : '')}</div>
+    <div class="naming-item-info"${editMode?` data-selectnaming="${it.id}"`:''}><div class="name">${it.nombre}</div><div class="code">${it.codigo}${it.duplicado ? ` · <span class="naming-dup-badge severity-${dupSeverity(it.duplicadoTipo)}">${dupSeverity(it.duplicadoTipo)==='alta'?'🔴':'⚠️'} ${t('namingDupWith')} ${it.duplicadoCodigo||''}</span>`:''}${it.sessionDup ? ` · 🔁 ${t('namingSessionDupBadge')} ${it.sessionDupCode||''}`:''}</div>${it.veriChecking ? `<div class="small-note" style="margin-top:2px;">${t('namingVeriChecking')}</div>` : (it.veriChecked && it.veriReason ? `<div class="small-note" style="margin-top:2px;font-style:italic;">"${escapeHtml(it.veriReason)}"</div>` : '')}</div>
     ${editMode ? `<div class="drag-handle" data-drag-handle title="${t('reorderHint')}">⠿</div>` : `<div class="naming-actions">
       ${it.duplicado ? `<button type="button" class="btn ghost sm naming-action-btn naming-preview-btn" data-previewnaming="${it.id}" aria-label="${t('namingPreview')}" title="${t('namingPreview')}">${ICONS.eye}<span>${t('namingPreview')}</span></button>` : ''}
       <button type="button" class="btn ghost sm naming-action-btn" data-editnaming="${it.id}" aria-label="${t('edit')}" title="${t('edit')}">${ICONS.edit}<span>${t('edit')}</span></button>
@@ -6661,6 +6682,7 @@ function closeNamingPreview(){ const el=document.getElementById('namingPreviewOv
 function openNamingPreview(itemId){
   const it = findNamingItemById(itemId);
   if(!it || !it.duplicado) return;
+  healNamingDup(it);
   // Se usa el nombre guardado en el momento de la detección (it.duplicadoNombre), igual que hace
   // Calidad. Buscar de nuevo por código puede traer un producto distinto si el código quedó
   // repetido en la base entre varios nombres, así que solo se recurre a esa búsqueda como respaldo
@@ -6682,7 +6704,7 @@ function openNamingPreview(itemId){
     <div class="preview-reason severity-${severity}">${severity==='alta'?'🔴':'⚠️'} ${reasonText}</div>
     <div class="preview-block">
       <div class="label">${t('namingPreviewMatch')}</div>
-      <div class="name">${dupNombre || it.duplicadoCodigo}</div>
+      <div class="name">${dupNombre || it.duplicadoCodigo || '—'}</div>
       <div class="code">${it.duplicadoCodigo||''}</div>
     </div>
     <button type="button" class="btn secondary block" id="namingPreviewCloseBtn2">${t('namingEditDone')}</button>
