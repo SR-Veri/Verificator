@@ -2371,7 +2371,8 @@ const I18N = {
     reminderTitle:"Archivo de hoy sin descargar", reminderBody3h:"Llevas 3 horas nombrando productos y aún no descargas el archivo de hoy.", reminderBody1h:"Falta 1 hora para que se cree el archivo de mañana y aún no has descargado el de hoy.",
     naming2026Found:"Ya existe en la base 2026 como", naming2026Suggestion:"Sugerencia de nombre (base 2026)", namingUseThis:"Usar este nombre",
     namingListTitle:"Nombrados hoy", namingEmptyList:"Aún no has nombrado productos hoy.",
-    archivedTabLabel:"Archivados", archivedTitle:"Días archivados", archivedEmpty:"Todavía no hay días archivados. Cuando cierres un día de nombrados, aparecerá aquí al día siguiente.",
+    archivedTabLabel:"Archivados", archivedTitle:"Días archivados", archivedEmpty:"Todavía no hay nombrados archivados. Toca «Archivar día» cuando termines una tanda y quedará guardada aquí.",
+    namingArchiveBtn:"📦 Archivar día", namingArchiveTitle:"¿Archivar este día?", namingArchiveBody:"Los {n} productos nombrados se guardan en Archivados y la lista queda vacía para empezar otra tanda.", namingArchiveOk:"Archivar", namingArchiveDone:"Día archivado ✓ Ya puedes empezar otra tanda.", namingArchiveFail:"No se pudo archivar. Revisa tu conexión e inténtalo de nuevo; no se perdió nada.", cancelBack:"Volver",
     archivedDayEmpty:"Ese día no tiene productos guardados.", archivedCount:"productos", archivedDownload:"Descargar Excel de este día",
     archivedExpiryNote:"Los días archivados se guardan 7 días y luego se eliminan automáticamente para no saturar la base de datos.",
     archivedLoading:"Cargando archivados…", namingSyncPending:"Pendiente de sincronizar con Supabase", namingSyncError:"No se pudo sincronizar este nombrado. Quedó guardado localmente y se reintentará automáticamente.", namingSyncOk:"Nombrado guardado en Supabase.",
@@ -2580,7 +2581,8 @@ const I18N = {
     reminderTitle:"Today's file not downloaded", reminderBody3h:"You've been naming products for 3 hours and still haven't downloaded today's file.", reminderBody1h:"1 hour left until tomorrow's file is created and you still haven't downloaded today's.",
     naming2026Found:"Already exists in the 2026 base as", naming2026Suggestion:"Name suggestion (2026 base)", namingUseThis:"Use this name",
     namingListTitle:"Named today", namingEmptyList:"You haven't named any products today yet.",
-    archivedTabLabel:"Archived", archivedTitle:"Archived days", archivedEmpty:"No archived days yet. When a naming day closes, it'll show up here the next day.",
+    archivedTabLabel:"Archived", archivedTitle:"Archived days", archivedEmpty:"Nothing archived yet. Tap “Archive day” when you finish a batch and it will be saved here.",
+    namingArchiveBtn:"📦 Archive day", namingArchiveTitle:"Archive this day?", namingArchiveBody:"The {n} named products are saved in Archived and the list is emptied so you can start a new batch.", namingArchiveOk:"Archive", namingArchiveDone:"Day archived ✓ You can start a new batch.", namingArchiveFail:"Couldn't archive. Check your connection and try again; nothing was lost.", cancelBack:"Back",
     archivedDayEmpty:"That day has no saved products.", archivedCount:"products", archivedDownload:"Download this day's Excel",
     archivedExpiryNote:"Archived days are kept for 7 days and then removed automatically to keep the database lean.",
     archivedLoading:"Loading archived days…",
@@ -4281,6 +4283,57 @@ async function handleNamingFastFiles(fileList){
   state.namingFast.processing = null;
   render();
 }
+/* ---- Ventana de confirmación genérica (devuelve true si la persona acepta) ---- */
+function veriConfirm({title, body, okText, extraText, onExtra, backText}){
+  return new Promise(resolve=>{
+    const old=document.getElementById('veriConfirmOverlay'); if(old) old.remove();
+    const o=document.createElement('div'); o.id='veriConfirmOverlay'; o.setAttribute('role','dialog'); o.setAttribute('aria-modal','true');
+    o.style.cssText='position:fixed;inset:0;z-index:100020;background:rgba(5,8,14,.6);display:flex;align-items:center;justify-content:center;padding:20px;';
+    o.innerHTML=`<div style="width:100%;max-width:360px;background:var(--bg-1,#fff);color:var(--text-1,#111);border:1px solid var(--glass-border,rgba(0,0,0,.1));border-radius:22px;padding:22px 20px 16px;box-shadow:0 24px 60px rgba(0,0,0,.35);text-align:center;">
+      <div style="font-size:18px;font-weight:700;margin-bottom:8px;">${escapeHtml(title)}</div>
+      <div style="font-size:14.5px;line-height:1.45;opacity:.85;margin-bottom:16px;">${escapeHtml(body)}</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button type="button" class="btn block" data-vc="ok">${escapeHtml(okText||'OK')}</button>
+        ${extraText?`<button type="button" class="btn secondary block" data-vc="extra">${escapeHtml(extraText)}</button>`:''}
+        <button type="button" class="btn ghost block" data-vc="back">${escapeHtml(backText||t('cancelBack'))}</button>
+      </div></div>`;
+    const done=v=>{ document.removeEventListener('keydown',onKey); o.remove(); resolve(v); };
+    const onKey=e=>{ if(e.key==='Escape') done(false); };
+    document.addEventListener('keydown',onKey);
+    o.addEventListener('click',e=>{ if(e.target===o) done(false); });
+    o.querySelector('[data-vc="ok"]').onclick=()=>done(true);
+    o.querySelector('[data-vc="back"]').onclick=()=>done(false);
+    const ex=o.querySelector('[data-vc="extra"]'); if(ex) ex.onclick=()=>{ try{ onExtra&&onExtra(); }catch(e){ console.warn(e); } };
+    document.body.appendChild(o);
+  });
+}
+/* ---- Archivar el día del Nombrador: la tanda pasa a Archivados y la lista queda vacía ---- */
+// Cada tanda archivada se guarda con la fecha + hora (ej. 2026-10-29_143212) para que varias tandas del mismo día no se mezclen.
+function namingBatchKey(){ const d=new Date(), p=n=>String(n).padStart(2,'0'); return `${todayKey()}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; }
+function namingDateLabel(k){ const m=String(k).match(/^(\d{4}-\d{2}-\d{2})_(\d{2})(\d{2})/); return m ? `${m[1]} · ${m[2]}:${m[3]}` : String(k); }
+let __namingArchiving=false;
+async function archiveNamingDay(){
+  if(__namingArchiving) return;
+  if(!state.naming || !state.naming.items.length){ toast(t('namingEmpty')); return; }
+  const ok=await veriConfirm({title:t('namingArchiveTitle'), body:t('namingArchiveBody').replace('{n}',state.naming.items.length), okText:t('namingArchiveOk')});
+  if(!ok) return;
+  __namingArchiving=true;
+  try{
+    const key=namingBatchKey(), user=normalize(state.session||'');
+    // 1) lo que aún no se había subido (sin internet) se sube primero con la fecha de hoy
+    for(const it of state.naming.items){
+      if(String(it.id||'').startsWith('remote_')) continue;
+      const row=await persistNamingRemote(it); it.id='remote_'+row.id; it.syncStatus='synced';
+    }
+    // 2) todo lo de hoy pasa a ser una tanda archivada
+    await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(user)}&fecha=eq.${encodeURIComponent(todayKey())}`,{method:'PATCH',body:JSON.stringify({fecha:key}),headers:{'Prefer':'return=minimal'}});
+    // 3) lista de hoy vacía para empezar otra
+    state.naming.items=[]; state.namingSelected=[]; state.namingEditMode=false; saveNaming();
+    state.archived={loaded:false,loading:false,byDate:{},dates:[],selectedDate:key};
+    toast(t('namingArchiveDone'));
+  }catch(e){ console.error(e); toast(t('namingArchiveFail')); }
+  finally{ __namingArchiving=false; render(); }
+}
 async function downloadNamingExcel(){
   try{ await ensureXLSX(); }catch(e){ toast(t('errorImport')); return; }
   if(!state.naming || !state.naming.items.length){ toast(t('namingEmpty')); return; }
@@ -4680,7 +4733,7 @@ async function fetchNamingRemote(){
 async function fetchArchivedNaming(){
   if(!state.session) return [];
   const cutoff=daysAgoKey(7);
-  try{ return await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=gte.${encodeURIComponent(cutoff)}&fecha=lt.${encodeURIComponent(todayKey())}&order=fecha.desc,creado_en.asc`); }
+  try{ return await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=gte.${encodeURIComponent(cutoff)}&fecha=neq.${encodeURIComponent(todayKey())}&order=fecha.desc,creado_en.asc`); }
   catch(e){ return null; }
 }
 async function deleteExpiredNamingRemote(){
@@ -6546,11 +6599,11 @@ function renderNamingFastItem(e, order){
 }
 function renderNamingTodayPanel(items, selectedCount, allSelected){
   return `
-      <div class="row between" style="margin-bottom:10px;">
+      <div class="row between" style="margin-bottom:10px;flex-wrap:wrap;gap:8px;">
         <div class="section-title" style="margin:0;">${t('namingListTitle')} (${items.length})${(()=>{const n=items.filter(i=>!String(i.id).startsWith('remote_')).length;return n?` <span class="small-note" style="color:#b45309;font-weight:600;">· ${n} ${t('namingPendingSync')}</span>`:'';})()}</div>
-        ${items.length?`<div class="row" style="gap:6px;">
+        ${items.length?`<div class="row" style="gap:6px;flex-wrap:wrap;">
           <button class="btn secondary sm" id="namingEditOrderBtn">${state.namingEditMode ? t('namingEditDone') : t('namingEditOrder')}</button>
-          ${!state.namingEditMode ? `<button class="btn secondary sm" id="namingDownloadBtn">${t('namingDownload')}</button>` : ''}
+          ${!state.namingEditMode ? `<button class="btn secondary sm" id="namingDownloadBtn">${t('namingDownload')}</button><button class="btn sm" id="namingArchiveBtn">${t('namingArchiveBtn')}</button>` : ''}
         </div>`:''}
       </div>
       ${state.namingEditMode && items.length ? `<div class="naming-bulkbar">
@@ -6578,10 +6631,10 @@ function renderNamingArchivedPanel(){
   const items = a.byDate[selected] || [];
   return `
       <div class="pill-toggle" style="flex-wrap:wrap;margin-bottom:10px;">
-        ${a.dates.map(d=>`<button data-archiveddate="${d}" class="${d===selected?'active':''}">${d}</button>`).join('')}
+        ${a.dates.map(d=>`<button data-archiveddate="${d}" class="${d===selected?'active':''}">${namingDateLabel(d)}</button>`).join('')}
       </div>
       <div class="row between" style="margin-bottom:10px;">
-        <div class="section-title" style="margin:0;">${selected} (${items.length} ${t('archivedCount')})</div>
+        <div class="section-title" style="margin:0;">${namingDateLabel(selected)} (${items.length} ${t('archivedCount')})</div>
         ${items.length ? `<button class="btn secondary sm" id="archivedDownloadBtn" data-archiveddownload="${selected}">${t('archivedDownload')}</button>` : ''}
       </div>
       ${items.length ? items.map(r=>`<div class="drag-item naming-item">
@@ -7936,6 +7989,8 @@ function bindTabEvents(){
       bindNamingDrag();
       const dlBtn = document.getElementById('namingDownloadBtn');
       if(dlBtn) dlBtn.onclick = downloadNamingExcel;
+      const arBtn = document.getElementById('namingArchiveBtn');
+      if(arBtn) arBtn.onclick = archiveNamingDay;
       const editOrderBtn = document.getElementById('namingEditOrderBtn');
       if(editOrderBtn) editOrderBtn.onclick = ()=>{
         state.namingEditMode = !state.namingEditMode;
@@ -8407,6 +8462,9 @@ async function repCapDownload(){
 }
 async function repCapSubmit(){
   const c=state.repCapture, r=repCapRow(); if(!c||!r||c.busy||!c.files.length) return;
+  // Recordatorio: guardar las fotos en el celular antes de enviarlas
+  const go=await veriConfirm({title:'Recuerda guardar las fotos', body:'Antes de enviar, guarda las fotos en tu celular por si algo falla.', okText:'OK, enviar', extraText:'⬇️ Guardar fotos', onExtra:repCapDownload});
+  if(!go || state.repCapture!==c) return;
   c.busy=true; repCapLiveStop(); repCapRenderThumbs();
   try{
     let first=null;
