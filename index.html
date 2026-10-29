@@ -8359,7 +8359,7 @@ function openRepCapture(r){
   const cam=m.querySelector('#repCapCam'), pick=m.querySelector('#repCapPick');
   cam.onchange=()=>{ repCapAddFiles(Array.from(cam.files||[])); cam.value=''; };
   pick.onchange=()=>{ repCapAddFiles(Array.from(pick.files||[])); pick.value=''; };
-  m.querySelector('#repCapTake').onclick=()=>{ if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia) repCapLiveStart(); else cam.click(); };
+  m.querySelector('#repCapTake').onclick=()=>{ cam.click(); }; /* abre la cámara nativa del celular (input capture) */
   m.querySelector('#repCapSend').onclick=repCapSubmit;
   repCapRenderThumbs();
 }
