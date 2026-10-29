@@ -6911,10 +6911,10 @@ function saveRepPhotoToDevice(file, repId){
     }));
   }catch(e){ console.warn(e); }
 }
-async function uploadVeriPhoto(file, repId){
+async function uploadVeriPhoto(file, repId, opts){
   if(!file) return null;
   if(!file.type || !file.type.startsWith('image/')) throw new Error('Selecciona un archivo de imagen.');
-  saveRepPhotoToDevice(file, repId);
+  if(!(opts&&opts.noSave)) saveRepPhotoToDevice(file, repId);
   if(file.size>30*1024*1024) throw new Error('La foto debe pesar menos de 30 MB.');
   const path=`${normalize(state.session||'anon')}/${repId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
   // Se pasa el File original directamente a Storage; no hay canvas ni compresión intermedia.
@@ -8347,6 +8347,7 @@ function openRepCapture(r){
     <div class="rep-cap-actions">
       <button type="button" class="rep-cap-btn primary" id="repCapTake">📷 Tomar foto</button>
       <label class="rep-cap-btn" for="repCapPick">🖼️ Adjuntar foto</label>
+      <button type="button" class="rep-cap-btn" id="repCapDownload">⬇️ Descargar fotos</button>
       <input id="repCapCam" type="file" accept="image/*" capture="environment" style="display:none">
       <input id="repCapPick" type="file" accept="image/*" multiple style="display:none">
     </div>
@@ -8361,6 +8362,7 @@ function openRepCapture(r){
   pick.onchange=()=>{ repCapAddFiles(Array.from(pick.files||[])); pick.value=''; };
   m.querySelector('#repCapTake').onclick=()=>{ cam.click(); }; /* abre la cámara nativa del celular (input capture) */
   m.querySelector('#repCapSend').onclick=repCapSubmit;
+  m.querySelector('#repCapDownload').onclick=repCapDownload;
   repCapRenderThumbs();
 }
 function repCapAddFiles(files){
@@ -8381,13 +8383,26 @@ function repCapRenderThumbs(){
   if(cnt) cnt.textContent = n ? `${n} foto${n===1?'':'s'}` : 'Sin fotos';
   if(send){ send.disabled = !n || c.busy; send.textContent = c.busy ? 'Enviando…' : 'Enviar'; }
 }
+async function repCapDownload(){
+  const c=state.repCapture; if(!c) return;
+  if(!c.files.length){ toast('Primero toma una foto.'); return; }
+  const r=repCapRow();
+  const base=String((r&&r.codigoProducto)||c.id||'foto').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,40);
+  const files=c.files.map((it,i)=>{ const ext=((it.file.name||'').match(/\.([a-zA-Z0-9]{2,5})$/)||[])[1]||'jpg'; return new File([it.file],'Veri_'+base+'_'+(i+1)+'.'+ext,{type:it.file.type||'image/jpeg'}); });
+  try{ if(navigator.canShare && navigator.canShare({files})){ await navigator.share({files}); return; } }
+  catch(e){ if(e&&e.name==='AbortError') return; }
+  for(const f of files){
+    try{ const url=URL.createObjectURL(f), a=document.createElement('a'); a.href=url; a.download=f.name; a.style.display='none'; document.body.appendChild(a); a.click(); setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); },4000); }catch(e){ console.warn(e); }
+    await new Promise(res=>setTimeout(res,700));
+  }
+}
 async function repCapSubmit(){
   const c=state.repCapture, r=repCapRow(); if(!c||!r||c.busy||!c.files.length) return;
   c.busy=true; repCapLiveStop(); repCapRenderThumbs();
   try{
     let first=null;
     for(const it of c.files){            // cada archivo se sube una sola vez, aunque haya que reintentar el envío
-      if(!it.path){ it.path=await uploadVeriPhoto(it.file, r.id); }
+      if(!it.path){ it.path=await uploadVeriPhoto(it.file, r.id, {noSave:true}); }
       if(!it.saved){ await insertRepPhoto(r.id, it.path, it.file.name); it.saved=true; }
       if(!first) first=it.path;
     }
