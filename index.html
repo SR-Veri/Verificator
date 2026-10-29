@@ -8418,51 +8418,6 @@ function repCapLiveStop(){
   const b=document.getElementById('repCapLive'); if(b) b.remove();
   if(c) repCapRenderThumbs();
 }
-async function repCapLiveStart(){
-  const m=document.getElementById('repCaptureModal'), c=state.repCapture; if(!m||!c||c.busy) return;
-  repCapLiveStop();
-  let stream;
-  try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:4096},height:{ideal:3072}},audio:false}); }
-  catch(e){ toast('No se pudo abrir la cámara. Revisa el permiso del navegador.'); const cam=document.getElementById('repCapCam'); if(cam) cam.click(); return; }
-  c.stream=stream;
-  const track=stream.getVideoTracks()[0];
-  const box=document.createElement('div'); box.id='repCapLive'; box.className='rep-cap-live';
-  box.innerHTML=`<div class="veri-photo-modal-head"><div class="veri-photo-modal-title">Tomar fotos</div><button type="button" id="repCapLiveClose">✓ Listo</button></div>
-    <div class="rep-cap-live-stage" style="position:relative"><video id="repCapVideo" autoplay playsinline muted></video><div class="rep-cap-flash" id="repCapFlash"></div></div>
-    <div id="repCapLiveThumbs" class="rep-cap-live-thumbs"></div>
-    <div class="rep-cap-live-bar"><span id="repCapLiveN" class="veri-photo-modal-note"></span><button type="button" id="repCapShoot" class="rep-cap-shutter" aria-label="Tomar foto"></button></div>`;
-  m.appendChild(box);
-  const video=box.querySelector('#repCapVideo');
-  video.srcObject=stream;
-  const paint=()=>{
-    const tb=box.querySelector('#repCapLiveThumbs'); if(!tb) return;
-    tb.innerHTML=c.files.map((f,i)=>`<div class="rep-cap-thumb"><img src="${f.url}" alt="Foto ${i+1}"><button type="button" class="rep-cap-del" data-live-del="${i}" aria-label="Quitar foto ${i+1}">✕</button></div>`).join('');
-    tb.querySelectorAll('[data-live-del]').forEach(b=>b.onclick=()=>{ const i=Number(b.dataset.liveDel), f=c.files[i]; if(!f) return; try{URL.revokeObjectURL(f.url);}catch(e){} c.files.splice(i,1); paint(); });
-    tb.scrollLeft=tb.scrollWidth;
-    const n=box.querySelector('#repCapLiveN'); if(n) n.textContent=c.files.length?`${c.files.length} foto${c.files.length===1?'':'s'}`:'';
-  };
-  paint();
-  box.querySelector('#repCapLiveClose').onclick=repCapLiveStop;
-  let shooting=false;
-  box.querySelector('#repCapShoot').onclick=async()=>{
-    if(shooting) return; shooting=true;
-    try{
-      let blob=null;
-      if(window.ImageCapture){ try{ blob=await new ImageCapture(track).takePhoto(); }catch(e){ blob=null; } }
-      if(!blob){
-        const vw=video.videoWidth, vh=video.videoHeight; if(!vw||!vh){ toast('La cámara aún no está lista.'); return; }
-        const cv=document.createElement('canvas'); cv.width=vw; cv.height=vh;
-        cv.getContext('2d').drawImage(video,0,0,vw,vh);
-        blob=await new Promise(res=>cv.toBlob(res,'image/jpeg',0.95));
-      }
-      if(!blob){ toast('No se pudo capturar la foto.'); return; }
-      const fl=box.querySelector('#repCapFlash'); if(fl){ fl.style.opacity='.8'; setTimeout(()=>fl.style.opacity='0',90); }
-      c.files.push({file:new File([blob],`veri_${Date.now()}.jpg`,{type:blob.type||'image/jpeg'}), url:null, path:null, saved:false});
-      const it=c.files[c.files.length-1]; it.url=URL.createObjectURL(it.file);
-      paint();
-    } finally { shooting=false; }
-  };
-}
 
 /* ---- Actualización en vivo (cada 10 s, igual que el carrito) ---- */
 let __repPolling=false;
