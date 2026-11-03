@@ -6046,13 +6046,15 @@ function renderRoot(){
   updateVeriFab(true);
   render();
 }
-async function completeLogin(codigo){
+async function completeLogin(codigo, photoUrl=null){
   state.session = codigo; localStorage.setItem('vp_session', codigo);
   const savedForUser = localStorage.getItem('vp_prefs_'+normalize(codigo));
   if(savedForUser){ try{ state.prefs = {...state.prefs, ...JSON.parse(savedForUser)}; }catch(e){} }
   state.loginError=''; state.loginStep='code'; state.loginCandidate=null; state.termsChecked=false; state.termsAccepted=false;
   state.booted=false; renderRoot();
   await loadCoreData();
+  const loggedPerson=state.personas.find(p=>p.codigo===normalize(codigo));
+if(loggedPerson) loggedPerson.profile_photo_url=photoUrl;
   await loadRemotePrefs(codigo);
   state.termsAccepted=await checkTermsAccepted(codigo); state.termsChecked=true;
   // Al iniciar sesión (sin recargar) se carga también la lista de nombrados del día desde el servidor.
