@@ -7218,7 +7218,23 @@ function renderSettings(){
   const persona=state.personas.find(p=>p.codigo===normalize(state.session||'')); const name=persona?.nombre||state.session||''; const avatarInner=personAvatarInner(persona, state.session, 52);
   return `<div class="settings-shell"><div class="settings-header"><h2>${t('tabSettings')}</h2><p>${t('settingsSub')}</p></div>
     <div class="profile-card glass"><button type="button" class="profile-avatar avatar-editable" id="avatarEditBtn" aria-label="${t('chooseAvatar')}">${avatarInner||'?'}<span class="avatar-edit-badge">✎</span></button><div style="min-width:0;flex:1;"><div class="profile-name">${name||'—'}</div><div class="profile-code">${state.session||'—'} · ${t('personCode')}</div><div class="account-role-chip ${isAdmin()?'role-admin':isCoAdmin()?'role-coadmin':'role-user'}"><span class="account-role-dot"></span>${isAdmin()?(state.prefs.lang==='en'?'Administrator':'Administrador'):isCoAdmin()?(state.prefs.lang==='en'?'Co-administrator':'Coadministrador'):(state.prefs.lang==='en'?'User':'Usuario')}</div><div class="inline-edit"><input id="usernameEdit" type="text" value="${String(name).replace(/"/g,'&quot;')}" placeholder="${t('usernameLabel')}" /><button class="btn sm" id="saveUsernameBtn">${t('saveName')}</button></div><div class="small-note" style="margin-top:6px;">${t('usernameHint')}</div></div></div>
-    <div class="settings-row" style="justify-content:center;margin:12px 0;">   <button type="button" class="btn secondary sm" id="profilePhotoBtn">     📷 Cambiar foto de perfil   </button>   <input     type="file"     id="profilePhotoInput"     accept="image/jpeg,image/png,image/webp"     hidden   > </div> ${avatarPickerHTML()}<div class="settings-group glass"><div class="settings-group-title">${t('settingsGeneral')}</div>
+    <div class="settings-row" style="justify-content:center;margin:12px 0;">
+  <label
+    class="btn secondary sm"
+    id="profilePhotoBtn"
+    for="profilePhotoInput"
+    style="cursor:pointer;"
+  >
+    📷 Cambiar foto de perfil
+  </label>
+
+  <input
+    type="file"
+    id="profilePhotoInput"
+    accept="image/jpeg,image/png,image/webp"
+    hidden
+  >
+</div> ${avatarPickerHTML()}<div class="settings-group glass"><div class="settings-group-title">${t('settingsGeneral')}</div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('language')}</div></div><div class="settings-row-control"><div class="pill-toggle"><button data-lang="es" class="${state.prefs.lang==='es'?'active':''}">ES</button><button data-lang="en" class="${state.prefs.lang==='en'?'active':''}">EN</button></div></div></div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('theme')}</div></div><div class="settings-row-control"><div class="pill-toggle"><button data-theme-btn="light" class="${state.prefs.theme==='light'?'active':''}">${t('light')}</button><button data-theme-btn="dark" class="${state.prefs.theme==='dark'?'active':''}">${t('dark')}</button></div></div></div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('liteModeLabel')}</div><div class="settings-row-sub">${t('liteModeSub')}</div></div><div class="settings-row-control"><label class="switch"><input type="checkbox" id="liteModeSwitch" ${state.prefs.liteMode?'checked':''}><span class="slider"></span></label></div></div>
