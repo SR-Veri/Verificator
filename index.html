@@ -5448,6 +5448,13 @@ function parseAvatarConfig(person){
 }
 function personAvatarInner(person, fallback, size){
   size=size||40;
+
+  if(person && person.profile_photo_url){
+    return `<img src="${escapeHtml(person.profile_photo_url)}"
+      alt="Foto de perfil"
+      style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;">`;
+  }
+
   const cfg=parseAvatarConfig(person);
   if(cfg) return memojiSVG(cfg, size);
   if(person && person.avatar_emoji) return person.avatar_emoji;
