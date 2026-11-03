@@ -2420,6 +2420,7 @@ const I18N = {
     sortNewest:"Más reciente", sortOldest:"Más antiguo",
     settingsGeneral:"General", language:"Idioma", theme:"Apariencia", light:"Claro", dark:"Oscuro", colorPaletteHint:"Elige un color organizado por estilo",
     defaultBase:"Base por defecto al escanear", accentColor:"Color de acento",
+    notifGroupTitle:"Notificaciones", notifSoundLabel:"Sonido de notificaciones", notifSoundSub:"Suena una campanita suave cuando llega una notificación o se actualiza una base", notifVibrationLabel:"Vibración de notificaciones", notifVibrationSub:"Vibra el celular cuando llega una notificación",
     vibrationLabel:"Vibración al escanear", soundLabel:"Sonido al escanear", soundStyleLabel:"Estilo de sonido", soundClassic:"Clásico", soundModern:"Moderno", soundNeon:"Neón", on:"Activada", off:"Desactivada",
     namingFormatCheckLabel:"Aviso de formato al nombrar", namingFormatCheckSub:"Indica qué secciones faltan (marca, peso, empaque, etc.) mientras escribes el nombre",
     namingAgreementsCheckLabel:"Aviso de acuerdos de nombrado", namingAgreementsCheckSub:"Revisa el nombre contra los acuerdos de nombrado (peso, multipack, sabores, huevos, quesos, panes, leches, etc.) mientras escribes",
@@ -2629,6 +2630,7 @@ const I18N = {
     sortNewest:"Newest", sortOldest:"Oldest",
     settingsGeneral:"General", language:"Language", theme:"Appearance", light:"Light", dark:"Dark", colorPaletteHint:"Choose a color organized by style",
     defaultBase:"Default base when scanning", accentColor:"Accent color",
+    notifGroupTitle:"Notifications", notifSoundLabel:"Notification sound", notifSoundSub:"A soft chime plays when a notification arrives or a database is updated", notifVibrationLabel:"Notification vibration", notifVibrationSub:"The phone vibrates when a notification arrives",
     vibrationLabel:"Vibration on scan", soundLabel:"Sound on scan", soundStyleLabel:"Sound style", soundClassic:"Classic", soundModern:"Modern", soundNeon:"Neon", on:"On", off:"Off",
     namingFormatCheckLabel:"Naming format hint", namingFormatCheckSub:"Shows which sections are missing (brand, weight, packaging, etc.) while you type the name",
     namingAgreementsCheckLabel:"Naming agreements hint", namingAgreementsCheckSub:"Checks the name against the naming agreements (weight, multipack, flavors, eggs, cheeses, breads, milks, etc.) while you type",
@@ -2886,6 +2888,8 @@ function toolVisible(id){
 if(state.session){ const u=localStorage.getItem('vp_prefs_'+normalize(state.session)); if(u){ try{ state.prefs={...state.prefs,...JSON.parse(u)}; }catch(e){} } }
 state.scanBase = state.prefs.defaultBase;
 if(state.prefs.vibration===undefined) state.prefs.vibration = true;
+if(state.prefs.notifSound===undefined) state.prefs.notifSound = true;
+if(state.prefs.notifVibration===undefined) state.prefs.notifVibration = true;
 if(state.prefs.sound===undefined) state.prefs.sound = true;
 if(state.prefs.soundStyle===undefined) state.prefs.soundStyle = 'modern';
 if(state.prefs.namingFormatCheck===undefined) state.prefs.namingFormatCheck = true;
@@ -4891,6 +4895,43 @@ async function loadCoreData(){
   await refreshRepPhotos();
   refreshVeriPhotoUrls();
   try{ initNotifications(); }catch(e){ console.error('Notificaciones:',e); }
+  try{ startBasePolling(); }catch(e){ console.error('Bases:',e); }
+}
+/* Sondeo de bases: igual que el carrito y las notificaciones, cada ~15 s se revisa si alguien actualizó una base.
+   Si cambió, se descarga de nuevo, se reconstruye el índice y se avisa, para no escanear con una base vieja. */
+const BASE_POLL_INTERVAL_MS = 15000;
+let basePollTimer=null, basePolling=false;
+function baseTsMs(v){ const n=Date.parse(v||''); return Number.isFinite(n)?n:0; }
+async function pollBases(){
+  if(basePolling || !state.session || !state.booted) return;
+  basePolling=true;
+  try{
+    const rows=await sb('config?select=base_2025_updated_at,base_2026_updated_at&id=eq.1',{silent:true});
+    const cfg=rows&&rows[0]; if(!cfg) return;
+    for(const y of ['2025','2026']){
+      const remote=cfg['base_'+y+'_updated_at'], prev=state.baseUpdated[y];
+      if(!remote || baseTsMs(remote)<=baseTsMs(prev)) continue;
+      const wasLoaded=!!(state.bases[y]&&state.bases[y].length);
+      state.baseUpdated[y]=remote;
+      if(wasLoaded || y===state.scanBase){
+        try{ const products=await fetchProductos(y); state.bases[y]=products||[]; buildIndex(y); }
+        catch(e){ state.baseUpdated[y]=prev; console.warn('No se pudo refrescar la base',y,e); continue; }
+      }
+      if(prev){   // si antes no había fecha, es la primera lectura y no se avisa
+        const n=(state.bases[y]||[]).length;
+        notifArrive([{id:'base-'+y+'-'+remote, titulo:(state.prefs.lang==='en'?`Database ${y} updated`:`Base ${y} actualizada`), mensaje:(n?(state.prefs.lang==='en'?`${n.toLocaleString()} products. You're now scanning with the latest version.`:`${n.toLocaleString()} productos. Ya estás escaneando con la versión más reciente.`):''), tipo:'novedad'}]);
+      }
+      const typing=document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) && document.activeElement.value;
+      if(!state.cameraStream && !typing && (state.tab==='settings'||state.tab==='home')) render();
+    }
+  }catch(e){ /* sin red: se reintenta en el siguiente ciclo */ }
+  finally{ basePolling=false; }
+}
+function startBasePolling(){
+  if(basePollTimer) return;
+  basePollTimer=setInterval(pollBases,BASE_POLL_INTERVAL_MS);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pollBases(); });
+  window.addEventListener('online',pollBases); window.addEventListener('focus',pollBases);
 }
 async function ensureBaseLoaded(year){
   if(state.bases[year] && state.bases[year].length) return;
@@ -5604,10 +5645,10 @@ async function loadNotifSettings(){
     state.notif.coAdminCanSend = !!(rows && rows[0] && rows[0].coadmin_can_notify);
   }catch(e){ state.notif.coAdminCanSend = false; }
 }
-function notifChime(){
+function notifChime(force){
   // Campanita de cristal: dos notas suaves con armónicos y caída larga.
   try{
-    if(!state.prefs.sound) return;
+    if(!force && state.prefs.notifSound===false) return;
     const ctx=ensureAudio(); if(!ctx) return;
     const go=()=>{
       const t0=ctx.currentTime+0.02;
@@ -5624,6 +5665,7 @@ function notifArrive(newOnes){
   try{
     if(!newOnes||!newOnes.length) return;
     notifChime();
+    if(state.prefs.notifVibration!==false && 'vibrate' in navigator){ try{ navigator.vibrate([35,60,35]); }catch(e){} }
     const bell=document.getElementById('topbarBellBtn');
     if(bell&&bell.animate&&!veriReduceMotion()){
       bell.animate([{transform:'rotate(0)'},{transform:'rotate(16deg)'},{transform:'rotate(-14deg)'},{transform:'rotate(9deg)'},{transform:'rotate(-6deg)'},{transform:'rotate(0)'}],{duration:800,easing:'ease-in-out'});
@@ -7125,6 +7167,10 @@ function renderSettings(){
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('defaultBase')}</div></div><div class="settings-row-control"><div class="pill-toggle"><button data-defbase="2025" class="${state.prefs.defaultBase==='2025'?'active':''}">2025</button><button data-defbase="2026" class="${state.prefs.defaultBase==='2026'?'active':''}">2026</button></div></div></div>
       <div class="settings-row color-palette-row"><div class="settings-row-main"><div class="settings-row-title">${t('accentColor')}</div><div class="settings-row-sub">${t('colorPaletteHint')}</div></div><div class="settings-row-control color-palettes">${Object.values(COLOR_PALETTES).map(p=>`<div class="palette-group"><div class="palette-label">${p.label}</div><div class="palette-swatches">${p.colors.map(([c,label])=>`<button type="button" class="palette-swatch ${state.prefs.accent===c?'sel':''}" style="--swatch:${c}" data-accent="${c}" title="${label}" aria-label="${label}"></button>`).join('')}</div></div>`).join('')}</div></div>
     </div>
+    <div class="settings-group glass"><div class="settings-group-title">${t('notifGroupTitle')}</div>
+      <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('notifSoundLabel')}</div><div class="settings-row-sub">${t('notifSoundSub')}</div></div><div class="settings-row-control"><label class="switch"><input type="checkbox" id="notifSoundSwitch" ${state.prefs.notifSound!==false?'checked':''}><span class="slider"></span></label></div></div>
+      ${'vibrate' in navigator?`<div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('notifVibrationLabel')}</div><div class="settings-row-sub">${t('notifVibrationSub')}</div></div><div class="settings-row-control"><label class="switch"><input type="checkbox" id="notifVibrationSwitch" ${state.prefs.notifVibration!==false?'checked':''}><span class="slider"></span></label></div></div>`:''}
+    </div>
     <div class="settings-group glass"><div class="settings-group-title">Escaneo</div>
       ${'vibrate' in navigator?`<div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('vibrationLabel')}</div><div class="settings-row-sub">Respuesta háptica al reconocer un código</div></div><div class="settings-row-control"><label class="switch"><input type="checkbox" id="vibrationSwitch" ${state.prefs.vibration?'checked':''}><span class="slider"></span></label></div></div>`:''}
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('soundLabel')}</div><div class="settings-row-sub">Sonido de confirmación del escaneo</div></div><div class="settings-row-control"><div class="row" style="align-items:center;gap:8px;"><label class="switch"><input type="checkbox" id="soundSwitch" ${state.prefs.sound?'checked':''}><span class="slider"></span></label><button class="btn ghost sm" id="soundTestBtn">${t('soundTest')}</button></div></div></div>
@@ -7150,14 +7196,6 @@ function renderSettings(){
     </div>` : ''}
     <div class="settings-group glass"><div class="settings-group-title">${t('settingsData')}</div>
       ${['2025','2026'].map(y=>`<div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">Base ${y}</div><div class="settings-row-sub">${state.bases[y].length.toLocaleString()} ${t('productsLoaded')} · ${formatUpdated(state.baseUpdated[y])}</div></div><div class="base-status"><span class="base-status-dot"></span>OK</div></div>`).join('')}
-    </div>
-    <div class="settings-group glass"><div class="settings-group-title">${t('feedbackGroupTitle')}</div>
-      <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:10px;">
-        <p class="small-note" style="margin:0;">${t('feedbackSub')}</p>
-        <div class="feedback-type-toggle"><div class="pill-toggle"><button data-feedbacktype="bug" class="${state.feedbackForm.tipo==='bug'?'active':''}">${t('feedbackTypeBug')}</button><button data-feedbacktype="idea" class="${state.feedbackForm.tipo==='idea'?'active':''}">${t('feedbackTypeIdea')}</button></div></div>
-        <textarea id="feedbackMsg" rows="3" placeholder="${t('feedbackPlaceholder')}">${state.feedbackForm.mensaje||''}</textarea>
-        <button class="btn block" id="feedbackSendBtn">${t('feedbackSend')}</button>
-      </div>
     </div>
     <div class="settings-group glass"><div class="settings-group-title">Cuenta</div><div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('sessionAs')}</div><div class="settings-row-sub">${state.session||'—'} · código permanente</div></div><button class="btn secondary sm" id="logoutBtn">${ICONS.logout} ${t('logout')}</button></div></div>
     ${renderSettingsAdmin()}</div>`;
@@ -7242,7 +7280,6 @@ function renderSettingsAdminUnlocked(){
     <p class="small-note" style="margin:-6px 4px 0;">${t('adminSectionCollapseHint')}</p>
     ${adminSection('stats', t('adminStatsTitle'), null, renderAdminStatsCard(), true)}
     ${adminSection('notifications', 'Notificaciones', 'Envía novedades, notas y avisos a los usuarios', renderAdminNotifCard(), false)}
-    ${adminSection('feedback', t('adminFeedbackTitle'), t('adminFeedbackSub'), renderAdminFeedbackCard(), false)}
     ${adminSection('errors', t('adminErrorsTitle'), t('adminErrorsSub'), renderAdminErrorsCard(), false)}
     ${adminSection('people', t('adminPeopleTitle'), null, renderAdminPeopleCard(), false)}
     ${adminSection('bases', t('adminBasesTitle'), null, renderAdminBasesCard(), false)}
@@ -8192,6 +8229,10 @@ function bindTabEvents(){
     if(savePhotosSwitch) savePhotosSwitch.onchange = (e)=>{ state.prefs.savePhotosToDevice = e.target.checked; savePrefs(); };
     const liteSwitch = document.getElementById('liteModeSwitch');
     if(liteSwitch) liteSwitch.onchange = (e)=>{ state.prefs.liteMode = e.target.checked; savePrefs(); veriLiteToggle(!!e.target.checked, e.target.closest('.switch')||e.target); };
+    const nSoundSw = document.getElementById('notifSoundSwitch');
+    if(nSoundSw) nSoundSw.onchange = (e)=>{ state.prefs.notifSound = e.target.checked; savePrefs(); if(e.target.checked){ unlockAudio(); notifChime(true); } };
+    const nVibSw = document.getElementById('notifVibrationSwitch');
+    if(nVibSw) nVibSw.onchange = (e)=>{ state.prefs.notifVibration = e.target.checked; savePrefs(); if(e.target.checked){ try{ navigator.vibrate([30,50,30]); }catch(err){} } };
     const vibSwitch = document.getElementById('vibrationSwitch');
     if(vibSwitch) vibSwitch.onchange = (e)=>{ state.prefs.vibration = e.target.checked; savePrefs(); };
     const soundSwitch = document.getElementById('soundSwitch');
