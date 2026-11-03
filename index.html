@@ -8273,6 +8273,75 @@ function bindTabEvents(){
       state.avatarPickerOpen=!state.avatarPickerOpen; render();
     };
     wireAvatarPicker();
+    const profilePhotoBtn=document.getElementById('profilePhotoBtn');
+const profilePhotoInput=document.getElementById('profilePhotoInput');
+
+if(profilePhotoBtn && profilePhotoInput){
+  profilePhotoBtn.onclick=()=>profilePhotoInput.click();
+
+  profilePhotoInput.onchange=async()=>{
+    const file=profilePhotoInput.files?.[0];
+    if(!file)return;
+
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type)){
+      toast('Usa una imagen JPG, PNG o WebP.');
+      profilePhotoInput.value='';
+      return;
+    }
+
+    if(file.size>2097152){
+      toast('La foto no puede superar los 2 MB.');
+      profilePhotoInput.value='';
+      return;
+    }
+
+    const pin=prompt('Confirma tu PIN para cambiar la foto:');
+    if(pin===null || !pin.trim()){
+      profilePhotoInput.value='';
+      return;
+    }
+
+    profilePhotoBtn.disabled=true;
+    profilePhotoBtn.textContent='Subiendo foto…';
+
+    try{
+      const photoBase64=await new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(String(reader.result).split(',')[1]);
+        reader.onerror=()=>reject(new Error('No se pudo leer la imagen.'));
+        reader.readAsDataURL(file);
+      });
+
+      await veriPasskeyCall('upload-profile-photo',{
+        codigo:normalize(state.session||''),
+        pin,
+        mimeType:file.type,
+        photoBase64
+      });
+
+      const profile=await veriPasskeyCall('get-profile-photo',{
+        codigo:normalize(state.session||''),
+        pin
+      });
+
+      const me=state.personas.find(
+        p=>p.codigo===normalize(state.session||'')
+      );
+
+      if(me)me.profile_photo_url=profile.photoUrl;
+
+      toast('¡Foto de perfil actualizada!');
+      render();
+    }catch(err){
+      console.error('Error al subir foto:',err);
+      toast(err.message||'No se pudo actualizar la foto.');
+    }finally{
+      profilePhotoInput.value='';
+      profilePhotoBtn.disabled=false;
+      profilePhotoBtn.textContent='📷 Cambiar foto de perfil';
+    }
+  };
+}
     document.querySelectorAll('[data-admin-edit-name]').forEach(b=>b.onclick=async()=>{const code=b.dataset.adminEditName;const person=state.personas.find(p=>p.codigo===code);const name=prompt(t('usernameLabel'),person?.nombre||'');if(name===null)return;try{await sb(`personas?codigo=eq.${encodeURIComponent(code)}`,{method:'PATCH',body:JSON.stringify({nombre:name.trim()}),headers:{'Prefer':'return=minimal'}});if(person)person.nombre=name.trim();toast(t('nameSaved'));render();}catch(e){toast(t('errorImport'));}});
     document.querySelectorAll('[data-lang]').forEach(b=> b.onclick=()=>{ state.prefs.lang=b.dataset.lang; savePrefs(); render(); });
     document.querySelectorAll('[data-theme-btn]').forEach(b=> b.onclick=()=>{ state.prefs.theme=b.dataset.themeBtn; savePrefs(); render(); });
