@@ -6037,7 +6037,7 @@ function renderRoot(){
       if(!val){state.loginError='Escribe primero tu código de persona.';renderRoot();return;}
       if(!persona){state.loginError=t('loginError');renderRoot();return;}
       const btn=document.getElementById('passkeyLoginBtn');btn.disabled=true;btn.textContent='Verificando…';
-      try{await veriLoginPasskey(val);completeLogin(val);}
+      try{   const auth=await veriLoginPasskey(val);   completeLogin(val,auth.photoUrl); }
       catch(e){state.loginError=e.name==='NotAllowedError'?'Autenticación cancelada. Puedes intentarlo de nuevo o ingresar con PIN.':(e.message||'No se pudo verificar la Passkey.');renderRoot();}
     };
     return;
