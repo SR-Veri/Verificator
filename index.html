@@ -6003,12 +6003,12 @@ function renderRoot(){
             buddyReactHappy(buddy);
             const enroll=confirm('¿Quieres registrar una Passkey en este dispositivo para ingresar con Face ID o huella la próxima vez?');
             if(enroll){ try{await veriRegisterPasskey(state.loginCandidate,pin); alert('Passkey registrada correctamente. La próxima vez podrás ingresar con biometría.');}catch(e){alert('No se pudo registrar la Passkey: '+(e.message||'Error desconocido')+'\nPuedes hacerlo más tarde.');} }
-            completeLogin(state.loginCandidate);
+            completeLogin(state.loginCandidate,null,pin);
           }catch(e){ state.loginError = t('loginConnError'); buddyReactWrong(buddy); renderRoot(); }
         } else {
           const hash = await sha256Hex(pin);
           const p = state.personas.find(x=>x.codigo===state.loginCandidate);
-          if(p && p.pin_hash === hash){ buddyReactHappy(buddy); const enroll=confirm('¿Quieres registrar una Passkey en este dispositivo para ingresar con Face ID o huella la próxima vez?'); if(enroll){try{await veriRegisterPasskey(state.loginCandidate,pin);alert('Passkey registrada correctamente.');}catch(e){alert('No se pudo registrar la Passkey: '+(e.message||'Error desconocido'));}} completeLogin(state.loginCandidate); }
+          if(p && p.pin_hash === hash){ buddyReactHappy(buddy); const enroll=confirm('¿Quieres registrar una Passkey en este dispositivo para ingresar con Face ID o huella la próxima vez?'); if(enroll){try{await veriRegisterPasskey(state.loginCandidate,pin);alert('Passkey registrada correctamente.');}catch(e){alert('No se pudo registrar la Passkey: '+(e.message||'Error desconocido'));}} completeLogin(state.loginCandidate,null,pin); }
           else { state.loginError = t('pinWrong'); buddyReactWrong(buddy); renderRoot(); }
         }
       };
