@@ -6053,13 +6053,24 @@ function renderRoot(){
   updateVeriFab(true);
   render();
 }
-async function completeLogin(codigo, photoUrl=null){
+async function completeLogin(codigo, photoUrl=null, pin=null){
   state.session = codigo; localStorage.setItem('vp_session', codigo);
   const savedForUser = localStorage.getItem('vp_prefs_'+normalize(codigo));
   if(savedForUser){ try{ state.prefs = {...state.prefs, ...JSON.parse(savedForUser)}; }catch(e){} }
   state.loginError=''; state.loginStep='code'; state.loginCandidate=null; state.termsChecked=false; state.termsAccepted=false;
   state.booted=false; renderRoot();
   await loadCoreData();
+  if(!photoUrl && pin){
+  try{
+    const profile=await veriPasskeyCall('get-profile-photo',{
+      codigo,
+      pin
+    });
+    photoUrl=profile.photoUrl;
+  }catch(e){
+    console.warn('No se pudo cargar la foto de perfil:',e);
+  }
+}
   const loggedPerson=state.personas.find(p=>p.codigo===normalize(codigo));
 if(loggedPerson) loggedPerson.profile_photo_url=photoUrl;
   await loadRemotePrefs(codigo);
