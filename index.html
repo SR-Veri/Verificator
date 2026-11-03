@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://api.groq.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="https://unpkg.com/@simplewebauthn/browser@13.2.2/dist/bundle/index.umd.min.js" defer></script>
 <style>
 :root{
   --accent:#0A84FF; --accent-rgb:10,132,255; --green:#34C759; --red:#FF3B30; --amber:#FF9F0A;
@@ -5903,6 +5904,34 @@ function updateVeriFab(show){
   }
   fab.style.display = (show && toolVisible('veriai')) ? 'flex' : 'none';
 }
+/* ===================== VERI Passkeys (WebAuthn) =====================
+   El servidor (Supabase Edge Function veri-passkeys) genera y verifica challenges.
+   El navegador nunca decide por sí solo si una credencial es válida. */
+async function veriPasskeyCall(action, payload={}){
+  const response = await fetch(SUPABASE_URL+'/functions/v1/veri-passkeys', {
+    method:'POST', headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY},
+    body:JSON.stringify({action,...payload})
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok || data.error) throw new Error(data.error||'No se pudo completar la autenticación.');
+  return data;
+}
+async function veriRegisterPasskey(codigo,pin){
+  if(!window.SimpleWebAuthnBrowser) throw new Error('No se pudo cargar el módulo de Passkeys. Comprueba tu conexión.');
+  const started=await veriPasskeyCall('register-options',{codigo,pin});
+  const credential=await SimpleWebAuthnBrowser.startRegistration({optionsJSON:started.options});
+  await veriPasskeyCall('register-verify',{codigo,challengeId:started.challengeId,credential});
+  return true;
+}
+async function veriLoginPasskey(codigo){
+  if(!window.SimpleWebAuthnBrowser) throw new Error('No se pudo cargar el módulo de Passkeys. Comprueba tu conexión.');
+  const started=await veriPasskeyCall('login-options',{codigo});
+  const credential=await SimpleWebAuthnBrowser.startAuthentication({optionsJSON:started.options});
+  const result=await veriPasskeyCall('login-verify',{codigo,challengeId:started.challengeId,credential});
+  if(normalize(result.codigo)!==normalize(codigo)) throw new Error('La credencial no corresponde a esta cuenta.');
+  return true;
+}
+
 function renderRoot(){
   const root = document.getElementById('root');
   applyTheme();
@@ -5965,12 +5994,14 @@ function renderRoot(){
             await sb(`personas?codigo=eq.${encodeURIComponent(state.loginCandidate)}`, {method:'PATCH', body:JSON.stringify({pin_hash:hash}), headers:{'Prefer':'return=minimal'}});
             const p = state.personas.find(x=>x.codigo===state.loginCandidate); if(p) p.pin_hash = hash;
             buddyReactHappy(buddy);
+            const enroll=confirm('¿Quieres registrar una Passkey en este dispositivo para ingresar con Face ID o huella la próxima vez?');
+            if(enroll){ try{await veriRegisterPasskey(state.loginCandidate,pin); alert('Passkey registrada correctamente. La próxima vez podrás ingresar con biometría.');}catch(e){alert('No se pudo registrar la Passkey: '+(e.message||'Error desconocido')+'\nPuedes hacerlo más tarde.');} }
             completeLogin(state.loginCandidate);
           }catch(e){ state.loginError = t('loginConnError'); buddyReactWrong(buddy); renderRoot(); }
         } else {
           const hash = await sha256Hex(pin);
           const p = state.personas.find(x=>x.codigo===state.loginCandidate);
-          if(p && p.pin_hash === hash){ buddyReactHappy(buddy); completeLogin(state.loginCandidate); }
+          if(p && p.pin_hash === hash){ buddyReactHappy(buddy); const enroll=confirm('¿Quieres registrar una Passkey en este dispositivo para ingresar con Face ID o huella la próxima vez?'); if(enroll){try{await veriRegisterPasskey(state.loginCandidate,pin);alert('Passkey registrada correctamente.');}catch(e){alert('No se pudo registrar la Passkey: '+(e.message||'Error desconocido'));}} completeLogin(state.loginCandidate); }
           else { state.loginError = t('pinWrong'); buddyReactWrong(buddy); renderRoot(); }
         }
       };
@@ -5983,25 +6014,32 @@ function renderRoot(){
       <div class="logo">${LOGO_MARK}</div>
       <h2>${t('loginTitle')}</h2>
       <p>${t('loginSub')}</p>
-      <input type="text" id="loginInput" placeholder="${t('loginPlaceholder')}" style="text-align:center;text-transform:uppercase;font-weight:700;letter-spacing:.05em;" autofocus />
-      <button class="btn block" id="loginBtn" style="margin-top:12px;">${t('loginBtn')}</button>
+      <input type="text" id="loginInput" placeholder="${t('loginPlaceholder')}" style="text-align:center;text-transform:uppercase;font-weight:700;letter-spacing:.05em;" autocomplete="username" autofocus />
+      <button class="btn block" id="passkeyLoginBtn" style="margin-top:12px;display:flex;align-items:center;justify-content:center;gap:9px;"><span aria-hidden="true">⌁</span> Ingresar con Passkey</button>
+      <button class="btn ghost block" id="loginBtn" style="margin-top:8px;">Ingresar con PIN</button>
+      <p class="small-note" style="margin-top:10px;">Usa Face ID, huella digital o el bloqueo de pantalla de tu dispositivo.</p>
       ${state.loginError ? `<div class="err-text">${state.loginError}</div>` : ''}
     </div></div>`;
-    const doLogin = async ()=>{
-      const val = normalize(document.getElementById('loginInput').value);
-      if(!val){ return; }
-      const persona = state.personas.find(p=>p.codigo===val);
-      if(persona){
-        state.loginError='';
-        state.loginCandidate = val;
-        state.loginStep = persona.pin_hash ? 'pin_enter' : 'pin_create';
-        renderRoot();
-      } else {
-        state.loginError = t('loginError'); renderRoot();
-      }
+    const getPersona = ()=>{
+      const val=normalize(document.getElementById('loginInput').value);
+      return {val,persona:state.personas.find(p=>p.codigo===val)};
     };
-    document.getElementById('loginBtn').onclick = doLogin;
-    document.getElementById('loginInput').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+    const doLogin = async ()=>{
+      const {val,persona}=getPersona();
+      if(!val)return;
+      if(persona){state.loginError='';state.loginCandidate=val;state.loginStep=persona.pin_hash?'pin_enter':'pin_create';renderRoot();}
+      else{state.loginError=t('loginError');renderRoot();}
+    };
+    document.getElementById('loginBtn').onclick=doLogin;
+    document.getElementById('loginInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+    document.getElementById('passkeyLoginBtn').onclick=async()=>{
+      const {val,persona}=getPersona();
+      if(!val){state.loginError='Escribe primero tu código de persona.';renderRoot();return;}
+      if(!persona){state.loginError=t('loginError');renderRoot();return;}
+      const btn=document.getElementById('passkeyLoginBtn');btn.disabled=true;btn.textContent='Verificando…';
+      try{await veriLoginPasskey(val);completeLogin(val);}
+      catch(e){state.loginError=e.name==='NotAllowedError'?'Autenticación cancelada. Puedes intentarlo de nuevo o ingresar con PIN.':(e.message||'No se pudo verificar la Passkey.');renderRoot();}
+    };
     return;
   }
   root.innerHTML = `<div class="layout"><div class="sidebar" id="sidebar"></div><div class="app" id="app"></div></div><div class="bottomnav"><div class="bottomnav-inner" id="navInner"></div></div>`;
