@@ -1225,6 +1225,22 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 .rep-review-zoom-label{font-size:12px;min-width:52px;text-align:center;font-variant-numeric:tabular-nums;opacity:.8}
 .rep-review-progress{height:6px;border-radius:99px;overflow:hidden;background:var(--input-bg);margin-top:8px}.rep-review-progress>span{display:block;height:100%;background:var(--accent);transition:width .2s ease}
 .rep-review-action{width:100%;justify-content:center}
+.naming-split{display:block}
+body.veri-wide .naming-split{display:grid;grid-template-columns:minmax(300px,5fr) minmax(0,7fr);gap:24px;align-items:start}
+body.veri-wide .naming-col-form #namingNombre{min-height:160px;font-size:22px;line-height:1.35;padding:14px 16px;border-radius:16px;touch-action:auto}
+body.veri-wide .naming-col-form #namingAddBtn{min-height:52px;font-size:16px;margin-top:12px}
+body.veri-wide .naming-col-scan .scan-frame{width:100%}
+.rep-review-photo img.smooth,#veriPhotoLarge.smooth{transition:transform var(--zdur,400ms) cubic-bezier(.22,1,.36,1)}
+.rep-review-photo{user-select:none;-webkit-user-select:none}
+.rep-review-head{display:flex;align-items:center;gap:12px}
+.rep-ring{position:relative;width:48px;height:48px;flex:0 0 48px}
+.rep-ring svg{width:48px;height:48px;transform:rotate(-90deg)}
+.rep-ring circle{fill:none;stroke-width:4.5}
+.rep-ring .trk{stroke:var(--input-bg,rgba(127,127,127,.2))}
+.rep-ring .bar{stroke:var(--accent,#0a84ff);stroke-linecap:round;stroke-dasharray:119.38;stroke-dashoffset:var(--off,119.38);animation:repRingIn .8s cubic-bezier(.22,1,.36,1) both}
+@keyframes repRingIn{from{stroke-dashoffset:119.38}}
+.rep-ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){.rep-ring .bar{animation:none}.rep-review-photo img.smooth{transition:none}}
 @media(max-width:760px){.rep-review-shell{grid-template-columns:1fr}.rep-review-photo{min-height:240px}.rep-review-photo img{max-height:48vh}}
 
 
@@ -1773,7 +1789,7 @@ body{background:var(--bg-1)!important;background-image:none!important}
 .vc-paused *,.vc-paused *::before,.vc-paused *::after{animation-play-state:paused!important}
 
 
-/* ===== Modo ligero (ultra optimizado): sin animaciones, transparencias ni efectos ===== */
+/* ===== Modo Lite: sin animaciones, transparencias ni efectos ===== */
 html.lite.lite.lite.lite *,html.lite.lite.lite.lite *::before,html.lite.lite.lite.lite *::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important;transition-delay:0s!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;filter:none!important;text-shadow:none!important;will-change:auto!important;scroll-behavior:auto!important}
 html.lite body:before,html.lite body:after,html.lite .vc-hero-glow,html.lite .vc-bot::before,html.lite .veri-fab::after{display:none!important}
 html.lite .glass,html.lite .card,html.lite .home-card,html.lite .modal-sheet,html.lite .vc-panel{box-shadow:none!important}
@@ -2371,8 +2387,7 @@ const I18N = {
     reminderTitle:"Archivo de hoy sin descargar", reminderBody3h:"Llevas 3 horas nombrando productos y aún no descargas el archivo de hoy.", reminderBody1h:"Falta 1 hora para que se cree el archivo de mañana y aún no has descargado el de hoy.",
     naming2026Found:"Ya existe en la base 2026 como", naming2026Suggestion:"Sugerencia de nombre (base 2026)", namingUseThis:"Usar este nombre",
     namingListTitle:"Nombrados hoy", namingEmptyList:"Aún no has nombrado productos hoy.",
-    archivedTabLabel:"Archivados", archivedTitle:"Días archivados", archivedEmpty:"Todavía no hay nombrados archivados. Toca «Archivar día» cuando termines una tanda y quedará guardada aquí.",
-    namingArchiveBtn:"📦 Archivar día", namingArchiveTitle:"¿Archivar este día?", namingArchiveBody:"Los {n} productos nombrados se guardan en Archivados y la lista queda vacía para empezar otra tanda.", namingArchiveOk:"Archivar", namingArchiveDone:"Día archivado ✓ Ya puedes empezar otra tanda.", namingArchiveFail:"No se pudo archivar. Revisa tu conexión e inténtalo de nuevo; no se perdió nada.", cancelBack:"Volver",
+    archivedTabLabel:"Archivados", archivedTitle:"Días archivados", archivedEmpty:"Todavía no hay días archivados. Cuando cierres un día de nombrados, aparecerá aquí al día siguiente.",
     archivedDayEmpty:"Ese día no tiene productos guardados.", archivedCount:"productos", archivedDownload:"Descargar Excel de este día",
     archivedExpiryNote:"Los días archivados se guardan 7 días y luego se eliminan automáticamente para no saturar la base de datos.",
     archivedLoading:"Cargando archivados…", namingSyncPending:"Pendiente de sincronizar con Supabase", namingSyncError:"No se pudo sincronizar este nombrado. Quedó guardado localmente y se reintentará automáticamente.", namingSyncOk:"Nombrado guardado en Supabase.",
@@ -2443,7 +2458,7 @@ const I18N = {
     veriFabAria:"Preguntarle a Veri", veriAIBetaTag:"Beta",
     cartSearchBtn:"Buscar", cartSearchPlaceholder:"Buscar en el carrito: nombre o últimos 6 dígitos", cartSearchNone:"Sin coincidencias: ese producto no está en el carrito.", cartQuickAddBtn:"Agregar", cartScannedLabel:"Código escaneado:", cartMatchLabel:"Coincide con",
     savePhotosLabel:"Guardar fotos de repeticiones en el celular", savePhotosSub:"Cada foto que tomes se descarga también al teléfono como respaldo (en iPhone queda en Archivos › Descargas).",
-    liteModeLabel:"Modo ligero (ultra optimizado)", liteModeSub:"Quita animaciones, transparencias y efectos para que la app funcione fluida en celulares lentos. Todo sigue funcionando igual.", liteModeHint:"¿Tu celular va lento? Prueba el Modo ligero en Ajustes.",
+    liteModeLabel:"Modo Lite", liteModeSub:"Prioriza el rendimiento antes que las animaciones y los efectos visuales.", liteModeHint:"¿Tu celular va lento? Prueba el Modo Lite en Ajustes.",
     preferencesSaved:"Preferencias guardadas", soundTest:"Probar sonido", edit:"Editar", delete:"Eliminar", editSave:"Guardar cambios",
     category:"Categoría", uncategorized:"Sin categoría", reorderHint:"Mantén presionado y arrastra para ordenar",
     importWhiteOnly:"Solo se importaron productos sin color. Amarillo, azul y verde fueron omitidos.",
@@ -2581,8 +2596,7 @@ const I18N = {
     reminderTitle:"Today's file not downloaded", reminderBody3h:"You've been naming products for 3 hours and still haven't downloaded today's file.", reminderBody1h:"1 hour left until tomorrow's file is created and you still haven't downloaded today's.",
     naming2026Found:"Already exists in the 2026 base as", naming2026Suggestion:"Name suggestion (2026 base)", namingUseThis:"Use this name",
     namingListTitle:"Named today", namingEmptyList:"You haven't named any products today yet.",
-    archivedTabLabel:"Archived", archivedTitle:"Archived days", archivedEmpty:"Nothing archived yet. Tap “Archive day” when you finish a batch and it will be saved here.",
-    namingArchiveBtn:"📦 Archive day", namingArchiveTitle:"Archive this day?", namingArchiveBody:"The {n} named products are saved in Archived and the list is emptied so you can start a new batch.", namingArchiveOk:"Archive", namingArchiveDone:"Day archived ✓ You can start a new batch.", namingArchiveFail:"Couldn't archive. Check your connection and try again; nothing was lost.", cancelBack:"Back",
+    archivedTabLabel:"Archived", archivedTitle:"Archived days", archivedEmpty:"No archived days yet. When a naming day closes, it'll show up here the next day.",
     archivedDayEmpty:"That day has no saved products.", archivedCount:"products", archivedDownload:"Download this day's Excel",
     archivedExpiryNote:"Archived days are kept for 7 days and then removed automatically to keep the database lean.",
     archivedLoading:"Loading archived days…",
@@ -2653,7 +2667,7 @@ const I18N = {
     veriFabAria:"Ask Veri", veriAIBetaTag:"Beta",
     cartSearchBtn:"Search", cartSearchPlaceholder:"Search the cart: name or last 6 digits", cartSearchNone:"No matches: that product is not in the cart.", cartQuickAddBtn:"Add", cartScannedLabel:"Scanned code:", cartMatchLabel:"Matches",
     savePhotosLabel:"Save repetition photos to this phone", savePhotosSub:"Every photo you take is also downloaded to the phone as a backup (on iPhone it goes to Files › Downloads).",
-    liteModeLabel:"Lite mode (ultra optimized)", liteModeSub:"Turns off animations, transparency and effects so the app runs smoothly on slower phones. Everything still works the same.", liteModeHint:"Phone feeling slow? Try Lite mode in Settings.",
+    liteModeLabel:"Lite mode", liteModeSub:"Prioritizes performance over animations and visual effects.", liteModeHint:"Phone feeling slow? Try Lite mode in Settings.",
     preferencesSaved:"Preferences saved", soundTest:"Test sound", edit:"Edit", delete:"Delete", editSave:"Save changes",
     category:"Category", uncategorized:"Uncategorized", reorderHint:"Press and drag to reorder",
     importWhiteOnly:"Only uncolored products were imported. Yellow, blue and green were skipped.",
@@ -2729,12 +2743,62 @@ const I18N = {
     adminSectionCollapseHint:"Tap a section to expand or collapse it.",
   }
 };
+const veriReduceMotion=()=>{ try{ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } };
+function veriLiteFxPill(on){
+  const wrap=document.createElement('div'); wrap.className='veri-lite-fx';
+  wrap.style.cssText='position:fixed;inset:0;z-index:2147483000;pointer-events:none;display:flex;align-items:center;justify-content:center;view-transition-name:veri-lite-pill;';
+  const pill=document.createElement('div');
+  pill.style.cssText='display:flex;align-items:center;gap:10px;padding:13px 20px;border-radius:999px;background:rgba(28,28,30,.9);color:#fff;font:700 15px/1 system-ui,-apple-system,sans-serif;box-shadow:0 10px 40px rgba(0,0,0,.35);opacity:0;';
+  const ico=document.createElement('span'); ico.textContent=on?'⚡':'✨'; ico.style.cssText='font-size:20px;display:inline-block;';
+  const txt=document.createElement('span'); txt.textContent=on?(state.prefs.lang==='en'?'Lite mode on':'Modo Lite activado'):(state.prefs.lang==='en'?'Lite mode off':'Modo Lite desactivado');
+  pill.append(ico,txt); wrap.append(pill); document.body.appendChild(wrap);
+  pill.animate([{opacity:0,transform:'translateY(12px) scale(.88)'},{opacity:1,transform:'none',offset:.2},{opacity:1,transform:'none',offset:.75},{opacity:0,transform:'translateY(-6px) scale(.97)'}],{duration:1700,delay:380,easing:'cubic-bezier(.22,1,.36,1)',fill:'both'}).onfinish=()=>wrap.remove();
+  ico.animate(on?[{transform:'scale(.2) rotate(-30deg)'},{transform:'scale(1.3) rotate(8deg)',offset:.55},{transform:'none'}]:[{transform:'scale(1.3)'},{transform:'scale(.9) rotate(180deg)',offset:.6},{transform:'rotate(360deg)'}],{duration:650,delay:420,easing:'cubic-bezier(.22,1,.36,1)'});
+  setTimeout(()=>wrap.remove(),3000);
+}
+/* Cambia el Modo Lite con un efecto de gota de agua: cae una gota sobre el interruptor y de ahí se expande una onda
+   que revela el nuevo aspecto en toda la interfaz (View Transitions). Si el navegador no lo soporta, solo se aplica el cambio. */
+async function veriLiteToggle(on, originEl){
+  const apply=()=>applyLiteMode();
+  let x=innerWidth/2, y=innerHeight*0.45;
+  try{ const r=originEl&&originEl.getBoundingClientRect&&originEl.getBoundingClientRect(); if(r&&r.width){ x=r.left+r.width/2; y=r.top+r.height/2; } }catch(e){}
+  if(veriReduceMotion()||!document.startViewTransition||!document.body.animate){ apply(); veriLiteFxPill(on); return; }
+  const R=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y))+40;
+  const accent=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#0a84ff';
+  // 1) la gota cae
+  const drop=document.createElement('div'); drop.className='veri-lite-fx';
+  drop.style.cssText=`position:fixed;left:${x-5}px;top:${y-5}px;width:10px;height:10px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:${accent};z-index:2147483000;pointer-events:none;box-shadow:0 0 12px ${accent};opacity:0;`;
+  document.body.appendChild(drop);
+  const fall=drop.animate([{transform:'translateY(-90px) scaleY(1.5) scaleX(.8)',opacity:0},{opacity:1,offset:.25},{transform:'translateY(0) scaleY(1.2) scaleX(.9)',opacity:1}],{duration:300,easing:'cubic-bezier(.55,0,.9,.5)',fill:'forwards'});
+  await fall.finished.catch(()=>{});
+  drop.remove();
+  // 2) impacto: se revela el nuevo estado en círculo + anillos de onda que siguen el borde
+  const rings=[];
+  const vt=document.startViewTransition(()=>{
+    apply();
+    [0,1,2].forEach(i=>{
+      const ring=document.createElement('div'); ring.className='veri-lite-fx';
+      ring.style.cssText=`position:fixed;left:${x}px;top:${y}px;width:0;height:0;border-radius:50%;border:${3-i*0.7}px solid ${accent};z-index:2147483000;pointer-events:none;box-sizing:border-box;transform:translate(-50%,-50%);opacity:0;view-transition-name:veri-ring-${i};`;
+      document.body.appendChild(ring); rings.push(ring);
+    });
+  });
+  try{ await vt.ready; }catch(e){ rings.forEach(r=>r.remove()); veriLiteFxPill(on); return; }
+  const dur=1100, ease='cubic-bezier(.16,1,.3,1)';
+  document.documentElement.animate({clipPath:[`circle(0px at ${x}px ${y}px)`,`circle(${R}px at ${x}px ${y}px)`]},{duration:dur,easing:ease,pseudoElement:'::view-transition-new(root)'});
+  rings.forEach((ring,i)=>{
+    const d=i*110, size=2*R*(1-i*0.12);
+    ring.animate([{width:'0px',height:'0px',opacity:.9-i*.2},{width:size+'px',height:size+'px',opacity:0}],{duration:dur-d*0.3,delay:d,easing:ease,fill:'both'});
+  });
+  veriLiteFxPill(on);
+  vt.finished.finally(()=>{ rings.forEach(r=>r.remove()); document.querySelectorAll('.veri-lite-fx[style*="view-transition-name:veri-ring"]').forEach(n=>n.remove()); });
+  setTimeout(()=>rings.forEach(r=>r.remove()),dur+500);
+}
 function applyLiteMode(){
   const on=!!(state.prefs&&state.prefs.liteMode);
   document.documentElement.classList.toggle('lite',on);
   try{ localStorage.setItem('vp_lite',on?'1':'0'); }catch(e){}
 }
-// Aviso único, solo en Android con poca memoria o pocos núcleos: sugiere el Modo ligero.
+// Aviso único, solo en Android con poca memoria o pocos núcleos: sugiere el Modo Lite.
 setTimeout(()=>{ try{
   if(state.session && state.prefs.liteMode===undefined && !localStorage.getItem('vp_lite_hint') && /Android/i.test(navigator.userAgent) && ((navigator.deviceMemory&&navigator.deviceMemory<=3)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4))){ localStorage.setItem('vp_lite_hint','1'); toast(t('liteModeHint')); }
 }catch(e){} },8000);
@@ -3517,7 +3581,7 @@ Conoces bien la app y puedes explicar cómo usarla:
 - Escanear producto: usa la cámara del celular o computador para leer un código de barras o QR y verificar si el producto existe en la base 2025 o 2026. Se puede elegir la base y activar el modo de escaneo continuo. En celulares con varios lentes (ej. iPhone con teleobjetivo) se puede elegir qué cámara/lente usar desde un selector que aparece sobre la cámara.
 - Buscar: busca productos por nombre, código de barras o marca, en cualquiera de las dos bases, con resultados ordenados por relevancia.
 - Herramientas: agrupa Repeticiones (productos pendientes, hechos o enviados), Nombrador. El Nombrador ayuda a asignarle nombre a productos nuevos siguiendo el formato: [SMP/VMP ]MARCA, DESCRIPCIÓN, PESO[ PACKX(cantidad)], TIPO DE EMPAQUE — y avisa si falta alguna sección o si el producto parece duplicado (mismo peso, descripción y marca).
-- Ajustes: desde ahí se puede cambiar el tema claro/oscuro, el color de acento (tocando un color de la paleta), el idioma de la app, la base de datos por defecto, el nombre del perfil (con el ícono de lápiz junto al nombre), la vibración y el sonido al escanear, el aviso de formato al nombrar, activar o no las respuestas de Veri IA y el Modo ligero (ultra optimizado: quita animaciones, transparencias y efectos para que la app funcione fluida en celulares lentos).
+- Ajustes: desde ahí se puede cambiar el tema claro/oscuro, el color de acento (tocando un color de la paleta), el idioma de la app, la base de datos por defecto, el nombre del perfil (con el ícono de lápiz junto al nombre), la vibración y el sonido al escanear, el aviso de formato al nombrar, activar o no las respuestas de Veri IA y el Modo Lite (ultra optimizado: quita animaciones, transparencias y efectos para que la app funcione fluida en celulares lentos).
 - Roles: hay administrador y coadministrador. El administrador ve y gestiona todo (personas, roles, bases, la clave de IA de Veri). El coadministrador solo ve Repeticiones y Actualizar bases.
 Cuando la pregunta de la persona pueda referirse a un producto específico, recibirás debajo un bloque "PRODUCTOS ENCONTRADOS" con resultados reales tomados de la base de datos (código y nombre, con la base 2025 o 2026 a la que pertenecen) que coinciden con la pregunta. Básate SOLO en esos datos reales para responder sobre productos concretos (existencia, nombre exacto, en qué base está, etc.); nunca inventes códigos ni nombres de productos. Si el bloque viene vacío o no aparece el producto que preguntan, dilo con honestidad (por ejemplo: "no encontré ese producto en las bases cargadas") en vez de suponer que existe.
 Si recibes un bloque "BÚSQUEDA EN LA BASE", son resultados reales calculados con el mismo buscador de la app: usa esos números exactos, nunca los estimes ni los recalcules. Si hubo una corrección de ortografía, dilo en una frase corta (por ejemplo: "Entendí ALQUERIA"). Si muestras productos, da máximo 5 y di cuántos hay en total; no pegues listas largas.
@@ -3533,7 +3597,7 @@ ACCIONES EN EL CHAT: cuando la pregunta sea sobre cambiar o hacer algo dentro de
 [[accion:nombre]] cambiar el nombre del perfil
 [[accion:base_defecto]] base de datos por defecto (2025 o 2026)
 [[accion:formato_nombrar]] aviso de formato al nombrar
-[[accion:modo_ligero]] activar o desactivar el Modo ligero (para celulares lentos o cuando la app se traba)
+[[accion:modo_ligero]] activar o desactivar el Modo Lite (para celulares lentos o cuando la app se traba)
 [[accion:ir:scan]] botón para ir a una sección; cambia scan por search, rep, settings o home
 No menciones las etiquetas ni las expliques en el texto. Si no aplica ninguna, no pongas etiquetas. Nunca inventes etiquetas nuevas.`;
 
@@ -3669,7 +3733,7 @@ function vcActionHTML(a){
     case 'tema': return `<div class="vc-act"><div class="vc-act-head">${t('theme')}</div>${vcChips('theme',[['light',vcL('Claro','Light')],['dark',vcL('Oscuro','Dark')]],p.theme)}</div>`;
     case 'idioma': return `<div class="vc-act"><div class="vc-act-head">${t('language')}</div>${vcChips('lang',[['es','Español'],['en','English']],p.lang)}</div>`;
     case 'base_defecto': return `<div class="vc-act"><div class="vc-act-head">${t('defaultBase')}</div>${vcChips('defbase',[['2025','2025'],['2026','2026']],p.defaultBase)}</div>`;
-    case 'modo_ligero': return `<div class="vc-act">${vcSwitchRow('lite',vcL('Modo ligero','Lite mode'),p.liteMode,vcL('Sin animaciones ni transparencias','No animations or transparency'))}</div>`;
+    case 'modo_ligero': return `<div class="vc-act">${vcSwitchRow('lite',vcL('Modo Lite','Lite mode'),p.liteMode,vcL('Prioriza el rendimiento antes que las animaciones','Performance over animations'))}</div>`;
     case 'formato_nombrar': return `<div class="vc-act">${vcSwitchRow('namefmt',t('namingFormatCheckLabel'),p.namingFormatCheck)}</div>`;
     case 'acento': {
       const cols=(COLOR_PALETTES.vivos||Object.values(COLOR_PALETTES)[0]).colors;
@@ -3713,7 +3777,7 @@ function vcHandle(kind,val){
     case 'accent': p.accent=val; savePrefs(); render(); break;
     case 'defbase': p.defaultBase=val; state.scanBase=val; savePrefs(); render(); break;
     case 'namefmt': p.namingFormatCheck=!!val; savePrefs(); break;
-    case 'lite': p.liteMode=!!val; savePrefs(); applyLiteMode(); break;
+    case 'lite': p.liteMode=!!val; savePrefs(); veriLiteToggle(!!val, null); break;
     case 'savename': vcSaveName(); return;
     case 'opensearch': { const i=String(val).indexOf('|'); const yr=String(val).slice(0,i), q=String(val).slice(i+1); if(yr!=='2025'&&yr!=='2026') return; stopCamera(); state.scanBase=yr; state.searchPrefill=q; state.cartReview=null; state.tab='search'; render(); closeVeriChat(true); return; }
     case 'go': if(!VC_GO_LABELS[val]) return; stopCamera(); state.tab=val; render(); closeVeriChat(true); return;
@@ -4103,13 +4167,15 @@ async function updateNamingSuggestion(){
   sugWrap.innerHTML = html;
 }
 function onNamingCodeScanned(code){
+  const wide=veriIsWide();
+  if(wide){ if(code===state._namingLastCode) return; state._namingLastCode=code; }   // sigue leyendo sin repetir el mismo código
   const input = document.getElementById('namingBarcode');
   if(input) input.value = code;
-  stopCamera();
+  if(!wide) stopCamera();
   updateNamingSuggestion();
   vibrateFor('exact'); beepFor('exact');
   const nameInput = document.getElementById('namingNombre');
-  if(nameInput) nameInput.focus();
+  if(nameInput && (!wide || (!nameInput.value.trim() && document.activeElement!==nameInput))) nameInput.focus();
 }
 /* Agrega un producto a la lista de nombrados de hoy (mismo mecanismo que usa el botón "Agregar" de
    Nombrar 1x1: aviso de repetido del día, chequeo de duplicado contra la base 2026, guardado local +
@@ -4282,57 +4348,6 @@ async function handleNamingFastFiles(fileList){
   }
   state.namingFast.processing = null;
   render();
-}
-/* ---- Ventana de confirmación genérica (devuelve true si la persona acepta) ---- */
-function veriConfirm({title, body, okText, extraText, onExtra, backText}){
-  return new Promise(resolve=>{
-    const old=document.getElementById('veriConfirmOverlay'); if(old) old.remove();
-    const o=document.createElement('div'); o.id='veriConfirmOverlay'; o.setAttribute('role','dialog'); o.setAttribute('aria-modal','true');
-    o.style.cssText='position:fixed;inset:0;z-index:100020;background:rgba(5,8,14,.6);display:flex;align-items:center;justify-content:center;padding:20px;';
-    o.innerHTML=`<div style="width:100%;max-width:360px;background:var(--bg-1,#fff);color:var(--text-1,#111);border:1px solid var(--glass-border,rgba(0,0,0,.1));border-radius:22px;padding:22px 20px 16px;box-shadow:0 24px 60px rgba(0,0,0,.35);text-align:center;">
-      <div style="font-size:18px;font-weight:700;margin-bottom:8px;">${escapeHtml(title)}</div>
-      <div style="font-size:14.5px;line-height:1.45;opacity:.85;margin-bottom:16px;">${escapeHtml(body)}</div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <button type="button" class="btn block" data-vc="ok">${escapeHtml(okText||'OK')}</button>
-        ${extraText?`<button type="button" class="btn secondary block" data-vc="extra">${escapeHtml(extraText)}</button>`:''}
-        <button type="button" class="btn ghost block" data-vc="back">${escapeHtml(backText||t('cancelBack'))}</button>
-      </div></div>`;
-    const done=v=>{ document.removeEventListener('keydown',onKey); o.remove(); resolve(v); };
-    const onKey=e=>{ if(e.key==='Escape') done(false); };
-    document.addEventListener('keydown',onKey);
-    o.addEventListener('click',e=>{ if(e.target===o) done(false); });
-    o.querySelector('[data-vc="ok"]').onclick=()=>done(true);
-    o.querySelector('[data-vc="back"]').onclick=()=>done(false);
-    const ex=o.querySelector('[data-vc="extra"]'); if(ex) ex.onclick=()=>{ try{ onExtra&&onExtra(); }catch(e){ console.warn(e); } };
-    document.body.appendChild(o);
-  });
-}
-/* ---- Archivar el día del Nombrador: la tanda pasa a Archivados y la lista queda vacía ---- */
-// Cada tanda archivada se guarda con la fecha + hora (ej. 2026-10-29_143212) para que varias tandas del mismo día no se mezclen.
-function namingBatchKey(){ const d=new Date(), p=n=>String(n).padStart(2,'0'); return `${todayKey()}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; }
-function namingDateLabel(k){ const m=String(k).match(/^(\d{4}-\d{2}-\d{2})_(\d{2})(\d{2})/); return m ? `${m[1]} · ${m[2]}:${m[3]}` : String(k); }
-let __namingArchiving=false;
-async function archiveNamingDay(){
-  if(__namingArchiving) return;
-  if(!state.naming || !state.naming.items.length){ toast(t('namingEmpty')); return; }
-  const ok=await veriConfirm({title:t('namingArchiveTitle'), body:t('namingArchiveBody').replace('{n}',state.naming.items.length), okText:t('namingArchiveOk')});
-  if(!ok) return;
-  __namingArchiving=true;
-  try{
-    const key=namingBatchKey(), user=normalize(state.session||'');
-    // 1) lo que aún no se había subido (sin internet) se sube primero con la fecha de hoy
-    for(const it of state.naming.items){
-      if(String(it.id||'').startsWith('remote_')) continue;
-      const row=await persistNamingRemote(it); it.id='remote_'+row.id; it.syncStatus='synced';
-    }
-    // 2) todo lo de hoy pasa a ser una tanda archivada
-    await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(user)}&fecha=eq.${encodeURIComponent(todayKey())}`,{method:'PATCH',body:JSON.stringify({fecha:key}),headers:{'Prefer':'return=minimal'}});
-    // 3) lista de hoy vacía para empezar otra
-    state.naming.items=[]; state.namingSelected=[]; state.namingEditMode=false; saveNaming();
-    state.archived={loaded:false,loading:false,byDate:{},dates:[],selectedDate:key};
-    toast(t('namingArchiveDone'));
-  }catch(e){ console.error(e); toast(t('namingArchiveFail')); }
-  finally{ __namingArchiving=false; render(); }
 }
 async function downloadNamingExcel(){
   try{ await ensureXLSX(); }catch(e){ toast(t('errorImport')); return; }
@@ -4733,7 +4748,7 @@ async function fetchNamingRemote(){
 async function fetchArchivedNaming(){
   if(!state.session) return [];
   const cutoff=daysAgoKey(7);
-  try{ return await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=gte.${encodeURIComponent(cutoff)}&fecha=neq.${encodeURIComponent(todayKey())}&order=fecha.desc,creado_en.asc`); }
+  try{ return await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=gte.${encodeURIComponent(cutoff)}&fecha=lt.${encodeURIComponent(todayKey())}&order=fecha.desc,creado_en.asc`); }
   catch(e){ return null; }
 }
 async function deleteExpiredNamingRemote(){
@@ -4741,14 +4756,6 @@ async function deleteExpiredNamingRemote(){
   const cutoff=daysAgoKey(7);
   try{ await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=lt.${encodeURIComponent(cutoff)}`,{method:'DELETE'}); }
   catch(e){ console.error('No se pudo limpiar el archivo vencido:',e); }
-}
-/* Si un ítem quedó marcado como duplicado pero sin el producto con el que coincide (por ejemplo porque venía de un servidor sin esas columnas),
-   se vuelve a buscar en la base 2026 para mostrarlo. */
-function healNamingDup(it){
-  if(!it || !it.duplicado || it.duplicadoCodigo || it._dupHealed) return;
-  if(!state.index || !state.index['2026']) return;
-  it._dupHealed=true;
-  try{ const d=findNameDuplicate2026(it.nombre, it.codigo); if(d){ it.duplicadoCodigo=d.codigo||null; it.duplicadoNombre=d.nombre||null; if(!it.duplicadoTipo) it.duplicadoTipo=d.__dupReason||null; } }catch(e){}
 }
 function remoteRowToNamingItem(x){
   return {id:'remote_'+x.id,codigo:x.codigo,nombre:x.nombre,duplicado:!!x.duplicado,duplicadoCodigo:x.duplicado_codigo||null,duplicadoNombre:x.duplicado_nombre||null,duplicadoTipo:x.duplicado_tipo||null,sessionDup:!!x.duplicado_sesion,sessionDupCode:x.duplicado_sesion_con||null,createdAt:Number(x.creado_en)||Date.now(),syncStatus:'synced'};
@@ -4761,21 +4768,9 @@ async function syncNamingRemoteRows(remoteRows){
     let idx=localItems.findIndex((it,i)=>!used.has(i)&&it.id===('remote_'+row.id));
     if(idx<0&&rc) idx=localItems.findIndex((it,i)=>!used.has(i)&&Number(it.createdAt)===rc&&it.codigo===row.codigo);
     if(idx<0) idx=localItems.findIndex((it,i)=>!used.has(i)&&!it.createdAt&&it.codigo===row.codigo&&it.nombre===row.nombre);
-    if(idx>=0){
-      const loc=localItems[idx], rem=remoteRowToNamingItem(row);
-      // Si en el servidor faltan los datos del duplicado (columnas opcionales ausentes), no se pisa lo que ya sabe este dispositivo.
-      if(loc.veriChecked && !loc.duplicado){ rem.duplicado=false; rem.duplicadoCodigo=null; rem.duplicadoNombre=null; rem.duplicadoTipo=null; }
-      else if(rem.duplicado && loc.duplicado){
-        if(!rem.duplicadoCodigo) rem.duplicadoCodigo=loc.duplicadoCodigo||null;
-        if(!rem.duplicadoNombre) rem.duplicadoNombre=loc.duplicadoNombre||null;
-        if(!rem.duplicadoTipo) rem.duplicadoTipo=loc.duplicadoTipo||null;
-      }
-      if(rem.sessionDup && loc.sessionDup && !rem.sessionDupCode) rem.sessionDupCode=loc.sessionDupCode||null;
-      Object.assign(loc,rem); used.add(idx);
-    }
+    if(idx>=0){ Object.assign(localItems[idx],remoteRowToNamingItem(row)); used.add(idx); }
     else localItems.push(remoteRowToNamingItem(row));
   });
-  localItems.forEach(healNamingDup);
   state.naming.items=localItems; saveNaming();
   let allOk=true;
   for(const item of state.naming.items){
@@ -4892,7 +4887,7 @@ async function loadCoreData(){
   state.termsVersion = adminPw && adminPw.terminos_version ? String(adminPw.terminos_version) : (state.termsVersion || '1.0');
   state.veriApiKey = adminPw && adminPw.groq_api_key ? adminPw.groq_api_key : null;
   try{ state.toolAccess = (adminPw && adminPw.tools_visibility) ? (typeof adminPw.tools_visibility==='string' ? JSON.parse(adminPw.tools_visibility) : adminPw.tools_visibility) : {}; }catch(e){ state.toolAccess = {}; }
-  state.repeticiones = (reps||[]).map(mapRepRow);
+  state.repeticiones = repApplyArchiveLocks((reps||[]).map(mapRepRow));
   await refreshRepPhotos();
   refreshVeriPhotoUrls();
   try{ initNotifications(); }catch(e){ console.error('Notificaciones:',e); }
@@ -5173,6 +5168,13 @@ function importExcelRepeticiones(file, filterCode){
   };
   reader.readAsArrayBuffer(file);
 }
+function repApplyArchiveLocks(list){
+  // Mientras el servidor aún no refleja un archivado reciente, el sondeo no debe devolver el producto a la lista.
+  const L=state.repArchiveLocks; if(!L) return list;
+  const now=Date.now();
+  list.forEach(r=>{ const k=String(r.id), l=L[k]; if(!l) return; if(r.archivado===l.v || now-l.t>60000) delete L[k]; else r.archivado=l.v; });
+  return list;
+}
 function mapRepRow(r){
   return {
     id:r.id, codigoProducto:r.codigo_producto, nombreProducto:r.nombre_producto,
@@ -5183,7 +5185,7 @@ function mapRepRow(r){
 }
 async function refreshRepeticiones(){
   const reps = await fetchRepeticiones();
-  state.repeticiones = (reps||[]).map(mapRepRow);
+  state.repeticiones = repApplyArchiveLocks((reps||[]).map(mapRepRow));
   await refreshRepPhotos();
   refreshVeriPhotoUrls();
 }
@@ -5555,6 +5557,7 @@ const NOTIF_TYPES = {
 };
 state.notif = { list:[], loaded:false, error:'', coAdminCanSend:false, draft:{tipo:'novedad',titulo:'',mensaje:''}, sending:false };
 let notifPollTimer = null;
+const NOTIF_POLL_INTERVAL_MS = 12000;
 let notifPanelSeenAt = 0;
 const NOTIF_MISSING_RE = /42P01|PGRST205|does not exist|Could not find the table/i;
 
@@ -5601,6 +5604,43 @@ async function loadNotifSettings(){
     state.notif.coAdminCanSend = !!(rows && rows[0] && rows[0].coadmin_can_notify);
   }catch(e){ state.notif.coAdminCanSend = false; }
 }
+function notifChime(){
+  // Campanita de cristal: dos notas suaves con armónicos y caída larga.
+  try{
+    if(!state.prefs.sound) return;
+    const ctx=ensureAudio(); if(!ctx) return;
+    const go=()=>{
+      const t0=ctx.currentTime+0.02;
+      const note=(f,at,vol,dec)=>{ [[1,1],[2.76,.22],[5.4,.07]].forEach(([m,g])=>{
+        const o=ctx.createOscillator(), gn=ctx.createGain(); o.type='sine'; o.frequency.value=f*m;
+        gn.gain.setValueAtTime(0.0001,t0+at); gn.gain.exponentialRampToValueAtTime(vol*g,t0+at+0.012); gn.gain.exponentialRampToValueAtTime(0.0001,t0+at+dec/m**0.35);
+        o.connect(gn); gn.connect(ctx.destination); o.start(t0+at); o.stop(t0+at+dec+0.05); }); };
+      note(880,0,0.07,0.9); note(1318.5,0.11,0.06,1.2);
+    };
+    if(ctx.state==='suspended') ctx.resume().then(go).catch(()=>{}); else go();
+  }catch(e){}
+}
+function notifArrive(newOnes){
+  try{
+    if(!newOnes||!newOnes.length) return;
+    notifChime();
+    const bell=document.getElementById('topbarBellBtn');
+    if(bell&&bell.animate&&!veriReduceMotion()){
+      bell.animate([{transform:'rotate(0)'},{transform:'rotate(16deg)'},{transform:'rotate(-14deg)'},{transform:'rotate(9deg)'},{transform:'rotate(-6deg)'},{transform:'rotate(0)'}],{duration:800,easing:'ease-in-out'});
+      const bd=document.getElementById('bellBadge'); if(bd) bd.animate([{transform:'scale(.4)'},{transform:'scale(1.35)',offset:.5},{transform:'scale(1)'}],{duration:520,easing:'cubic-bezier(.34,1.56,.64,1)'});
+    }
+    if(document.getElementById('veriNotifOverlay')) return;   // el panel ya está abierto
+    const n=newOnes[0], ty=(typeof NOTIF_TYPES!=='undefined'&&(NOTIF_TYPES[n.tipo]||NOTIF_TYPES.novedad))||{};
+    document.querySelectorAll('.veri-notif-banner').forEach(e=>e.remove());
+    const el=document.createElement('button'); el.type='button'; el.className='veri-notif-banner';
+    el.innerHTML=`<span class="vnb-ico">${ty.icon||'🔔'}</span><span class="vnb-body"><strong>${escapeHtml(n.titulo||'Veri')}</strong><span>${escapeHtml(String(n.mensaje||'').slice(0,110))}</span></span>${newOnes.length>1?`<span class="vnb-more">+${newOnes.length-1}</span>`:''}`;
+    document.body.appendChild(el);
+    let closed=false; const close=()=>{ if(closed) return; closed=true; el.classList.add('out'); setTimeout(()=>el.remove(),420); };
+    el.onclick=()=>{ close(); openNotifPanel(); };
+    requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('in')));
+    setTimeout(close,5500);
+  }catch(e){ console.warn(e); }
+}
 function notifSystemPopup(n){
   try{
     if('Notification' in window && window.isSecureContext && Notification.permission==='granted'){
@@ -5619,16 +5659,20 @@ async function refreshNotifications(){
   state.notif.list = list; state.notif.loaded = true;
   if(wasLoaded){
     const me=notifMe(), seen=notifLastSeen();
-    list.filter(n=>!prevIds.has(String(n.id)) && normalize(n.autor_codigo||'')!==me && notifTs(n)>seen).slice(0,3).forEach(notifSystemPopup);
+    const fresh=list.filter(n=>!prevIds.has(String(n.id)) && normalize(n.autor_codigo||'')!==me && notifTs(n)>seen);
+    fresh.slice(0,3).forEach(notifSystemPopup);
+    if(fresh.length) setTimeout(()=>notifArrive(fresh),60);
   }
   if(document.getElementById('veriNotifOverlay')) notifMarkSeen();
   updateBellBadge(); renderNotifPanelList(); renderNotifHistoryInPlace();
 }
 function startNotifPolling(){
   if(notifPollTimer) return;
-  const tick=()=>{ if(document.hidden || !state.session) return; loadNotifSettings(); refreshNotifications(); };
-  notifPollTimer = setInterval(tick, 60000);
-  document.addEventListener('visibilitychange', tick);
+  let n=0;
+  const tick=()=>{ if(!state.session) return; if(n++%5===0) loadNotifSettings(); refreshNotifications(); };
+  notifPollTimer = setInterval(tick, NOTIF_POLL_INTERVAL_MS);   // igual que el carrito: sondeo periódico por REST
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) tick(); });
+  window.addEventListener('online', tick); window.addEventListener('focus', tick);
 }
 function initNotifications(){
   if(!state.session) return;
@@ -5967,9 +6011,15 @@ const TABS = [
   ['search', ()=>t('tabSearch'), ICONS.search],
   ['rep', ()=> (state.prefs.lang==='en' ? 'Tools' : 'Herramientas'), ICONS.rep],
 ];
+function veriIsWide(){ try{ return window.innerWidth>=768 && Math.min(screen.width,screen.height)>=600; }catch(e){ return false; } }
+function veriSyncWide(){ document.body.classList.toggle('veri-wide', veriIsWide()); }
+veriSyncWide(); window.addEventListener('resize',veriSyncWide);
 function render(){
   applyTheme();
   const app = document.getElementById('app');
+  // En pantallas grandes el lector de Nombrar queda activo entre renders: se conserva su nodo de video.
+  const keepCam = (veriIsWide() && state.cameraStream && activeWrapId==='namingCameraWrap') ? document.getElementById('namingCameraWrap') : null;
+  if(keepCam) keepCam.remove();
   const persona=state.personas.find(p=>p.codigo===normalize(state.session||''));
   const avatarInner=personAvatarInner(persona, state.session, 36);
   app.innerHTML = `
@@ -5988,6 +6038,11 @@ function render(){
     ${state.tab==='rep' ? renderRep() : ''}
     ${state.tab==='settings' ? renderSettings() : ''}
   `;
+  if(keepCam){
+    const ph=document.getElementById('namingCameraWrap');
+    if(ph){ ph.replaceWith(keepCam); const v=keepCam.querySelector('video'); if(v&&v.paused) v.play().catch(()=>{}); const cb=document.getElementById('namingCamBtn'); if(cb) cb.innerHTML=`${ICONS.camera} ${t('stopCamera')}`; }
+    else { keepCam.id='_oldNamingCam'; stopCamera(); }
+  }
   const avatarBtn=document.getElementById('topbarAvatarBtn');
   if(avatarBtn) avatarBtn.onclick=()=>{ stopCamera(); state.tab='settings'; render(); };
   const bellBtn=document.getElementById('topbarBellBtn');
@@ -6505,7 +6560,7 @@ function renderRep(){
     ['list','rep', ()=>t('repList')],
     ['naming','naming', ()=>t('repSubNaming')],
     ['quality','quality', ()=>t('repSubQuality')],
-    ...(hasAdminAccess() ? [['review','review', ()=>`Revisión <span class=\"review-count\">${getPendingPhotoReviewCount()}</span>`]] : []),
+    ...(hasAdminAccess() ? [['review','review', ()=>`Revisión`]] : []),
   ].filter(([id,flag])=>id==='review' ? hasAdminAccess() : toolVisible(flag));
   if(!subViews.some(([id])=>id===state.repView)){ state.repView = subViews.length ? subViews[0][0] : 'list'; }
   if(!subViews.length){ return `<div class="empty">${t('qualityEmpty')}</div>`; }
@@ -6538,17 +6593,24 @@ function renderRepNaming(){
     </div>
     ${subMode==='1x1' ? `
     <p class="small-note" style="margin:0 0 14px;">${t('downloadWindow')}</p>
-    <div class="card glass">
+    <div class="card glass naming-card">
       <div class="section-title">${t('namingNew')}</div>
-      <div class="field"><label>${t('namingBarcode')}</label><input type="text" id="namingBarcode" placeholder="${t('namingBarcodePlaceholder')}" style="text-transform:uppercase;" /></div>
-      <div id="namingCameraWrap"></div>
-      <div class="row" style="margin:8px 0 4px;"><button class="btn secondary block" id="namingCamBtn">${ICONS.camera} ${t('startCamera')}</button></div>
-      <div id="namingSuggestion"></div>
-      <div class="field" style="margin-top:10px;"><label>${t('namingName')}</label><textarea id="namingNombre" rows="2" style="text-transform:uppercase;resize:vertical;"></textarea></div>
-      <div id="namingFormatCheck"></div>
-      <div id="namingSpellCheck"></div>
-      <div id="namingAgreementsCheck"></div>
-      <button class="btn block" id="namingAddBtn">${t('namingAdd')}</button>
+      <div class="naming-split">
+        <div class="naming-col-scan">
+          <div class="field"><label>${t('namingBarcode')}</label><input type="text" id="namingBarcode" placeholder="${t('namingBarcodePlaceholder')}" style="text-transform:uppercase;" /></div>
+          <div id="namingCameraWrap"></div>
+          <div class="row" style="margin:8px 0 4px;"><button class="btn secondary block" id="namingCamBtn">${ICONS.camera} ${t('startCamera')}</button></div>
+          ${veriIsWide()?`<p class="small-note" style="margin:4px 0 0;">El lector sigue activo hasta que toques “Detener”.</p>`:''}
+        </div>
+        <div class="naming-col-form">
+          <div id="namingSuggestion"></div>
+          <div class="field" style="margin-top:10px;"><label>${t('namingName')}</label><textarea id="namingNombre" rows="${veriIsWide()?4:2}" autocapitalize="characters" style="text-transform:uppercase;resize:vertical;"></textarea></div>
+          <div id="namingFormatCheck"></div>
+          <div id="namingSpellCheck"></div>
+          <div id="namingAgreementsCheck"></div>
+          <button class="btn block" id="namingAddBtn">${t('namingAdd')}</button>
+        </div>
+      </div>
     </div>` : `
     <div class="card glass">
       <div class="section-title">${t('namingModeFast')}</div>
@@ -6619,11 +6681,11 @@ function renderNamingFastItem(e, order){
 }
 function renderNamingTodayPanel(items, selectedCount, allSelected){
   return `
-      <div class="row between" style="margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+      <div class="row between" style="margin-bottom:10px;">
         <div class="section-title" style="margin:0;">${t('namingListTitle')} (${items.length})${(()=>{const n=items.filter(i=>!String(i.id).startsWith('remote_')).length;return n?` <span class="small-note" style="color:#b45309;font-weight:600;">· ${n} ${t('namingPendingSync')}</span>`:'';})()}</div>
-        ${items.length?`<div class="row" style="gap:6px;flex-wrap:wrap;">
+        ${items.length?`<div class="row" style="gap:6px;">
           <button class="btn secondary sm" id="namingEditOrderBtn">${state.namingEditMode ? t('namingEditDone') : t('namingEditOrder')}</button>
-          ${!state.namingEditMode ? `<button class="btn secondary sm" id="namingDownloadBtn">${t('namingDownload')}</button><button class="btn sm" id="namingArchiveBtn">${t('namingArchiveBtn')}</button>` : ''}
+          ${!state.namingEditMode ? `<button class="btn secondary sm" id="namingDownloadBtn">${t('namingDownload')}</button>` : ''}
         </div>`:''}
       </div>
       ${state.namingEditMode && items.length ? `<div class="naming-bulkbar">
@@ -6651,10 +6713,10 @@ function renderNamingArchivedPanel(){
   const items = a.byDate[selected] || [];
   return `
       <div class="pill-toggle" style="flex-wrap:wrap;margin-bottom:10px;">
-        ${a.dates.map(d=>`<button data-archiveddate="${d}" class="${d===selected?'active':''}">${namingDateLabel(d)}</button>`).join('')}
+        ${a.dates.map(d=>`<button data-archiveddate="${d}" class="${d===selected?'active':''}">${d}</button>`).join('')}
       </div>
       <div class="row between" style="margin-bottom:10px;">
-        <div class="section-title" style="margin:0;">${namingDateLabel(selected)} (${items.length} ${t('archivedCount')})</div>
+        <div class="section-title" style="margin:0;">${selected} (${items.length} ${t('archivedCount')})</div>
         ${items.length ? `<button class="btn secondary sm" id="archivedDownloadBtn" data-archiveddownload="${selected}">${t('archivedDownload')}</button>` : ''}
       </div>
       ${items.length ? items.map(r=>`<div class="drag-item naming-item">
@@ -6664,12 +6726,11 @@ function renderNamingArchivedPanel(){
   `;
 }
 function renderNamingItem(it, order){
-  healNamingDup(it);
   const editMode = state.namingEditMode;
   const selected = state.namingSelected.includes(it.id);
   return `<div class="drag-item naming-item${editMode?' edit-mode':''}" data-dragid="${it.id}">
     ${editMode ? `<div class="naming-select${selected?' selected':''}" data-selectnaming="${it.id}" role="checkbox" aria-checked="${selected}">${selected?NAMING_CHECK_ICON:''}</div>` : `<div class="naming-order">${order}</div>`}
-    <div class="naming-item-info"${editMode?` data-selectnaming="${it.id}"`:''}><div class="name">${it.nombre}</div><div class="code">${it.codigo}${it.duplicado ? ` · <span class="naming-dup-badge severity-${dupSeverity(it.duplicadoTipo)}">${dupSeverity(it.duplicadoTipo)==='alta'?'🔴':'⚠️'} ${t('namingDupWith')} ${it.duplicadoCodigo||''}</span>`:''}${it.sessionDup ? ` · 🔁 ${t('namingSessionDupBadge')} ${it.sessionDupCode||''}`:''}</div>${it.veriChecking ? `<div class="small-note" style="margin-top:2px;">${t('namingVeriChecking')}</div>` : (it.veriChecked && it.veriReason ? `<div class="small-note" style="margin-top:2px;font-style:italic;">"${escapeHtml(it.veriReason)}"</div>` : '')}</div>
+    <div class="naming-item-info"${editMode?` data-selectnaming="${it.id}"`:''}><div class="name">${it.nombre}</div><div class="code">${it.codigo}${it.duplicado ? ` · <span class="naming-dup-badge severity-${dupSeverity(it.duplicadoTipo)}">${dupSeverity(it.duplicadoTipo)==='alta'?'🔴':'⚠️'} ${t('namingDupWith')} ${it.duplicadoCodigo}</span>`:''}${it.sessionDup ? ` · 🔁 ${t('namingSessionDupBadge')} ${it.sessionDupCode||''}`:''}</div>${it.veriChecking ? `<div class="small-note" style="margin-top:2px;">${t('namingVeriChecking')}</div>` : (it.veriChecked && it.veriReason ? `<div class="small-note" style="margin-top:2px;font-style:italic;">"${escapeHtml(it.veriReason)}"</div>` : '')}</div>
     ${editMode ? `<div class="drag-handle" data-drag-handle title="${t('reorderHint')}">⠿</div>` : `<div class="naming-actions">
       ${it.duplicado ? `<button type="button" class="btn ghost sm naming-action-btn naming-preview-btn" data-previewnaming="${it.id}" aria-label="${t('namingPreview')}" title="${t('namingPreview')}">${ICONS.eye}<span>${t('namingPreview')}</span></button>` : ''}
       <button type="button" class="btn ghost sm naming-action-btn" data-editnaming="${it.id}" aria-label="${t('edit')}" title="${t('edit')}">${ICONS.edit}<span>${t('edit')}</span></button>
@@ -6682,7 +6743,6 @@ function closeNamingPreview(){ const el=document.getElementById('namingPreviewOv
 function openNamingPreview(itemId){
   const it = findNamingItemById(itemId);
   if(!it || !it.duplicado) return;
-  healNamingDup(it);
   // Se usa el nombre guardado en el momento de la detección (it.duplicadoNombre), igual que hace
   // Calidad. Buscar de nuevo por código puede traer un producto distinto si el código quedó
   // repetido en la base entre varios nombres, así que solo se recurre a esa búsqueda como respaldo
@@ -6704,7 +6764,7 @@ function openNamingPreview(itemId){
     <div class="preview-reason severity-${severity}">${severity==='alta'?'🔴':'⚠️'} ${reasonText}</div>
     <div class="preview-block">
       <div class="label">${t('namingPreviewMatch')}</div>
-      <div class="name">${dupNombre || it.duplicadoCodigo || '—'}</div>
+      <div class="name">${dupNombre || it.duplicadoCodigo}</div>
       <div class="code">${it.duplicadoCodigo||''}</div>
     </div>
     <button type="button" class="btn secondary block" id="namingPreviewCloseBtn2">${t('namingEditDone')}</button>
@@ -6787,8 +6847,31 @@ function veriClampPan(img,stage,s,r,x,y,curX,curY){
     return [ox+Math.max(-mx,Math.min(mx,x-ox)), oy+Math.max(-my,Math.min(my,y-oy))];
   }catch(e){ return [x,y]; }
 }
-function applyInlineReviewTransform(img,scale,rotation,x,y){
-  [x,y]=veriClampPan(img,img.closest('[data-review-stage]'),scale,rotation,x,y,Number(img.dataset.x||0),Number(img.dataset.y||0));
+function veriClampPanStatic(img,stage,s,r,x,y){
+  // Igual que veriClampPan pero sin leer posiciones en pantalla: sirve mientras hay una animación en curso.
+  const sw=stage.clientWidth, sh=stage.clientHeight; let bw=img.offsetWidth, bh=img.offsetHeight;
+  if(Math.round((Number(r)||0)/90)%2!==0){ const t0=bw; bw=bh; bh=t0; }
+  const mx=Math.max(0,(bw*s-sw)/2), my=Math.max(0,(bh*s-sh)/2);
+  return [Math.max(-mx,Math.min(mx,x)), Math.max(-my,Math.min(my,y))];
+}
+function veriSmooth(img,ms){
+  img.style.setProperty('--zdur',ms+'ms'); img.classList.add('smooth');
+  clearTimeout(img._smT); img._smT=setTimeout(()=>img.classList.remove('smooth'),ms+80);
+}
+function veriZoomTo(img,newScale,px,py,ms,rotation){
+  // Cambia el zoom manteniendo fijo el punto (px,py) medido desde el centro del marco, con animación suave.
+  const stage=img.closest('[data-review-stage]'); if(!stage) return;
+  const s0=Number(img.dataset.zoom||1), x0=Number(img.dataset.x||0), y0=Number(img.dataset.y||0);
+  const r=rotation===undefined?Number(img.dataset.rotation||0):rotation;
+  newScale=Math.max(.5,Math.min(6,newScale));
+  const k=newScale/s0; let x=px-(px-x0)*k, y=py-(py-y0)*k;
+  if(newScale<=1){ x=0; y=0; }
+  [x,y]=veriClampPanStatic(img,stage,newScale,r,x,y);
+  veriSmooth(img,ms);
+  applyInlineReviewTransform(img,newScale,r,x,y,true);
+}
+function applyInlineReviewTransform(img,scale,rotation,x,y,direct){
+  if(!direct) [x,y]=veriClampPan(img,img.closest('[data-review-stage]'),scale,rotation,x,y,Number(img.dataset.x||0),Number(img.dataset.y||0));
   img.dataset.zoom=String(scale);img.dataset.rotation=String(rotation);img.dataset.x=String(x);img.dataset.y=String(y);
   img.style.transform=`translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;
   const label=document.querySelector(`[data-review-zoom-label="${CSS.escape(img.dataset.reviewInlineImage||'')}"]`);if(label)label.textContent=`${Math.round(scale*100)}%`;
@@ -6801,8 +6884,10 @@ function renderRepReview(){
   const item=queue[idx], r=item.repetition||item, photoPath=item.path||r.fotoPath, url=veriPhotoUrl(photoPath), pct=Math.round((idx/queue.length)*100);
   const reviewId=item.legacy?r.id:item.id;
   const reason=item.motivo||r.revisionMotivo||'';
-  return `<div class="card glass" style="padding:16px 18px;margin-bottom:12px"><div class="row" style="justify-content:space-between;align-items:center;gap:12px"><div><strong>Revisión de repeticiones</strong><div class="small-note" style="margin-top:3px">Foto ${idx+1} de ${queue.length} pendientes · ${state.repetitionPhotos.length?`${(state.repetitionPhotos.filter(f=>String(f.repeticionId)===String(r.id)).filter(f=>f.estado==='aprobada').length)} aprobadas de ${(state.repetitionPhotos.filter(f=>String(f.repeticionId)===String(r.id)).length)}`:'foto individual'}</div></div><span class="review-count" style="font-size:12px;height:25px;min-width:25px">${queue.length}</span></div><div class="rep-review-progress"><span style="width:${pct}%"></span></div></div>
-  <div class="rep-review-shell"><section class="card glass rep-review-info"><div><div class="small-note">PRODUCTO</div><h2 style="font-size:22px;margin:4px 0 10px">${escapeHtml(r.nombreProducto||'Producto sin nombre')}</h2><div class="rep-detail"><strong>Código:</strong> ${escapeHtml(r.codigoProducto||'—')}</div><div class="rep-detail"><strong>Código de barras:</strong> ${escapeHtml(r.codigoBarras||'—')}</div><div class="rep-detail"><strong>Fotógrafo:</strong> ${escapeHtml(r.fotografo||'—')}</div><div class="rep-detail"><strong>Archivo:</strong> ${escapeHtml(item.nombreArchivo||String(photoPath||'').split('/').pop())}</div></div><div class="warning-banner"><span><strong>Motivo de repetición</strong><br>${escapeHtml(r.motivo||'No se indicó un motivo.')}</span></div>${reason?`<div class="warning-banner"><span><strong>Motivo de devolución</strong><br>${escapeHtml(reason)}</span></div>`:''}<div class="row wrap" style="gap:8px"><button class="btn rep-review-action" data-review-approve="${reviewId}" data-review-photo-mode="${item.legacy?'legacy':'multi'}">✓ Aprobar foto</button><button class="btn secondary rep-review-action" data-review-retake="${reviewId}" data-review-photo-mode="${item.legacy?'legacy':'multi'}">↻ Devolver para repetir</button></div><button class="btn ghost rep-review-action" data-review-next="${reviewId}">Siguiente foto →</button><div class="small-note">El producto se archiva automáticamente cuando todas sus fotos están aprobadas. La descarga usa el código del producto.</div></section><section class="card glass" style="padding:12px"><div class="rep-review-photo" data-review-stage="${reviewId}">${url?`<img src="${url}" alt="Foto de ${escapeHtml(r.nombreProducto||r.codigoProducto||'producto')}" data-review-inline-image="${reviewId}" draggable="false">`:'<p class="small-note">No hay imagen disponible.</p>'}</div>${url?`<div class="rep-review-inline-controls"><button type="button" class="btn secondary sm" data-review-zoom="out" aria-label="Alejar">−</button><span class="rep-review-zoom-label" data-review-zoom-label="${reviewId}">100%</span><button type="button" class="btn secondary sm" data-review-zoom="in" aria-label="Acercar">＋</button><button type="button" class="btn secondary sm" data-review-reset="${reviewId}">Ajustar</button><button type="button" class="btn secondary sm" data-review-rotate="${reviewId}">↻ Girar</button><a class="btn secondary sm" href="${url}" target="_blank" rel="noopener">Abrir original ↗</a></div>`:''}</section></div>`;
+  const _ph=state.repetitionPhotos.filter(f=>String(f.repeticionId)===String(r.id)), _ap=_ph.filter(f=>f.estado==='aprobada').length;
+  const ring=`<div class="rep-review-head"><div class="rep-ring" role="img" aria-label="Foto ${idx+1} de ${queue.length}"><svg viewBox="0 0 48 48"><circle class="trk" cx="24" cy="24" r="19"/><circle class="bar" cx="24" cy="24" r="19" style="--off:${(119.38*(1-(idx+1)/queue.length)).toFixed(2)}"/></svg><b>${queue.length}</b></div><div><strong>Revisión de repeticiones</strong><div class="small-note" style="margin-top:2px">Foto ${idx+1} de ${queue.length} · ${_ph.length?`${_ap} de ${_ph.length} aprobadas`:'foto individual'}</div></div></div>`;
+  return `
+  <div class="rep-review-shell"><section class="card glass rep-review-info">${ring}<div><div class="small-note">PRODUCTO</div><h2 style="font-size:22px;margin:4px 0 10px">${escapeHtml(r.nombreProducto||'Producto sin nombre')}</h2><div class="rep-detail"><strong>Código:</strong> ${escapeHtml(r.codigoProducto||'—')}</div><div class="rep-detail"><strong>Código de barras:</strong> ${escapeHtml(r.codigoBarras||'—')}</div><div class="rep-detail"><strong>Fotógrafo:</strong> ${escapeHtml(r.fotografo||'—')}</div><div class="rep-detail"><strong>Archivo:</strong> ${escapeHtml(item.nombreArchivo||String(photoPath||'').split('/').pop())}</div></div><div class="warning-banner"><span><strong>Motivo de repetición</strong><br>${escapeHtml(r.motivo||'No se indicó un motivo.')}</span></div>${reason?`<div class="warning-banner"><span><strong>Motivo de devolución</strong><br>${escapeHtml(reason)}</span></div>`:''}<div class="row wrap" style="gap:8px"><button class="btn rep-review-action" data-review-approve="${reviewId}" data-review-photo-mode="${item.legacy?'legacy':'multi'}">✓ Aprobar foto</button><button class="btn secondary rep-review-action" data-review-retake="${reviewId}" data-review-photo-mode="${item.legacy?'legacy':'multi'}">↻ Devolver para repetir</button></div><button class="btn ghost rep-review-action" data-review-next="${reviewId}">Siguiente foto →</button><div class="small-note">El producto se archiva automáticamente cuando todas sus fotos están aprobadas. La descarga usa el código del producto.</div></section><section class="card glass" style="padding:12px"><div class="rep-review-photo" data-review-stage="${reviewId}">${url?`<img src="${url}" alt="Foto de ${escapeHtml(r.nombreProducto||r.codigoProducto||'producto')}" data-review-inline-image="${reviewId}" draggable="false">`:'<p class="small-note">No hay imagen disponible.</p>'}</div>${url?`<div class="rep-review-inline-controls"><button type="button" class="btn secondary sm" data-review-zoom="out" aria-label="Alejar">−</button><span class="rep-review-zoom-label" data-review-zoom-label="${reviewId}">100%</span><button type="button" class="btn secondary sm" data-review-zoom="in" aria-label="Acercar">＋</button><button type="button" class="btn secondary sm" data-review-reset="${reviewId}">Ajustar</button><button type="button" class="btn secondary sm" data-review-rotate="${reviewId}">↻ Girar</button><a class="btn secondary sm" href="${url}" target="_blank" rel="noopener">Abrir original ↗</a></div>`:''}</section></div>`;
 }
 function repParseId(code){
   const m=String(code||'').trim().match(/^(\d{8})[_\-]([^_\-\s]+)[_\-](\d+)/);
@@ -6986,10 +7071,10 @@ function saveRepPhotoToDevice(file, repId){
     }));
   }catch(e){ console.warn(e); }
 }
-async function uploadVeriPhoto(file, repId, opts){
+async function uploadVeriPhoto(file, repId){
   if(!file) return null;
   if(!file.type || !file.type.startsWith('image/')) throw new Error('Selecciona un archivo de imagen.');
-  if(!(opts&&opts.noSave)) saveRepPhotoToDevice(file, repId);
+  saveRepPhotoToDevice(file, repId);
   if(file.size>30*1024*1024) throw new Error('La foto debe pesar menos de 30 MB.');
   const path=`${normalize(state.session||'anon')}/${repId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
   // Se pasa el File original directamente a Storage; no hay canvas ni compresión intermedia.
@@ -7852,10 +7937,14 @@ function bindTabEvents(){
         catch(err){ toast(t('errorImport')); }
       });
       document.querySelectorAll('[data-archive]').forEach(b=> b.onclick = async ()=>{
-        const r = state.repeticiones.find(x=>x.id===b.dataset.archive);
+        const r = state.repeticiones.find(x=>String(x.id)===String(b.dataset.archive)); if(!r) return;
         const next = !r.archivado;
-        try{ await sb(`repeticiones?id=eq.${r.id}`, {method:'PATCH', body:JSON.stringify({archivado:next}), headers:{'Prefer':'return=minimal'}}); r.archivado=next; render(); }
-        catch(err){ toast(t('errorImport')); }
+        if(!confirm(next?'¿Archivar esta repetición? Saldrá de la lista activa y quedará en Archivadas.':'¿Desarchivar esta repetición?')) return;
+        r.archivado=next; (state.repArchiveLocks||(state.repArchiveLocks={}))[String(r.id)]={v:next,t:Date.now()}; render();   // se refleja al instante
+        try{
+          const rows=await sb(`repeticiones?id=eq.${encodeURIComponent(r.id)}`, {method:'PATCH', body:JSON.stringify({archivado:next}), headers:{'Prefer':'return=representation'}});
+          if(!rows||!rows.length) throw new Error('Supabase no actualizó la fila');
+        }catch(err){ console.error(err); r.archivado=!next; delete state.repArchiveLocks[String(r.id)]; render(); toast('No se pudo archivar. Intenta de nuevo.'); }
       });
       document.querySelectorAll('[data-del]').forEach(b=> b.onclick = async ()=>{
         if(!confirm(t('confirmDeleteRep'))) return;
@@ -7887,7 +7976,7 @@ function bindTabEvents(){
       if(bcInput){
         bcInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); updateNamingSuggestion(); document.getElementById('namingNombre').focus(); } });
         bcInput.addEventListener('blur', updateNamingSuggestion);
-        document.getElementById('namingCamBtn').onclick = ()=>{ state.cameraStream ? stopCamera() : startCamera('namingCameraWrap','namingCamBtn', onNamingCodeScanned); };
+        document.getElementById('namingCamBtn').onclick = ()=>{ state._namingLastCode=''; state.cameraStream ? stopCamera() : startCamera('namingCameraWrap','namingCamBtn', onNamingCodeScanned); };
         const nombreInput = document.getElementById('namingNombre');
         const spellWrap = document.getElementById('namingSpellCheck');
         const formatWrap = document.getElementById('namingFormatCheck');
@@ -8011,8 +8100,6 @@ function bindTabEvents(){
       bindNamingDrag();
       const dlBtn = document.getElementById('namingDownloadBtn');
       if(dlBtn) dlBtn.onclick = downloadNamingExcel;
-      const arBtn = document.getElementById('namingArchiveBtn');
-      if(arBtn) arBtn.onclick = archiveNamingDay;
       const editOrderBtn = document.getElementById('namingEditOrderBtn');
       if(editOrderBtn) editOrderBtn.onclick = ()=>{
         state.namingEditMode = !state.namingEditMode;
@@ -8104,7 +8191,7 @@ function bindTabEvents(){
     const savePhotosSwitch = document.getElementById('savePhotosSwitch');
     if(savePhotosSwitch) savePhotosSwitch.onchange = (e)=>{ state.prefs.savePhotosToDevice = e.target.checked; savePrefs(); };
     const liteSwitch = document.getElementById('liteModeSwitch');
-    if(liteSwitch) liteSwitch.onchange = (e)=>{ state.prefs.liteMode = e.target.checked; savePrefs(); applyLiteMode(); };
+    if(liteSwitch) liteSwitch.onchange = (e)=>{ state.prefs.liteMode = e.target.checked; savePrefs(); veriLiteToggle(!!e.target.checked, e.target.closest('.switch')||e.target); };
     const vibSwitch = document.getElementById('vibrationSwitch');
     if(vibSwitch) vibSwitch.onchange = (e)=>{ state.prefs.vibration = e.target.checked; savePrefs(); };
     const soundSwitch = document.getElementById('soundSwitch');
@@ -8263,14 +8350,19 @@ function bindTabEvents(){
   }
   if(state.tab==='rep' && state.repView==='review' && hasAdminAccess()){
     document.querySelectorAll('[data-review-next]').forEach(b=>b.onclick=()=>{state.repReviewIndex=(state.repReviewIndex||0)+1;render();});
-    document.querySelectorAll('[data-review-zoom]').forEach(b=>b.onclick=()=>{const id=String(document.querySelector('[data-review-inline-image]')?.dataset.reviewInlineImage||'');const img=document.querySelector(`[data-review-inline-image="${CSS.escape(id)}"]`);if(!img)return;const z=Number(img.dataset.zoom||1);applyInlineReviewTransform(img,b.dataset.reviewZoom==='in'?Math.min(6,z+.25):Math.max(.5,z-.25),Number(img.dataset.rotation||0),Number(img.dataset.x||0),Number(img.dataset.y||0));});
-    document.querySelectorAll('[data-review-reset]').forEach(b=>b.onclick=()=>{const img=document.querySelector(`[data-review-inline-image="${CSS.escape(b.dataset.reviewReset)}"]`);if(img)applyInlineReviewTransform(img,1,0,0,0);});
-    document.querySelectorAll('[data-review-rotate]').forEach(b=>b.onclick=()=>{const img=document.querySelector(`[data-review-inline-image="${CSS.escape(b.dataset.reviewRotate)}"]`);if(img)applyInlineReviewTransform(img,Number(img.dataset.zoom||1),(Number(img.dataset.rotation||0)+90)%360,Number(img.dataset.x||0),Number(img.dataset.y||0));});
+    const revImg=()=>document.querySelector('[data-review-inline-image]');
+    document.querySelectorAll('[data-review-zoom]').forEach(b=>b.onclick=()=>{const img=revImg();if(!img)return;const z=Number(img.dataset.zoom||1);veriZoomTo(img,b.dataset.reviewZoom==='in'?z*1.35:z/1.35,0,0,260);});
+    document.querySelectorAll('[data-review-reset]').forEach(b=>b.onclick=()=>{const img=revImg();if(img)veriZoomTo(img,1,0,0,420,0);});
+    document.querySelectorAll('[data-review-rotate]').forEach(b=>b.onclick=()=>{const img=revImg();if(!img)return;veriZoomTo(img,Number(img.dataset.zoom||1),0,0,380,Number(img.dataset.rotation||0)+90);});
     document.querySelectorAll('[data-review-inline-image]').forEach(img=>{
       const stage=img.closest('[data-review-stage]'); let drag=null;
-      const updateZoom=e=>{e.preventDefault();const z=Number(img.dataset.zoom||1);applyInlineReviewTransform(img,Math.max(.5,Math.min(6,z+(e.deltaY<0?.15:-.15))),Number(img.dataset.rotation||0),Number(img.dataset.x||0),Number(img.dataset.y||0));};
-      stage?.addEventListener('wheel',updateZoom,{passive:false});
-      stage?.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,ox:Number(img.dataset.x||0),oy:Number(img.dataset.y||0)};img.setPointerCapture?.(e.pointerId);});
+      const rel=e=>{const sr=stage.getBoundingClientRect();return [e.clientX-(sr.left+sr.width/2), e.clientY-(sr.top+sr.height/2)];};
+      stage?.addEventListener('wheel',e=>{e.preventDefault();const z=Number(img.dataset.zoom||1);const f=Math.exp(-Math.max(-120,Math.min(120,e.deltaY))*.002);const [px,py]=rel(e);veriZoomTo(img,z*f,px,py,140);},{passive:false});
+      stage?.addEventListener('dblclick',e=>{e.preventDefault();const z=Number(img.dataset.zoom||1), moved=Math.abs(Number(img.dataset.x||0))>1||Math.abs(Number(img.dataset.y||0))>1;const [px,py]=rel(e);
+        if(z>1.02||moved||z<.98) veriZoomTo(img,1,0,0,460);       // ya tenía zoom → vuelve a ajustarse
+        else veriZoomTo(img,2.6,px,py,460);                        // sin zoom → acerca a la zona tocada
+      });
+      stage?.addEventListener('pointerdown',e=>{ if(e.detail>1) return; img.classList.remove('smooth'); clearTimeout(img._smT); drag={x:e.clientX,y:e.clientY,ox:Number(img.dataset.x||0),oy:Number(img.dataset.y||0)};img.setPointerCapture?.(e.pointerId);});
       stage?.addEventListener('pointermove',e=>{if(!drag)return;applyInlineReviewTransform(img,Number(img.dataset.zoom||1),Number(img.dataset.rotation||0),drag.ox+e.clientX-drag.x,drag.oy+e.clientY-drag.y);});
       const end=()=>{drag=null;};stage?.addEventListener('pointerup',end);stage?.addEventListener('pointercancel',end);
     });
@@ -8424,7 +8516,6 @@ function openRepCapture(r){
     <div class="rep-cap-actions">
       <button type="button" class="rep-cap-btn primary" id="repCapTake">📷 Tomar foto</button>
       <label class="rep-cap-btn" for="repCapPick">🖼️ Adjuntar foto</label>
-      <button type="button" class="rep-cap-btn" id="repCapDownload">⬇️ Descargar fotos</button>
       <input id="repCapCam" type="file" accept="image/*" capture="environment" style="display:none">
       <input id="repCapPick" type="file" accept="image/*" multiple style="display:none">
     </div>
@@ -8437,9 +8528,8 @@ function openRepCapture(r){
   const cam=m.querySelector('#repCapCam'), pick=m.querySelector('#repCapPick');
   cam.onchange=()=>{ repCapAddFiles(Array.from(cam.files||[])); cam.value=''; };
   pick.onchange=()=>{ repCapAddFiles(Array.from(pick.files||[])); pick.value=''; };
-  m.querySelector('#repCapTake').onclick=()=>{ cam.click(); }; /* abre la cámara nativa del celular (input capture) */
+  m.querySelector('#repCapTake').onclick=()=>{ if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia) repCapLiveStart(); else cam.click(); };
   m.querySelector('#repCapSend').onclick=repCapSubmit;
-  m.querySelector('#repCapDownload').onclick=repCapDownload;
   repCapRenderThumbs();
 }
 function repCapAddFiles(files){
@@ -8459,39 +8549,14 @@ function repCapRenderThumbs(){
   const n=c.files.length, cnt=document.getElementById('repCapCount'), send=document.getElementById('repCapSend');
   if(cnt) cnt.textContent = n ? `${n} foto${n===1?'':'s'}` : 'Sin fotos';
   if(send){ send.disabled = !n || c.busy; send.textContent = c.busy ? 'Enviando…' : 'Enviar'; }
-  const dl=document.getElementById('repCapDownload'); if(dl) dl.disabled = !n || c.busy;
-}
-function repShowSent(n){
-  const old=document.getElementById('repSentOverlay'); if(old) old.remove();
-  const o=document.createElement('div'); o.id='repSentOverlay';
-  o.style.cssText='position:fixed;inset:0;z-index:100010;background:rgba(5,8,14,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff;text-align:center;padding:24px;font-family:inherit';
-  o.innerHTML=`<div style="width:92px;height:92px;border-radius:50%;background:#30d158;display:flex;align-items:center;justify-content:center;font-size:54px;line-height:1">✓</div><div style="font-size:26px;font-weight:700">¡Enviado!</div><div style="font-size:15px;opacity:.85">${n} foto${n===1?'':'s'} enviada${n===1?'':'s'} · quedó en revisión</div>`;
-  const close=()=>{ if(o.parentNode) o.remove(); };
-  o.onclick=close; document.body.appendChild(o); setTimeout(close,2200);
-}
-async function repCapDownload(){
-  const c=state.repCapture; if(!c) return;
-  if(!c.files.length){ toast('Primero toma una foto.'); return; }
-  const r=repCapRow();
-  const base=String((r&&r.codigoProducto)||c.id||'foto').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,40);
-  const files=c.files.map((it,i)=>{ const ext=((it.file.name||'').match(/\.([a-zA-Z0-9]{2,5})$/)||[])[1]||'jpg'; return new File([it.file],'Veri_'+base+'_'+(i+1)+'.'+ext,{type:it.file.type||'image/jpeg'}); });
-  try{ if(navigator.canShare && navigator.canShare({files})){ await navigator.share({files}); return; } }
-  catch(e){ if(e&&e.name==='AbortError') return; }
-  for(const f of files){
-    try{ const url=URL.createObjectURL(f), a=document.createElement('a'); a.href=url; a.download=f.name; a.style.display='none'; document.body.appendChild(a); a.click(); setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); },4000); }catch(e){ console.warn(e); }
-    await new Promise(res=>setTimeout(res,700));
-  }
 }
 async function repCapSubmit(){
   const c=state.repCapture, r=repCapRow(); if(!c||!r||c.busy||!c.files.length) return;
-  // Recordatorio: guardar las fotos en el celular antes de enviarlas
-  const go=await veriConfirm({title:'Recuerda guardar las fotos', body:'Antes de enviar, guarda las fotos en tu celular por si algo falla.', okText:'OK, enviar', extraText:'⬇️ Guardar fotos', onExtra:repCapDownload});
-  if(!go || state.repCapture!==c) return;
   c.busy=true; repCapLiveStop(); repCapRenderThumbs();
   try{
     let first=null;
     for(const it of c.files){            // cada archivo se sube una sola vez, aunque haya que reintentar el envío
-      if(!it.path){ it.path=await uploadVeriPhoto(it.file, r.id, {noSave:true}); }
+      if(!it.path){ it.path=await uploadVeriPhoto(it.file, r.id); }
       if(!it.saved){ await insertRepPhoto(r.id, it.path, it.file.name); it.saved=true; }
       if(!first) first=it.path;
     }
@@ -8501,9 +8566,9 @@ async function repCapSubmit(){
       {estado:'sent', archivado:false, foto_path:first, foto_subida_en:now, revision_estado:'pendiente', revision_motivo:''});
     Object.assign(r,{estado:'sent',archivado:false,fotoPath:first,fotoSubidaEn:now,revisionEstado:'pendiente',revisionMotivo:'',enProcesoPor:'',enProcesoDesde:null});
     const n=c.files.length;
-    try{ await refreshRepPhotos(); }catch(e2){ console.warn(e2); }
+    await refreshRepPhotos();
     await closeRepCapture(false);
-    repShowSent(n);
+    toast(`✓ ${n} foto${n===1?'':'s'} enviada${n===1?'':'s'} · quedó en revisión`);
     render();
   }catch(e){
     console.error(e); c.busy=false; repCapRenderThumbs();
@@ -8522,6 +8587,51 @@ function repCapLiveStop(){
   const b=document.getElementById('repCapLive'); if(b) b.remove();
   if(c) repCapRenderThumbs();
 }
+async function repCapLiveStart(){
+  const m=document.getElementById('repCaptureModal'), c=state.repCapture; if(!m||!c||c.busy) return;
+  repCapLiveStop();
+  let stream;
+  try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:4096},height:{ideal:3072}},audio:false}); }
+  catch(e){ toast('No se pudo abrir la cámara. Revisa el permiso del navegador.'); const cam=document.getElementById('repCapCam'); if(cam) cam.click(); return; }
+  c.stream=stream;
+  const track=stream.getVideoTracks()[0];
+  const box=document.createElement('div'); box.id='repCapLive'; box.className='rep-cap-live';
+  box.innerHTML=`<div class="veri-photo-modal-head"><div class="veri-photo-modal-title">Tomar fotos</div><button type="button" id="repCapLiveClose">✓ Listo</button></div>
+    <div class="rep-cap-live-stage" style="position:relative"><video id="repCapVideo" autoplay playsinline muted></video><div class="rep-cap-flash" id="repCapFlash"></div></div>
+    <div id="repCapLiveThumbs" class="rep-cap-live-thumbs"></div>
+    <div class="rep-cap-live-bar"><span id="repCapLiveN" class="veri-photo-modal-note"></span><button type="button" id="repCapShoot" class="rep-cap-shutter" aria-label="Tomar foto"></button></div>`;
+  m.appendChild(box);
+  const video=box.querySelector('#repCapVideo');
+  video.srcObject=stream;
+  const paint=()=>{
+    const tb=box.querySelector('#repCapLiveThumbs'); if(!tb) return;
+    tb.innerHTML=c.files.map((f,i)=>`<div class="rep-cap-thumb"><img src="${f.url}" alt="Foto ${i+1}"><button type="button" class="rep-cap-del" data-live-del="${i}" aria-label="Quitar foto ${i+1}">✕</button></div>`).join('');
+    tb.querySelectorAll('[data-live-del]').forEach(b=>b.onclick=()=>{ const i=Number(b.dataset.liveDel), f=c.files[i]; if(!f) return; try{URL.revokeObjectURL(f.url);}catch(e){} c.files.splice(i,1); paint(); });
+    tb.scrollLeft=tb.scrollWidth;
+    const n=box.querySelector('#repCapLiveN'); if(n) n.textContent=c.files.length?`${c.files.length} foto${c.files.length===1?'':'s'}`:'';
+  };
+  paint();
+  box.querySelector('#repCapLiveClose').onclick=repCapLiveStop;
+  let shooting=false;
+  box.querySelector('#repCapShoot').onclick=async()=>{
+    if(shooting) return; shooting=true;
+    try{
+      let blob=null;
+      if(window.ImageCapture){ try{ blob=await new ImageCapture(track).takePhoto(); }catch(e){ blob=null; } }
+      if(!blob){
+        const vw=video.videoWidth, vh=video.videoHeight; if(!vw||!vh){ toast('La cámara aún no está lista.'); return; }
+        const cv=document.createElement('canvas'); cv.width=vw; cv.height=vh;
+        cv.getContext('2d').drawImage(video,0,0,vw,vh);
+        blob=await new Promise(res=>cv.toBlob(res,'image/jpeg',0.95));
+      }
+      if(!blob){ toast('No se pudo capturar la foto.'); return; }
+      const fl=box.querySelector('#repCapFlash'); if(fl){ fl.style.opacity='.8'; setTimeout(()=>fl.style.opacity='0',90); }
+      c.files.push({file:new File([blob],`veri_${Date.now()}.jpg`,{type:blob.type||'image/jpeg'}), url:null, path:null, saved:false});
+      const it=c.files[c.files.length-1]; it.url=URL.createObjectURL(it.file);
+      paint();
+    } finally { shooting=false; }
+  };
+}
 
 /* ---- Actualización en vivo (cada 10 s, igual que el carrito) ---- */
 let __repPolling=false;
@@ -8530,7 +8640,7 @@ async function pollRepeticiones(force){
   if(__repPolling) return; __repPolling=true;
   try{
     const raw=await sb('repeticiones?select=*&order=fecha.desc',{silent:true});
-    const mapped=(raw||[]).map(mapRepRow);
+    const mapped=repApplyArchiveLocks((raw||[]).map(mapRepRow));
     if(force || repSig(mapped)!==repSig(state.repeticiones)){
       state.repeticiones=mapped;
       await refreshRepPhotos();
@@ -8552,9 +8662,9 @@ function openVeriPhotoPreview(url, title){
     document.body.appendChild(modal);
     const img=modal.querySelector('#veriPhotoLarge'), stage=modal.querySelector('#veriPhotoStage');
     let scale=1, rotation=0, x=0, y=0, dragging=false, startX=0, startY=0, originX=0, originY=0;
-    let ax=0,ay=0;const update=()=>{const c=veriClampPan(img,stage,scale,rotation,x,y,ax,ay);x=c[0];y=c[1];ax=x;ay=y;img.style.transform=`translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;modal.querySelector('#veriPhotoZoomLabel').textContent=`${Math.round(scale*100)}%`;};
+    let ax=0,ay=0;const update=()=>{const c=veriClampPanStatic(img,stage,scale,rotation,x,y);x=c[0];y=c[1];ax=x;ay=y;img.style.transform=`translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;modal.querySelector('#veriPhotoZoomLabel').textContent=`${Math.round(scale*100)}%`;};
     const reset=(fit=true)=>{scale=fit?1:1;rotation=0;x=0;y=0;update();};
-    const zoom=(delta)=>{scale=Math.max(0.5,Math.min(6,scale+delta));update();};
+    const zoom=(delta)=>{veriSmooth(img,160);scale=Math.max(0.5,Math.min(6,scale+delta));update();};
     modal.querySelector('#veriPhotoZoomIn').onclick=()=>zoom(.25);
     modal.querySelector('#veriPhotoZoomOut').onclick=()=>zoom(-.25);
     modal.querySelector('#veriPhotoActual').onclick=()=>{scale=1;x=0;y=0;update();};
@@ -8563,7 +8673,9 @@ function openVeriPhotoPreview(url, title){
     modal.querySelector('#veriPhotoClose').onclick=()=>{modal.hidden=true;document.body.style.overflow='';};
     modal.addEventListener('click',e=>{if(e.target===modal){modal.hidden=true;document.body.style.overflow='';}});
     stage.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY<0?.15:-.15);},{passive:false});
-    stage.addEventListener('pointerdown',e=>{dragging=true;startX=e.clientX;startY=e.clientY;originX=x;originY=y;stage.setPointerCapture?.(e.pointerId);});
+    stage.addEventListener('dblclick',e=>{e.preventDefault();const sr=stage.getBoundingClientRect();const px=e.clientX-(sr.left+sr.width/2),py=e.clientY-(sr.top+sr.height/2);veriSmooth(img,460);
+      if(scale>1.02||scale<.98||Math.abs(x)>1||Math.abs(y)>1){scale=1;x=0;y=0;}else{const k=2.6;x=px*(1-k);y=py*(1-k);scale=k;}update();});
+    stage.addEventListener('pointerdown',e=>{if(e.detail>1)return;img.classList.remove('smooth');clearTimeout(img._smT);dragging=true;startX=e.clientX;startY=e.clientY;originX=x;originY=y;stage.setPointerCapture?.(e.pointerId);});
     stage.addEventListener('pointermove',e=>{if(!dragging)return;x=originX+(e.clientX-startX);y=originY+(e.clientY-startY);update();});
     const endDrag=()=>{dragging=false;};stage.addEventListener('pointerup',endDrag);stage.addEventListener('pointercancel',endDrag);
     modal._setImage=(src,caption)=>{img.src=src;modal.querySelector('#veriPhotoModalTitle').textContent=caption||'Revisión de fotografía';modal.querySelector('#veriPhotoDownload').href=src;reset(true);};
@@ -8842,4 +8954,49 @@ textarea.notif-field{ resize:vertical; min-height:92px; line-height:1.4; }
 .pill-toggle:has([data-repview]){display:flex!important;overflow:hidden!important;width:100%;gap:2px}
 .pill-toggle:has([data-repview]) button{flex:1 1 auto!important;min-width:0!important;padding-left:8px!important;padding-right:8px!important;font-size:14px!important;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:5px}
 .pill-toggle:has([data-repview]) .review-count{min-width:17px;height:17px;font-size:10px;padding:0 4px;flex:none}
+</style>
+
+<style id="veri-micro-interactions">
+/* ===== Microinteracciones: reacción al pasar el cursor y al tocar ===== */
+:root{--spring:cubic-bezier(.34,1.56,.64,1);--smooth:cubic-bezier(.22,1,.36,1)}
+.btn,.pill-toggle button,.nav-btn,.topbar-icon-btn,.topbar-avatar,.rep-cap-btn,.home-card,.settings-row,.list-item,.rep-item,.notif-item,.chip,.modal-close,.switch,.veri-fab{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.btn,.pill-toggle button,.nav-btn,.topbar-icon-btn,.topbar-avatar,.rep-cap-btn,.modal-close{transition:transform .28s var(--spring),box-shadow .25s var(--smooth),filter .2s ease,background-color .2s ease,color .2s ease,border-color .2s ease,opacity .2s ease}
+.home-card,.rep-item,.list-item,.notif-item{transition:transform .32s var(--spring),box-shadow .3s var(--smooth),border-color .25s ease,background-color .25s ease}
+@media (hover:hover) and (pointer:fine){
+  .btn:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(var(--accent-rgb),.22);filter:brightness(1.05)}
+  .btn.secondary:hover,.btn.ghost:hover{box-shadow:0 8px 20px rgba(0,0,0,.10)}
+  .pill-toggle button:not(.active):hover{background:rgba(var(--accent-rgb),.10);color:var(--text-1);transform:translateY(-1px)}
+  .nav-btn:hover{transform:translateY(-2px);background:rgba(var(--accent-rgb),.10)}
+  .topbar-icon-btn:hover,.topbar-avatar:hover{transform:translateY(-2px) scale(1.06)}
+  .rep-cap-btn:hover{transform:translateY(-2px)}
+  .rep-item:hover,.list-item:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(31,38,63,.10)}
+  .notif-item:hover{transform:translateX(3px)}
+  .switch:hover{filter:brightness(1.06)}
+}
+.btn:active,.pill-toggle button:active,.nav-btn:active,.topbar-icon-btn:active,.topbar-avatar:active,.rep-cap-btn:active,.modal-close:active{transform:scale(.94);filter:brightness(.94);transition-duration:.1s}
+.home-card:active,.rep-item:active,.list-item:active,.notif-item:active{transform:scale(.975);transition-duration:.12s}
+.switch input+span,.switch .slider{transition:background-color .25s ease,transform .3s var(--spring)}
+.switch:active input+span{transform:scale(.94)}
+.nav-btn svg,.nav-btn .nav-ico{transition:transform .35s var(--spring)}
+.nav-btn.active svg{transform:translateY(-1px) scale(1.1)}
+/* ===== Aviso de notificación entrante ===== */
+.veri-notif-banner{position:fixed;top:max(12px,env(safe-area-inset-top));left:50%;z-index:2147482000;display:flex;align-items:center;gap:12px;width:min(420px,calc(100vw - 24px));padding:12px 16px;border-radius:20px;text-align:left;color:var(--text-1,#111);background:var(--bg-1,#fff);border:1px solid var(--glass-border,rgba(0,0,0,.08));box-shadow:0 18px 50px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.08);transform:translate(-50%,-140%) scale(.96);opacity:0;transition:transform .55s var(--spring),opacity .3s ease;cursor:pointer;overflow:hidden}
+.veri-notif-banner::after{content:'';position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--accent);transform-origin:left;transform:scaleX(1)}
+.veri-notif-banner.in{transform:translate(-50%,0) scale(1);opacity:1}
+.veri-notif-banner.in::after{transform:scaleX(0);transition:transform 5.4s linear}
+.veri-notif-banner.out{transform:translate(-50%,-30%) scale(.97);opacity:0;transition:transform .4s var(--smooth),opacity .3s ease}
+.veri-notif-banner:active{scale:.985}
+.vnb-ico{font-size:24px;flex:0 0 auto;animation:vnbIco .7s var(--spring) .15s both}
+@keyframes vnbIco{from{transform:scale(.3) rotate(-25deg)}to{transform:none}}
+.vnb-body{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.vnb-body strong{font-size:14px}.vnb-body span{font-size:12.5px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.vnb-more{flex:0 0 auto;font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px;background:var(--accent);color:#fff}
+/* ===== Efecto gota (View Transitions) ===== */
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+::view-transition-old(root){z-index:1}::view-transition-new(root){z-index:2}
+::view-transition-group(veri-ring-0),::view-transition-group(veri-ring-1),::view-transition-group(veri-ring-2),::view-transition-group(veri-lite-pill){animation:none}
+::view-transition-old(veri-ring-0),::view-transition-old(veri-ring-1),::view-transition-old(veri-ring-2),::view-transition-old(veri-lite-pill){display:none}
+::view-transition-new(veri-ring-0),::view-transition-new(veri-ring-1),::view-transition-new(veri-ring-2),::view-transition-new(veri-lite-pill){animation:none}
+@media (prefers-reduced-motion:reduce){.btn,.nav-btn,.home-card,.rep-item,.list-item,.pill-toggle button,.veri-notif-banner{transition-duration:.01ms!important;animation:none!important}}
+html.lite .btn:hover,html.lite .nav-btn:hover,html.lite .home-card:hover,html.lite .rep-item:hover{transform:none!important;box-shadow:none!important}
 </style>
