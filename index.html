@@ -5929,7 +5929,7 @@ async function veriLoginPasskey(codigo){
   const credential=await SimpleWebAuthnBrowser.startAuthentication({optionsJSON:started.options});
   const result=await veriPasskeyCall('login-verify',{codigo,challengeId:started.challengeId,credential});
   if(normalize(result.codigo)!==normalize(codigo)) throw new Error('La credencial no corresponde a esta cuenta.');
-  return true;
+  return result;
 }
 
 function renderRoot(){
