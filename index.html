@@ -2889,6 +2889,8 @@ function toolVisible(id){
 if(state.session){ const u=localStorage.getItem('vp_prefs_'+normalize(state.session)); if(u){ try{ state.prefs={...state.prefs,...JSON.parse(u)}; }catch(e){} } }
 state.scanBase = state.prefs.defaultBase;
 if(state.prefs.vibration===undefined) state.prefs.vibration = true;
+if(state.prefs.cartDefaultOn===undefined) state.prefs.cartDefaultOn = true;   // el modo Carrito arranca activo por defecto
+if(state.prefs.lockMinutes===undefined) state.prefs.lockMinutes = 0;      // bloqueo de la app: 0 = nunca
 if(state.prefs.notifSound===undefined) state.prefs.notifSound = true;
 if(state.prefs.notifVibration===undefined) state.prefs.notifVibration = true;
 if(state.prefs.sound===undefined) state.prefs.sound = true;
@@ -4151,15 +4153,21 @@ async function updateNamingSuggestion(){
   if(!bcInput || !sugWrap) return;
   const code = normalize(bcInput.value);
   if(!code){ sugWrap.innerHTML=''; return; }
-  const p25 = state.index['2025'] && state.index['2025'].map.get(code);
-  const p26 = state.index['2026'] && state.index['2026'].map.get(code);
+  const l25 = veriSameCode('2025', code), l26 = veriSameCode('2026', code);
+  const p25 = l25[0], p26 = l26[0];
+  const useBtn = (nm)=>`<button class="naming-use-circle" data-usename="${encodeURIComponent(nm)}" aria-label="${t('namingUseThis')}" title="${t('namingUseThis')}">${NAMING_ARROW_ICON}</button>`;
+  const moreBlock = (rest, withBtn)=> rest.length ? `<details class="scan-multi-more"><summary>+${rest.length} más con este código</summary>${rest.map(p=>`<div class="naming-multi-row"><div class="naming-duplicate-product">${escapeHtml(p.nombre)}</div>${withBtn?useBtn(p.nombre):''}</div>`).join('')}</details>` : '';
   let html = '';
-  html += p25
-    ? `<div class="naming-2025-alert"><span class="naming-2025-alert-icon">✨</span><div class="naming-2025-alert-body"><strong>${t('naming2025Found')}</strong><div class="naming-duplicate-product">${p25.nombre}</div></div><button class="naming-use-circle" data-usename="${encodeURIComponent(p25.nombre)}" aria-label="${t('namingUseThis')}" title="${t('namingUseThis')}">${NAMING_ARROW_ICON}</button></div>`
-    : `<div class="small-note" style="margin:6px 0;">${t('naming2025NotFound')}</div>`;
+  if(l25.length>1){
+    html += `<div class="naming-2025-alert multi"><span class="naming-2025-alert-icon">✨</span><div class="naming-2025-alert-body"><strong>${l25.length} productos de 2025 comparten este código — elige el nombre adecuado</strong>${l25.slice(0,2).map(p=>`<div class="naming-multi-row"><div class="naming-duplicate-product">${escapeHtml(p.nombre)}</div>${useBtn(p.nombre)}</div>`).join('')}${moreBlock(l25.slice(2),true)}</div></div>`;
+  } else {
+    html += p25
+      ? `<div class="naming-2025-alert"><span class="naming-2025-alert-icon">✨</span><div class="naming-2025-alert-body"><strong>${t('naming2025Found')}</strong><div class="naming-duplicate-product">${p25.nombre}</div></div>${useBtn(p25.nombre)}</div>`
+      : `<div class="small-note" style="margin:6px 0;">${t('naming2025NotFound')}</div>`;
+  }
   if(p26){
-    // Este código ya fue nombrado en la base 2026 -> es un duplicado real, hay que avisar sí o sí.
-    html += `<div class="naming-duplicate-alert severity-alta" role="alert"><span class="naming-duplicate-alert-icon">🔴</span><div><strong>${t('naming2026Found')}</strong><div class="naming-duplicate-product">${p26.nombre}</div></div></div>`;
+    // Este código ya fue nombrado en la base 2026 -> hay que avisar. Si varios productos comparten el código, se muestran todos.
+    html += `<div class="naming-duplicate-alert severity-alta" role="alert"><span class="naming-duplicate-alert-icon">🔴</span><div><strong>${t('naming2026Found')}${l26.length>1?` (${l26.length} productos)`:''}</strong>${l26.slice(0,2).map(p=>`<div class="naming-duplicate-product">${escapeHtml(p.nombre)}</div>`).join('')}${moreBlock(l26.slice(2),false)}</div></div>`;
   } else if(p25){
     // El producto es nuevo en 2026 todavía. Con el nombre que ya tiene en 2025 buscamos algo relacionado
     // (mismo peso/sabor) en la base 2026 para sugerir un nombre consistente con lo que ya se usa ahí.
@@ -4306,8 +4314,9 @@ function openFastCameraModal(entryId){
    2025, se buscan productos parecidos en 2026 (mismo peso/sabor) como sugerencia. */
 function applyFastLookup(entry){
   const code = entry.codigo;
-  const p25 = state.index['2025'] && state.index['2025'].map.get(code);
-  const p26 = state.index['2026'] && state.index['2026'].map.get(code);
+  const l25 = veriSameCode('2025', code), l26 = veriSameCode('2026', code);
+  const p25 = l25[0], p26 = l26[0];
+  entry.opciones = l25.length>1 ? l25.map(p=>p.nombre) : null;
   entry.duplicado=false; entry.duplicadoTipo=null; entry.duplicadoCodigo=null; entry.duplicadoNombre=null; entry.sugerencias=[];
   if(p25){ entry.nombre = p25.nombre; entry.source='2025'; }
   else { entry.nombre=''; entry.source='manual'; }
@@ -4436,15 +4445,22 @@ function extractBrand(name){
   return normalizeForSearch(brand);
 }
 function buildIndex(year){
-  const map = new Map();
+  const map = new Map(), groups = new Map();
   const list = state.bases[year] || [];
   for(const p of list){
-    if(p.codigo) map.set(p.codigo, p);
+    if(p.codigo){ map.set(p.codigo, p); const g=groups.get(p.codigo); if(g) g.push(p); else groups.set(p.codigo,[p]); }
     p.nombreSearch = normalizeForSearch(p.nombre||'');
     p.codigoSearch = normalizeForSearch(p.codigo||'');
     p.brandSearch = extractBrand(p.nombre||'');
   }
-  state.index[year] = { map, list };
+  const multi = new Map();   // código → todos los productos que comparten EXACTAMENTE ese código (2 o más)
+  groups.forEach((g,c)=>{ if(g.length>1) multi.set(c,g); });
+  state.index[year] = { map, list, multi };
+}
+function veriSameCode(year, code){
+  const idx=state.index[year]; if(!idx||!code) return [];
+  const m=idx.multi && idx.multi.get(code); if(m) return m;
+  const p=idx.map.get(code); return p?[p]:[];
 }
 function levenshtein(a,b){
   const m=a.length,n=b.length;
@@ -4459,11 +4475,12 @@ function matchCode(rawCode, year){
   const idx = state.index[year];
   const code = normalize(rawCode);
   if(!code) return null;
-  if(idx.map.has(code)) return { status:'exact', producto: idx.map.get(code) };
+  if(idx.map.has(code)){ const g=veriSameCode(year,code); const r0={ status:'exact', producto: idx.map.get(code) }; if(g.length>1) r0.mismoCodigo=g; return r0; }
   // Entrada corta (ej. últimos 6 dígitos del código): buscamos coincidencias por el final del código
   if(code.length>=4 && code.length<=8){
     const matches = idx.list.filter(p=> p.codigo && p.codigo.endsWith(code));
     if(matches.length===1) return { status:'exact', producto: matches[0], bySuffix:true };
+    if(matches.length>1 && new Set(matches.map(p=>p.codigo)).size===1) return { status:'exact', producto: matches[0], bySuffix:true, mismoCodigo:matches };
     if(matches.length>1) return { status:'multiple', candidatos: matches.slice(0,25), suffix: code };
   }
   let best=null, bestDist=99;
@@ -4966,6 +4983,7 @@ async function boot(){
       if(!valid){ state.session=null; localStorage.removeItem('vp_session'); state.booted=true; renderRoot(); return; }
     }
     await loadCoreData();
+    if(state.session){ veriRememberUser(state.session, state.personas.find(p=>p.codigo===normalize(state.session))); }   // el dispositivo recuerda a quien ya tenía sesión
     if(state.session){ state.termsAccepted=await checkTermsAccepted(state.session); state.termsChecked=true; }
     loadNaming();
     try{ await pushPendingNamingOfPastDays(); }catch(e){}
@@ -5446,11 +5464,21 @@ function parseAvatarConfig(person){
   if(!person || !person.avatar_config) return null;
   try{ return JSON.parse(person.avatar_config); }catch(e){ return null; }
 }
+/* Foto que se debe mostrar para una persona: para el usuario actual manda la copia local (la que acaba de subir
+   o la de su último inicio de sesión), y si eligió un avatar/emoji en vez de foto, no se muestra la foto. */
+function veriLocalPhoto(codigo){ try{ return localStorage.getItem('vp_photo_'+normalize(codigo))||''; }catch(e){ return ''; } }
+function veriPersonPhoto(person){
+  if(!person) return '';
+  const code=normalize(person.codigo||'');
+  const me=code && code===normalize(state.session||'');
+  if(me && state.prefs.profilePhotoOff) return '';
+  return (me && veriLocalPhoto(code)) || person.profile_photo_url || '';
+}
 function personAvatarInner(person, fallback, size){
   size=size||40;
-
-  if(person && person.profile_photo_url){
-    return `<img src="${escapeHtml(person.profile_photo_url)}"
+  const _photo=veriPersonPhoto(person);
+  if(_photo){
+    return `<img src="${escapeHtml(_photo)}"
       alt="Foto de perfil"
       style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;">`;
   }
@@ -5485,6 +5513,7 @@ function avatarPickerHTML(){
   }
   return `<div class="glass card avatar-picker" id="avatarPicker">
     <div class="avatar-builder-head"><div><strong>Veri Avatar</strong><span>Hazlo tuyo. Mezcla rasgos, estilo y accesorios.</span></div><div class="avatar-builder-icon">✦</div></div>
+    ${(()=>{ const me=state.personas.find(p=>p.codigo===normalize(state.session||'')); const has=!!veriPersonPhoto(me); return `<div class="row" style="gap:8px;margin-bottom:12px;flex-wrap:wrap;"><label class="btn secondary sm" id="profilePhotoBtn" for="profilePhotoInput" style="cursor:pointer;flex:1;justify-content:center;">📷 ${has?'Cambiar foto de perfil':'Subir foto de perfil'}</label><input type="file" id="profilePhotoInput" accept="image/*" hidden>${has?`<button type="button" class="btn ghost sm" id="profilePhotoRemoveBtn">Quitar foto</button>`:''}</div>`; })()}
     <div class="pill-toggle" style="margin-bottom:12px;">
       <button type="button" data-avatarmode="emoji" class="${mode==='emoji'?'active':''}">${t('emojiTab')}</button>
       <button type="button" data-avatarmode="builder" class="${mode==='builder'?'active':''}">${t('builderTab')}</button>
@@ -5498,9 +5527,60 @@ function randomMemojiConfig(){
   Object.keys(MEMOJI_OPTIONS).forEach(k=>{ const opts=MEMOJI_OPTIONS[k]; cfg[k]=opts[Math.floor(Math.random()*opts.length)]; });
   return cfg;
 }
+async function veriResizeSquare(file, size, q){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=()=>rej(new Error('No se pudo leer la imagen. Prueba con otra foto.')); i.src=url; });
+    const m=Math.min(img.naturalWidth,img.naturalHeight), sz=Math.min(size,m);
+    const c=document.createElement('canvas'); c.width=c.height=sz;
+    c.getContext('2d').drawImage(img,(img.naturalWidth-m)/2,(img.naturalHeight-m)/2,m,m,0,0,sz,sz);
+    return c.toDataURL('image/jpeg',q);
+  } finally { URL.revokeObjectURL(url); }
+}
+function veriAskPin(title){
+  return new Promise(resolve=>{
+    const ov=document.createElement('div'); ov.className='modal-overlay'; ov.style.zIndex=2147483200;
+    ov.innerHTML=`<div class="modal-sheet glass" style="max-width:360px"><h3 style="margin:0 0 6px">${escapeHtml(title)}</h3><p class="small-note" style="margin:0 0 12px">Escribe tu PIN de 6 dígitos.</p><input type="password" id="askPinInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" style="text-align:center;letter-spacing:.3em;font-size:20px"><div class="row" style="gap:8px;margin-top:12px"><button class="btn ghost block" id="askPinCancel">Cancelar</button><button class="btn block" id="askPinOk">Continuar</button></div></div>`;
+    document.body.appendChild(ov);
+    const inp=ov.querySelector('#askPinInput'); setTimeout(()=>inp.focus(),50);
+    const done=v=>{ ov.remove(); resolve(v); };
+    ov.querySelector('#askPinCancel').onclick=()=>done(null);
+    ov.querySelector('#askPinOk').onclick=()=>done((inp.value||'').trim()||null);
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter') done((inp.value||'').trim()||null); if(e.key==='Escape') done(null); });
+    ov.addEventListener('click',e=>{ if(e.target===ov) done(null); });
+  });
+}
+async function veriChangeProfilePhoto(file){
+  const code=normalize(state.session||''), me=state.personas.find(p=>p.codigo===code);
+  if(!file||!me) return;
+  const btn=document.getElementById('profilePhotoBtn');
+  try{
+    toast('Preparando foto…');
+    const big=await veriResizeSquare(file,640,0.86);    // siempre liviana (~100 KB), sin importar el tamaño original
+    const thumb=await veriResizeSquare(file,192,0.82);
+    const pin=await veriAskPin('Confirma tu PIN para cambiar la foto');
+    if(!pin) return;
+    if(btn) btn.textContent='Subiendo foto…';
+    await veriPasskeyCall('upload-profile-photo',{codigo:code,pin,mimeType:'image/jpeg',photoBase64:big.split(',')[1]});
+    try{ const pr=await veriPasskeyCall('get-profile-photo',{codigo:code,pin}); if(pr&&pr.photoUrl) me.profile_photo_url=pr.photoUrl; }catch(e){ console.warn('get-profile-photo:',e); }
+    try{ localStorage.setItem('vp_photo_'+code, thumb); }catch(e){}
+    const rec=veriRecentUsers().find(u=>u.codigo===code); if(rec){ rec.photo=thumb; veriSaveRecent(veriRecentUsers().map(u=>u.codigo===code?rec:u)); }
+    state.prefs.profilePhotoOff=false; savePrefs();
+    state.avatarPickerOpen=false;
+    toast('¡Foto de perfil actualizada!');
+    render();
+  }catch(err){
+    console.error('Error al subir foto:',err);
+    toast(err.message||'No se pudo actualizar la foto.');
+  }finally{ const b2=document.getElementById('profilePhotoBtn'); if(b2) b2.textContent='📷 Cambiar foto de perfil'; }
+}
 function wireAvatarPicker(){
   const grid=document.getElementById('avatarPicker');
   if(!grid) return;
+  const ppIn=document.getElementById('profilePhotoInput');
+  if(ppIn) ppIn.onchange=()=>{ const f=ppIn.files&&ppIn.files[0]; ppIn.value=''; if(f) veriChangeProfilePhoto(f); };
+  const ppRm=document.getElementById('profilePhotoRemoveBtn');
+  if(ppRm) ppRm.onclick=()=>{ state.prefs.profilePhotoOff=true; savePrefs(); state.avatarPickerOpen=false; toast('Foto quitada. Se muestra tu avatar.'); render(); };
   grid.querySelectorAll('[data-avatarmode]').forEach(b=> b.onclick = ()=>{ state.avatarPickerMode=b.dataset.avatarmode; render(); });
   const cancelBtn=document.getElementById('avatarCancelBtn');
   if(cancelBtn) cancelBtn.onclick = ()=>{ state.avatarPickerOpen=false; render(); };
@@ -5528,6 +5608,7 @@ async function saveMyAvatar(emoji){
   try{
     await sb(`personas?codigo=eq.${encodeURIComponent(code)}`, {method:'PATCH', body:JSON.stringify({avatar_emoji:emoji, avatar_config:null}), headers:{'Prefer':'return=minimal'}});
     person.avatar_emoji=emoji; person.avatar_config=null;
+    state.prefs.profilePhotoOff=true; savePrefs();   // elegir un avatar reemplaza la foto
     state.avatarPickerOpen=false;
     toast(t('avatarSaved'));
     render();
@@ -5548,6 +5629,7 @@ async function saveMyAvatarConfig(cfg){
   try{
     await sb(`personas?codigo=eq.${encodeURIComponent(code)}`, {method:'PATCH', body:JSON.stringify({avatar_config:JSON.stringify(cfg)}), headers:{'Prefer':'return=minimal'}});
     person.avatar_config=JSON.stringify(cfg);
+    state.prefs.profilePhotoOff=true; savePrefs();   // elegir un avatar reemplaza la foto
     state.avatarPickerOpen=false;
     toast(t('avatarSaved'));
     render();
@@ -5576,6 +5658,8 @@ function fallbackCopy(text){
 document.addEventListener('click', (e)=>{
   const copyBtn = e.target.closest('[data-copy]');
   if(copyBtn){ copyText(decodeURIComponent(copyBtn.dataset.copy)); return; }
+  const fastPick = e.target.closest('[data-fastpick]');
+  if(fastPick){ const [fid,fi]=fastPick.dataset.fastpick.split('::'); const en=state.namingFast&&state.namingFast.items.find(x=>x.id===fid); if(en&&en.opciones&&en.opciones[Number(fi)]){ en.nombre=en.opciones[Number(fi)]; render(); } return; }
   const useBtn = e.target.closest('[data-usename]');
   if(useBtn){ const nm = document.getElementById('namingNombre'); if(nm){ nm.value = decodeURIComponent(useBtn.dataset.usename); nm.dispatchEvent(new Event('input', {bubbles:true})); } return; }
   const pickBtn = e.target.closest('[data-pick-suffix]');
@@ -5584,7 +5668,8 @@ document.addEventListener('click', (e)=>{
     const idx = state.index[state.scanBase];
     const producto = idx && idx.map.get(codigo);
     if(producto){
-      state.scanResult = { status:'exact', producto, bySuffix:true, codigoEscaneado:codigo };
+      const grp=veriSameCode(state.scanBase,codigo);
+      state.scanResult = { status:'exact', producto, bySuffix:true, codigoEscaneado:codigo, ...(grp.length>1?{mismoCodigo:grp}:{}) };
       updateScanResultDOM();
       const input = document.getElementById('scanInput'); if(input) input.value = codigo;
       vibrateFor('exact'); beepFor('exact');
@@ -5923,11 +6008,47 @@ async function veriPasskeyCall(action, payload={}){
   if(!response.ok || data.error) throw new Error(data.error||'No se pudo completar la autenticación.');
   return data;
 }
+/* ---- Usuarios recientes en este dispositivo + marca de Passkey ---- */
+const VERI_RECENT_KEY='vp_recent_users';
+function veriRecentUsers(){ try{ const a=JSON.parse(localStorage.getItem(VERI_RECENT_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function veriHasPasskeyHere(codigo){ try{ return localStorage.getItem('vp_pk_'+normalize(codigo))==='1'; }catch(e){ return false; } }
+function veriMarkPasskeyHere(codigo){ try{ localStorage.setItem('vp_pk_'+normalize(codigo),'1'); }catch(e){} }
+function veriSaveRecent(list){ try{ localStorage.setItem(VERI_RECENT_KEY, JSON.stringify(list.slice(0,4))); }catch(e){} }
+async function veriPhotoThumb(url){
+  // Guarda una miniatura pequeña (data URL) para que la foto siga viéndose aunque el enlace firmado caduque.
+  return await new Promise(res=>{
+    try{
+      const im=new Image(); im.crossOrigin='anonymous';
+      im.onload=()=>{ try{ const c=document.createElement('canvas'); c.width=c.height=96; const g=c.getContext('2d'); const m=Math.min(im.width,im.height); g.drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,96,96); res(c.toDataURL('image/jpeg',0.8)); }catch(e){ res(null); } };
+      im.onerror=()=>res(null); im.src=url; setTimeout(()=>res(null),6000);
+    }catch(e){ res(null); }
+  });
+}
+async function veriRememberUser(codigo, persona){
+  const c=normalize(codigo); if(!c) return;
+  const prev=veriRecentUsers().find(u=>u.codigo===c);
+  let photo=prev&&prev.photo||null;
+  const url=persona&&persona.profile_photo_url;
+  const entry={codigo:c, nombre:(persona&&persona.nombre)||c, photo, ts:Date.now()};
+  veriSaveRecent([entry,...veriRecentUsers().filter(u=>u.codigo!==c)]);
+  if(url){ const th=await veriPhotoThumb(url); if(th){ entry.photo=th; try{ localStorage.setItem('vp_photo_'+c, th); }catch(e){} veriSaveRecent([entry,...veriRecentUsers().filter(u=>u.codigo!==c)]); if(state.session) { try{ render(); }catch(e){} } } }
+}
+function veriAvatarHTML(codigo, size){
+  const c=normalize(codigo), persona=state.personas.find(p=>p.codigo===c), rec=veriRecentUsers().find(u=>u.codigo===c);
+  const name=(persona&&persona.nombre)||(rec&&rec.nombre)||c;
+  const photo=veriPersonPhoto(persona)||(rec&&rec.photo)||'';
+  const inner = photo
+    ? `<img src="${escapeHtml(photo)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit" onerror="this.remove()">`
+    : '';
+  const fallback = personAvatarInner(persona||{codigo:c,nombre:name}, c, size);
+  return `<div class="veri-avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.38)}px"><span class="veri-avatar-fb">${photo?personInitials(persona||{codigo:c,nombre:name},c):fallback}</span>${inner}</div>`;
+}
 async function veriRegisterPasskey(codigo,pin){
   if(!window.SimpleWebAuthnBrowser) throw new Error('No se pudo cargar el módulo de Passkeys. Comprueba tu conexión.');
   const started=await veriPasskeyCall('register-options',{codigo,pin});
   const credential=await SimpleWebAuthnBrowser.startRegistration({optionsJSON:started.options});
   await veriPasskeyCall('register-verify',{codigo,challengeId:started.challengeId,credential});
+  veriMarkPasskeyHere(codigo);
   return true;
 }
 async function veriLoginPasskey(codigo){
@@ -5936,9 +6057,57 @@ async function veriLoginPasskey(codigo){
   const credential=await SimpleWebAuthnBrowser.startAuthentication({optionsJSON:started.options});
   const result=await veriPasskeyCall('login-verify',{codigo,challengeId:started.challengeId,credential});
   if(normalize(result.codigo)!==normalize(codigo)) throw new Error('La credencial no corresponde a esta cuenta.');
+  veriMarkPasskeyHere(codigo);
   return result;
 }
 
+/* ---- Bloqueo de la app por inactividad (Ajustes → Seguridad: 5 min / 10 min / nunca) ---- */
+let veriLastActive=Date.now();
+function veriTouchActivity(){ if(!state.locked) veriLastActive=Date.now(); }
+['pointerdown','keydown','touchstart','wheel','scroll'].forEach(ev=>document.addEventListener(ev,veriTouchActivity,{passive:true,capture:true}));
+function veriLockMs(){ return (Number(state.prefs.lockMinutes)||0)*60000; }
+function veriMaybeLock(){
+  if(!state.session || !state.booted || state.locked) return;
+  const ms=veriLockMs(); if(!ms) return;
+  if(state.cameraStream) { veriLastActive=Date.now(); return; }   // escaneando con la cámara cuenta como uso
+  if(Date.now()-veriLastActive>=ms) veriLockApp();
+}
+setInterval(veriMaybeLock,10000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) veriMaybeLock(); });
+function veriUnlockUI(silent){
+  state.locked=false; veriLastActive=Date.now();
+  const el=document.getElementById('veriLockScreen'); if(el){ if(silent) el.remove(); else { el.classList.add('out'); setTimeout(()=>el.remove(),350); } }
+}
+function veriLockApp(){
+  if(state.locked || !state.session) return;
+  state.locked=true;
+  try{ stopCamera(); }catch(e){}
+  try{ closeScanResultFloat(true); }catch(e){}
+  document.querySelectorAll('.veri-notif-banner').forEach(n=>n.remove());
+  const codigo=normalize(state.session), persona=state.personas.find(p=>p.codigo===codigo);
+  const hasPk=veriHasPasskeyHere(codigo), hasPin=!!(persona&&persona.pin_hash);
+  const el=document.createElement('div'); el.id='veriLockScreen'; el.className='veri-lock';
+  el.innerHTML=`<div class="glass login-card veri-lock-card">
+    ${veriAvatarHTML(codigo,84)}
+    <h2 style="margin:14px 0 4px">App bloqueada</h2>
+    <p style="margin:0 0 14px">${escapeHtml((persona&&persona.nombre)||codigo)} · se bloqueó por inactividad.</p>
+    ${hasPk?`<button class="btn block" id="lockPkBtn"><span aria-hidden="true">⌁</span> Desbloquear con Passkey</button>`:''}
+    ${hasPin?`<div class="pin-wrap" style="margin-top:12px"><input type="password" id="lockPin" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" placeholder="PIN de 6 dígitos" style="text-align:center"></div><button class="btn ${hasPk?'ghost':''} block" id="lockPinBtn" style="margin-top:8px">Desbloquear con PIN</button>`:''}
+    <button class="btn ghost sm" id="lockOutBtn" style="margin-top:10px">Cerrar sesión</button>
+    <div class="err-text" id="lockErr" style="display:none"></div>
+  </div>`;
+  document.body.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('in'));
+  const err=(m)=>{ const e=el.querySelector('#lockErr'); e.textContent=m; e.style.display='block'; };
+  const pk=el.querySelector('#lockPkBtn');
+  if(pk) pk.onclick=async()=>{ pk.disabled=true; try{ await veriLoginPasskey(codigo); veriUnlockUI(); } catch(e){ err(e&&e.name==='NotAllowedError'?'Autenticación cancelada.':(e.message||'No se pudo verificar la Passkey.')); pk.disabled=false; } };
+  const pinBtn=el.querySelector('#lockPinBtn'), pinIn=el.querySelector('#lockPin');
+  const tryPin=async()=>{ const v=(pinIn.value||'').trim(); if(!/^\d{6}$/.test(v)){ err('Escribe tu PIN de 6 dígitos.'); return; } const h=await sha256Hex(v); if(persona&&persona.pin_hash===h) veriUnlockUI(); else { err('PIN incorrecto.'); pinIn.value=''; } };
+  if(pinBtn){ pinBtn.onclick=tryPin; pinIn.addEventListener('keydown',e=>{ if(e.key==='Enter') tryPin(); }); }
+  el.querySelector('#lockOutBtn').onclick=()=>{ veriUnlockUI(true); logout(); };
+  if(pk && !pk.disabled) setTimeout(()=>pk.click(),350);   // intenta Passkey de una vez
+  else if(pinIn) setTimeout(()=>pinIn.focus(),350);
+}
 function renderRoot(){
   const root = document.getElementById('root');
   applyTheme();
@@ -6017,6 +6186,34 @@ function renderRoot(){
       document.getElementById('pinBackBtn').onclick = ()=>{ state.loginStep='code'; state.loginError=''; state.loginCandidate=null; renderRoot(); };
       return;
     }
+    const recents = veriRecentUsers().filter(u=>state.personas.some(p=>p.codigo===u.codigo));
+    if(recents.length && !state.loginShowCode){
+      root.innerHTML = `<div class="login-screen"><div class="glass login-card">
+        <div class="logo">${LOGO_MARK}</div>
+        <h2>Bienvenido de nuevo</h2>
+        <p>Elige tu perfil y confirma con tu Passkey (Face ID, huella o bloqueo de pantalla).</p>
+        <div class="recent-users">${recents.map(u=>`<button type="button" class="recent-user" data-recent="${escapeHtml(u.codigo)}">${veriAvatarHTML(u.codigo,76)}<span class="recent-user-name">${escapeHtml((state.personas.find(p=>p.codigo===u.codigo)||{}).nombre||u.nombre||u.codigo)}</span>${veriHasPasskeyHere(u.codigo)?'<span class="recent-user-tag">Passkey</span>':''}</button>`).join('')}</div>
+        ${state.loginFallback?`<button class="btn block" id="pinFallbackBtn" style="margin-top:14px;">Ingresar con PIN</button>`:''}
+        <button class="btn ghost block" id="otherUserBtn" style="margin-top:${state.loginFallback?8:14}px;">Usar otro usuario</button>
+        ${state.loginError ? `<div class="err-text">${state.loginError}</div>` : ''}
+      </div></div>`;
+      document.getElementById('otherUserBtn').onclick=()=>{ state.loginShowCode=true; state.loginError=''; state.loginFallback=null; renderRoot(); };
+      const pinFb=document.getElementById('pinFallbackBtn');
+      if(pinFb) pinFb.onclick=()=>{ const c=state.loginFallback, pr=state.personas.find(p=>p.codigo===c); if(!pr) return; state.loginFallback=null; state.loginError=''; state.loginCandidate=c; state.loginStep=pr.pin_hash?'pin_enter':'pin_create'; renderRoot(); };
+      document.querySelectorAll('[data-recent]').forEach(b=>b.onclick=async()=>{
+        const codigo=b.dataset.recent, persona=state.personas.find(p=>p.codigo===codigo); if(!persona) return;
+        const goPin=()=>{ state.loginError=''; state.loginCandidate=codigo; state.loginStep=persona.pin_hash?'pin_enter':'pin_create'; renderRoot(); };
+        if(!window.PublicKeyCredential){ goPin(); return; }
+        b.classList.add('busy');
+        try{ const auth=await veriLoginPasskey(codigo); state.loginFallback=null; completeLogin(codigo,auth.photoUrl); }
+        catch(e){
+          state.loginFallback=codigo;
+          state.loginError=(e&&e.name==='NotAllowedError')?'Autenticación cancelada. Toca tu perfil para intentarlo de nuevo.':'No se pudo usar la Passkey en este dispositivo para esta cuenta.';
+          renderRoot();
+        }
+      });
+      return;
+    }
     root.innerHTML = `<div class="login-screen"><div class="glass login-card">
       <div class="logo">${LOGO_MARK}</div>
       <h2>${t('loginTitle')}</h2>
@@ -6025,8 +6222,10 @@ function renderRoot(){
       <button class="btn block" id="passkeyLoginBtn" style="margin-top:12px;display:flex;align-items:center;justify-content:center;gap:9px;"><span aria-hidden="true">⌁</span> Ingresar con Passkey</button>
       <button class="btn ghost block" id="loginBtn" style="margin-top:8px;">Ingresar con PIN</button>
       <p class="small-note" style="margin-top:10px;">Usa Face ID, huella digital o el bloqueo de pantalla de tu dispositivo.</p>
+      ${(recents.length)?`<button class="btn ghost sm" id="backRecentBtn" style="margin-top:8px;">← Volver a perfiles recientes</button>`:''}
       ${state.loginError ? `<div class="err-text">${state.loginError}</div>` : ''}
     </div></div>`;
+    const backRecent=document.getElementById('backRecentBtn'); if(backRecent) backRecent.onclick=()=>{ state.loginShowCode=false; state.loginError=''; renderRoot(); };
     const getPersona = ()=>{
       const val=normalize(document.getElementById('loginInput').value);
       return {val,persona:state.personas.find(p=>p.codigo===val)};
@@ -6073,6 +6272,8 @@ async function completeLogin(codigo, photoUrl=null, pin=null){
 }
   const loggedPerson=state.personas.find(p=>p.codigo===normalize(codigo));
 if(loggedPerson) loggedPerson.profile_photo_url=photoUrl;
+  veriRememberUser(codigo, loggedPerson||{codigo:normalize(codigo)});
+  veriTouchActivity();
   await loadRemotePrefs(codigo);
   state.termsAccepted=await checkTermsAccepted(codigo); state.termsChecked=true;
   // Al iniciar sesión (sin recargar) se carga también la lista de nombrados del día desde el servidor.
@@ -6100,7 +6301,8 @@ function logout(){
   sessionStorage.removeItem('vp_admin_unlocked');
   state.session = null; state.tab='home';
   resetUserScopedState();
-  state.loginStep='code'; state.loginCandidate=null; state.loginError=''; state.termsAccepted=false; state.termsChecked=false;
+  state.loginStep='code'; state.loginCandidate=null; state.loginError=''; state.loginShowCode=false; state.loginFallback=null; state.termsAccepted=false; state.termsChecked=false;
+  veriUnlockUI(true);
   renderRoot();
 }
 
@@ -6411,7 +6613,11 @@ function scanResultFloatInner(r){
   const meta=scanStatusMeta(r.status);
   const name=r.producto?.nombre || (r.status==='notfound' ? t('notfound') : 'Resultado');
   const code=(toolVisible('carrito') && state.scanMode==='cart') ? (r.producto?.codigo || '') : (r.producto?.codigo || r.codigoEscaneado || '');
-  const statusLabel=r.status==='exact'?(r.bySuffix?t('exactBySuffix'):t('exact')):r.status==='similar'?t('similar'):t('notfound');
+  const sameGrp=(r.status==='exact' && r.mismoCodigo && r.mismoCodigo.length>1)?r.mismoCodigo:null;
+  const statusLabel=(r.status==='exact'?(r.bySuffix?t('exactBySuffix'):t('exact')):r.status==='similar'?t('similar'):t('notfound'))+(sameGrp?` · ${sameGrp.length} productos con este código`:'');
+  const nameHtml = sameGrp
+    ? `<div class="scan-multi-note">Mismo código, productos distintos</div>${sameGrp.slice(0,2).map(p=>`<div class="scan-result-float-name scan-multi-name">${escapeHtml(p.nombre||'(sin nombre)')}</div>`).join('')}${sameGrp.length>2?`<details class="scan-multi-more"><summary>+${sameGrp.length-2} más con este código</summary>${sameGrp.slice(2).map(p=>`<div class="scan-result-float-name scan-multi-name">${escapeHtml(p.nombre||'(sin nombre)')}</div>`).join('')}</details>`:''}`
+    : `<div class="scan-result-float-name">${escapeHtml(name)}</div>`;
   const inCart=toolVisible('carrito') && state.scanMode==='cart';
   const scanned=r.codigoEscaneado||'';
   const alreadyAdded=inCart && scanned && findCartDuplicate(scanned);
@@ -6436,7 +6642,7 @@ function scanResultFloatInner(r){
       <div class="scan-result-float-badge" style="background:${meta.color};">${meta.icon}</div>
       <div class="scan-result-float-info">
         ${inCart && r.producto ? `<div class="scan-result-float-match">${t('cartMatchLabel')}</div>` : ''}
-        <div class="scan-result-float-name">${escapeHtml(name)}</div>
+        ${nameHtml}
         ${code?`<div class="scan-result-float-code">${escapeHtml(code)}</div>`:''}
         <div class="scan-result-float-status" style="color:${meta.color};">${statusLabel}</div>
       </div>
@@ -6755,9 +6961,10 @@ function renderNamingFastItem(e, order){
   let statusHtml = '';
   if(e.status==='decoding') statusHtml = `<div class="small-note">${t('namingFastDecoding')}</div>`;
   else if(e.status==='error') statusHtml = `<div class="small-note">⚠️ ${t('namingFastNoCode')}</div>`;
+  const optsHtml = (e.opciones && e.opciones.length>1) ? `<div class="scan-multi-note">${e.opciones.length} nombres comparten este código — elige uno</div>${e.opciones.slice(0,2).map((nm,i)=>`<button type="button" class="fast-pick ${e.nombre===nm?'on':''}" data-fastpick="${e.id}::${i}">${escapeHtml(nm)}</button>`).join('')}${e.opciones.length>2?`<details class="scan-multi-more"><summary>+${e.opciones.length-2} más con este código</summary>${e.opciones.slice(2).map((nm,i)=>`<button type="button" class="fast-pick ${e.nombre===nm?'on':''}" data-fastpick="${e.id}::${i+2}">${escapeHtml(nm)}</button>`).join('')}</details>`:''}` : '';
   const nameBlock = e.codigo ? (
     e.source==='2025'
-      ? `<div class="name">${escapeHtml(e.nombre)}</div><div class="small-note">✨ ${t('naming2025Found')}</div>`
+      ? (optsHtml || `<div class="name">${escapeHtml(e.nombre)}</div>`) + `<div class="small-note">✨ ${t('naming2025Found')}</div>`
       : `<div class="small-note" style="margin-bottom:4px;">⚠️ ${t('namingFastManual')}</div><textarea class="naming-fast-name-input" data-fastname="${e.id}" rows="2" style="text-transform:uppercase;width:100%;resize:vertical;" placeholder="${t('namingName')}">${escapeHtml(e.nombre||'')}</textarea>`
   ) : (e.status==='decoding' ? '' : `<div class="row" style="gap:6px;margin-top:2px;align-items:stretch;">
       <input type="text" class="naming-fast-code-input" data-fastcode="${e.id}" placeholder="${t('namingFastEnterCode')}" style="text-transform:uppercase;flex:1;min-width:0;">
@@ -7218,28 +7425,15 @@ function renderSettings(){
   const persona=state.personas.find(p=>p.codigo===normalize(state.session||'')); const name=persona?.nombre||state.session||''; const avatarInner=personAvatarInner(persona, state.session, 52);
   return `<div class="settings-shell"><div class="settings-header"><h2>${t('tabSettings')}</h2><p>${t('settingsSub')}</p></div>
     <div class="profile-card glass"><button type="button" class="profile-avatar avatar-editable" id="avatarEditBtn" aria-label="${t('chooseAvatar')}">${avatarInner||'?'}<span class="avatar-edit-badge">✎</span></button><div style="min-width:0;flex:1;"><div class="profile-name">${name||'—'}</div><div class="profile-code">${state.session||'—'} · ${t('personCode')}</div><div class="account-role-chip ${isAdmin()?'role-admin':isCoAdmin()?'role-coadmin':'role-user'}"><span class="account-role-dot"></span>${isAdmin()?(state.prefs.lang==='en'?'Administrator':'Administrador'):isCoAdmin()?(state.prefs.lang==='en'?'Co-administrator':'Coadministrador'):(state.prefs.lang==='en'?'User':'Usuario')}</div><div class="inline-edit"><input id="usernameEdit" type="text" value="${String(name).replace(/"/g,'&quot;')}" placeholder="${t('usernameLabel')}" /><button class="btn sm" id="saveUsernameBtn">${t('saveName')}</button></div><div class="small-note" style="margin-top:6px;">${t('usernameHint')}</div></div></div>
-    <div class="settings-row" style="justify-content:center;margin:12px 0;">
-  <label
-    class="btn secondary sm"
-    id="profilePhotoBtn"
-    for="profilePhotoInput"
-    style="cursor:pointer;"
-  >
-    📷 Cambiar foto de perfil
-  </label>
-
-  <input
-    type="file"
-    id="profilePhotoInput"
-    accept="image/jpeg,image/png,image/webp"
-    hidden
-  >
-</div> ${avatarPickerHTML()}<div class="settings-group glass"><div class="settings-group-title">${t('settingsGeneral')}</div>
+ ${avatarPickerHTML()}<div class="settings-group glass"><div class="settings-group-title">${t('settingsGeneral')}</div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('language')}</div></div><div class="settings-row-control"><div class="pill-toggle"><button data-lang="es" class="${state.prefs.lang==='es'?'active':''}">ES</button><button data-lang="en" class="${state.prefs.lang==='en'?'active':''}">EN</button></div></div></div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('theme')}</div></div><div class="settings-row-control"><div class="pill-toggle"><button data-theme-btn="light" class="${state.prefs.theme==='light'?'active':''}">${t('light')}</button><button data-theme-btn="dark" class="${state.prefs.theme==='dark'?'active':''}">${t('dark')}</button></div></div></div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('liteModeLabel')}</div><div class="settings-row-sub">${t('liteModeSub')}</div></div><div class="settings-row-control"><label class="switch"><input type="checkbox" id="liteModeSwitch" ${state.prefs.liteMode?'checked':''}><span class="slider"></span></label></div></div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('defaultBase')}</div></div><div class="settings-row-control"><div class="pill-toggle"><button data-defbase="2025" class="${state.prefs.defaultBase==='2025'?'active':''}">2025</button><button data-defbase="2026" class="${state.prefs.defaultBase==='2026'?'active':''}">2026</button></div></div></div>
       <div class="settings-row color-palette-row"><div class="settings-row-main"><div class="settings-row-title">${t('accentColor')}</div><div class="settings-row-sub">${t('colorPaletteHint')}</div></div><div class="settings-row-control color-palettes">${Object.values(COLOR_PALETTES).map(p=>`<div class="palette-group"><div class="palette-label">${p.label}</div><div class="palette-swatches">${p.colors.map(([c,label])=>`<button type="button" class="palette-swatch ${state.prefs.accent===c?'sel':''}" style="--swatch:${c}" data-accent="${c}" title="${label}" aria-label="${label}"></button>`).join('')}</div></div>`).join('')}</div></div>
+    </div>
+    <div class="settings-group glass"><div class="settings-group-title">Seguridad</div>
+      <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">Bloqueo de la app</div><div class="settings-row-sub">Pide tu Passkey o PIN después de un rato sin usar la app. Mientras escaneas con la cámara no se bloquea.</div></div><div class="settings-row-control"><div class="pill-toggle">${[[5,'5 min'],[10,'10 min'],[0,'Nunca']].map(([m,l])=>`<button data-lockmin="${m}" class="${(Number(state.prefs.lockMinutes)||0)===m?'active':''}">${l}</button>`).join('')}</div></div></div>
     </div>
     <div class="settings-group glass"><div class="settings-group-title">${t('notifGroupTitle')}</div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('notifSoundLabel')}</div><div class="settings-row-sub">${t('notifSoundSub')}</div></div><div class="settings-row-control"><label class="switch"><input type="checkbox" id="notifSoundSwitch" ${state.prefs.notifSound!==false?'checked':''}><span class="slider"></span></label></div></div>
@@ -8289,75 +8483,6 @@ function bindTabEvents(){
       state.avatarPickerOpen=!state.avatarPickerOpen; render();
     };
     wireAvatarPicker();
-    const profilePhotoBtn=document.getElementById('profilePhotoBtn');
-const profilePhotoInput=document.getElementById('profilePhotoInput');
-
-if(profilePhotoBtn && profilePhotoInput){
-  profilePhotoBtn.onclick=()=>profilePhotoInput.click();
-
-  profilePhotoInput.onchange=async()=>{
-    const file=profilePhotoInput.files?.[0];
-    if(!file)return;
-
-    if(!['image/jpeg','image/png','image/webp'].includes(file.type)){
-      toast('Usa una imagen JPG, PNG o WebP.');
-      profilePhotoInput.value='';
-      return;
-    }
-
-    if(file.size>2097152){
-      toast('La foto no puede superar los 2 MB.');
-      profilePhotoInput.value='';
-      return;
-    }
-
-    const pin=prompt('Confirma tu PIN para cambiar la foto:');
-    if(pin===null || !pin.trim()){
-      profilePhotoInput.value='';
-      return;
-    }
-
-    profilePhotoBtn.disabled=true;
-    profilePhotoBtn.textContent='Subiendo foto…';
-
-    try{
-      const photoBase64=await new Promise((resolve,reject)=>{
-        const reader=new FileReader();
-        reader.onload=()=>resolve(String(reader.result).split(',')[1]);
-        reader.onerror=()=>reject(new Error('No se pudo leer la imagen.'));
-        reader.readAsDataURL(file);
-      });
-
-      await veriPasskeyCall('upload-profile-photo',{
-        codigo:normalize(state.session||''),
-        pin,
-        mimeType:file.type,
-        photoBase64
-      });
-
-      const profile=await veriPasskeyCall('get-profile-photo',{
-        codigo:normalize(state.session||''),
-        pin
-      });
-
-      const me=state.personas.find(
-        p=>p.codigo===normalize(state.session||'')
-      );
-
-      if(me)me.profile_photo_url=profile.photoUrl;
-
-      toast('¡Foto de perfil actualizada!');
-      render();
-    }catch(err){
-      console.error('Error al subir foto:',err);
-      toast(err.message||'No se pudo actualizar la foto.');
-    }finally{
-      profilePhotoInput.value='';
-      profilePhotoBtn.disabled=false;
-      profilePhotoBtn.textContent='📷 Cambiar foto de perfil';
-    }
-  };
-}
     document.querySelectorAll('[data-admin-edit-name]').forEach(b=>b.onclick=async()=>{const code=b.dataset.adminEditName;const person=state.personas.find(p=>p.codigo===code);const name=prompt(t('usernameLabel'),person?.nombre||'');if(name===null)return;try{await sb(`personas?codigo=eq.${encodeURIComponent(code)}`,{method:'PATCH',body:JSON.stringify({nombre:name.trim()}),headers:{'Prefer':'return=minimal'}});if(person)person.nombre=name.trim();toast(t('nameSaved'));render();}catch(e){toast(t('errorImport'));}});
     document.querySelectorAll('[data-lang]').forEach(b=> b.onclick=()=>{ state.prefs.lang=b.dataset.lang; savePrefs(); render(); });
     document.querySelectorAll('[data-theme-btn]').forEach(b=> b.onclick=()=>{ state.prefs.theme=b.dataset.themeBtn; savePrefs(); render(); });
@@ -8372,6 +8497,7 @@ if(profilePhotoBtn && profilePhotoInput){
     if(savePhotosSwitch) savePhotosSwitch.onchange = (e)=>{ state.prefs.savePhotosToDevice = e.target.checked; savePrefs(); };
     const liteSwitch = document.getElementById('liteModeSwitch');
     if(liteSwitch) liteSwitch.onchange = (e)=>{ state.prefs.liteMode = e.target.checked; savePrefs(); veriLiteToggle(!!e.target.checked, e.target.closest('.switch')||e.target); };
+    document.querySelectorAll('[data-lockmin]').forEach(b=>b.onclick=()=>{ state.prefs.lockMinutes=Number(b.dataset.lockmin); savePrefs(); veriTouchActivity(); render(); });
     const nSoundSw = document.getElementById('notifSoundSwitch');
     if(nSoundSw) nSoundSw.onchange = (e)=>{ state.prefs.notifSound = e.target.checked; savePrefs(); if(e.target.checked){ unlockAudio(); notifChime(true); } };
     const nVibSw = document.getElementById('notifVibrationSwitch');
@@ -9183,4 +9309,34 @@ textarea.notif-field{ resize:vertical; min-height:92px; line-height:1.4; }
 ::view-transition-new(veri-ring-0),::view-transition-new(veri-ring-1),::view-transition-new(veri-ring-2),::view-transition-new(veri-lite-pill){animation:none}
 @media (prefers-reduced-motion:reduce){.btn,.nav-btn,.home-card,.rep-item,.list-item,.pill-toggle button,.veri-notif-banner{transition-duration:.01ms!important;animation:none!important}}
 html.lite .btn:hover,html.lite .nav-btn:hover,html.lite .home-card:hover,html.lite .rep-item:hover{transform:none!important;box-shadow:none!important}
+</style>
+
+<style id="veri-recent-lock-multi">
+.recent-users{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin-top:16px}
+.recent-user{background:transparent;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 10px;border-radius:20px;min-width:104px;color:var(--text-1);transition:transform .28s cubic-bezier(.34,1.56,.64,1),background-color .2s ease;-webkit-tap-highlight-color:transparent}
+@media (hover:hover){.recent-user:hover{background:rgba(var(--accent-rgb),.10);transform:translateY(-3px)}}
+.recent-user:active{transform:scale(.95)}
+.recent-user.busy{opacity:.6;pointer-events:none}
+.recent-user-name{font-weight:700;font-size:14px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recent-user-tag{font-size:10.5px;font-weight:800;letter-spacing:.04em;padding:2px 8px;border-radius:999px;background:rgba(var(--accent-rgb),.14);color:var(--accent)}
+.recent-user-tag.alt{background:var(--input-bg);color:var(--text-2)}
+.veri-avatar{position:relative;border-radius:50%;overflow:hidden;background:rgba(var(--accent-rgb),.14);display:flex;align-items:center;justify-content:center;margin:0 auto;font-weight:800;color:var(--accent);box-shadow:0 6px 20px rgba(0,0,0,.14)}
+.veri-avatar-fb{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+.veri-avatar-fb svg{width:100%;height:100%}
+.veri-avatar>img{position:absolute;inset:0}
+.veri-lock{position:fixed;inset:0;z-index:2147483500;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg-1,#f5f5f7);opacity:0;transition:opacity .3s ease}
+.veri-lock.in{opacity:1}.veri-lock.out{opacity:0}
+.veri-lock-card{max-width:360px;width:100%;padding:30px 24px;text-align:center}
+.scan-multi-note{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#b45309;margin-bottom:3px}
+[data-theme="dark"] .scan-multi-note{color:#fbbf24}
+.scan-multi-name{margin-top:3px;padding-left:8px;border-left:2px solid rgba(245,158,11,.55)}
+.scan-multi-more{margin-top:6px}
+.scan-multi-more summary{list-style:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--text-2);opacity:.85;display:inline-flex;align-items:center;gap:4px}
+.scan-multi-more summary::-webkit-details-marker{display:none}
+.scan-multi-more summary::after{content:'▾';font-size:10px;transition:transform .25s ease}
+.scan-multi-more[open] summary::after{transform:rotate(180deg)}
+.naming-multi-row{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-top:6px}
+.naming-multi-row .naming-duplicate-product{margin-top:0;flex:1;min-width:0}
+.fast-pick{display:block;width:100%;text-align:left;margin-top:5px;padding:8px 11px;border-radius:12px;font-size:13px;font-weight:600;background:var(--input-bg);color:var(--text-1);border:1.5px solid transparent;transition:border-color .2s ease,background-color .2s ease}
+.fast-pick.on{border-color:var(--accent);background:rgba(var(--accent-rgb),.10)}
 </style>
