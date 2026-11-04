@@ -7455,10 +7455,10 @@ function saveRepPhotoToDevice(file, repId){
     }));
   }catch(e){ console.warn(e); }
 }
-async function uploadVeriPhoto(file, repId){
+async function uploadVeriPhoto(file, repId, opts){
   if(!file) return null;
   if(!file.type || !file.type.startsWith('image/')) throw new Error('Selecciona un archivo de imagen.');
-  saveRepPhotoToDevice(file, repId);
+  if(!(opts&&opts.skipSave)) saveRepPhotoToDevice(file, repId);
   if(file.size>30*1024*1024) throw new Error('La foto debe pesar menos de 30 MB.');
   // Siempre se sube el File original, sin compresión ni redimensionado (también en Modo Lite).
   const src=file;
@@ -8919,7 +8919,7 @@ function openRepCapture(r){
   pick.onchange=async()=>{ const fs=Array.from(pick.files||[]); await repCapAddFiles(fs); pick.value=''; };
   m.querySelector('#repCapPickBtn').onclick=()=>pick.click();
   m.querySelector('#repCapTake').onclick=()=>cam.click();   // siempre la cámara nativa del dispositivo (foto original, máxima calidad)
-  m.querySelector('#repCapSend').onclick=repCapSubmit;
+  m.querySelector('#repCapSend').onclick=repCapOpenSend;
   repCapRenderThumbs();
 }
 /* --- Ayudas de fotos (iPhone/HEIC/archivos grandes) --- */
@@ -8985,29 +8985,97 @@ function repCapRenderThumbs(){
   const takeLbl=document.querySelector('#repCapTake .lbl'); if(takeLbl) takeLbl.textContent = n ? 'Tomar otra foto' : 'Tomar foto';
   if(send){ send.disabled = !n || c.busy; send.textContent = c.busy ? 'Enviando…' : 'Enviar'; }
 }
-async function repCapSubmit(){
+/* ===== Envío en pasos: 1) descargar imágenes  2) confirmar  3) enviar  → animación de chulito ===== */
+function repCapOpenSend(){
+  const c=state.repCapture; if(!c||c.busy||!c.files.length) return;
+  const m=document.getElementById('repCaptureModal'); if(!m) return;
+  c.sendStep='download';
+  const old=document.getElementById('repSendSheet'); if(old) old.remove();
+  const sh=document.createElement('div'); sh.id='repSendSheet'; sh.className='rep-send'; m.appendChild(sh);
+  repSendRender();
+}
+function repSendClose(){ const sh=document.getElementById('repSendSheet'); if(sh) sh.remove(); const c=state.repCapture; if(c&&!c.busy) c.sendStep=null; }
+function repSendRender(){
+  const c=state.repCapture, sh=document.getElementById('repSendSheet'); if(!c||!sh) return;
+  const n=c.files.length, plural=n===1?'':'s', st=c.sendStep;
+  if(st==='sending'){
+    sh.className='rep-send center';
+    sh.innerHTML=`<div class="rep-send-card center"><div class="spinner" style="margin:4px auto 14px"></div><h3>Enviando…</h3><p class="rep-send-sub" id="repSendProg">Subiendo foto 1 de ${n}</p><div class="rep-send-bar"><i id="repSendBar" style="width:4%"></i></div></div>`;
+    return;
+  }
+  if(st==='done'){
+    sh.className='rep-send center';
+    sh.innerHTML=`<div class="rep-send-card center"><div class="rep-ok"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="rep-ok-bg" cx="60" cy="60" r="52"/><circle class="rep-ok-ring" cx="60" cy="60" r="52"/><path class="rep-ok-check" d="M36 62 l17 17 l33 -37"/></svg></div><h3>¡Enviado!</h3><p class="rep-send-sub">${n} foto${plural} · quedó${n===1?'':'ron'} en revisión</p></div>`;
+    return;
+  }
+  sh.className='rep-send';
+  const dl=c.downloaded, ok=c.confirmed;
+  const cls=(k)=>k==='1'?(dl?'done':'active'):k==='2'?(ok?'done':(dl?'active':'locked')):(ok?'active':'locked');
+  sh.innerHTML=`<div class="rep-send-card"><button type="button" class="rep-send-x" id="repSendX" aria-label="Cerrar">✕</button>
+    <h3>Enviar ${n} foto${plural}</h3><p class="rep-send-sub">Sigue los pasos: primero guarda las imágenes en tu teléfono.</p>
+    <ol class="rep-send-steps">
+      <li class="${cls('1')}"><span class="n">${dl?'✓':'1'}</span><div class="b"><b>Descargar imágenes</b><small>Se guardan en tu teléfono antes de enviarlas.</small><button type="button" class="rep-cap-bigbtn ${dl?'':'primary'} row" id="repSendDl"><span class="ico">⬇️</span><span class="lbl">${dl?'Volver a descargar':'Descargar imágenes'}</span></button></div></li>
+      <li class="${cls('2')}"><span class="n">${ok?'✓':'2'}</span><div class="b"><b>¿Ya descargaste las imágenes?</b><small>Confirma que quedaron guardadas.</small><button type="button" class="rep-cap-bigbtn ${dl&&!ok?'primary':''} row" id="repSendOk"><span class="ico">👍</span><span class="lbl">Sí, ya las descargué</span></button></div></li>
+      <li class="${cls('3')}"><span class="n">3</span><div class="b"><b>Enviar</b><small>Se suben en calidad original y quedan en revisión.</small><button type="button" class="rep-cap-bigbtn ${ok?'primary':''} row" id="repSendGo"><span class="ico">🚀</span><span class="lbl">Enviar ahora</span></button></div></li>
+    </ol></div>`;
+  sh.querySelector('#repSendX').onclick=repSendClose;
+  sh.onclick=(e)=>{ if(e.target===sh) repSendClose(); };
+  sh.querySelector('#repSendDl').onclick=repSendDownload;
+  sh.querySelector('#repSendOk').onclick=()=>{ if(!c.downloaded) return; c.confirmed=true; repSendRender(); };
+  sh.querySelector('#repSendGo').onclick=()=>{ if(!c.confirmed) return; repCapDoSend(); };
+}
+function repSendProgress(k,n){
+  const t=document.getElementById('repSendProg'), b=document.getElementById('repSendBar');
+  if(t) t.textContent = k<n ? `Subiendo foto ${k+1} de ${n}` : 'Guardando en revisión…';
+  if(b) b.style.width=Math.max(6,Math.round(k/n*100))+'%';
+}
+async function repSendDownload(){
+  const c=state.repCapture, r=repCapRow(); if(!c||c.busy) return;
+  const base=String((r&&(r.codigoProducto||r.id))||'foto').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,40);
+  const extOf=(f)=>{ const t=(f.type||'').toLowerCase(); return t.includes('png')?'png':t.includes('heic')?'heic':t.includes('heif')?'heif':t.includes('webp')?'webp':'jpg'; };
+  const files=c.files.map((it,i)=>new File([it.file],`Veri_${base}_${i+1}.${extOf(it.file)}`,{type:it.file.type||'image/jpeg'}));
+  let ok=false;
+  // En el celular se abre la hoja de compartir del sistema ("Guardar imágenes"): se puede cerrar y deja las fotos en Fotos.
+  if(navigator.share && navigator.canShare){
+    try{ if(navigator.canShare({files})){ await navigator.share({files}); ok=true; } }
+    catch(e){ if(e&&e.name==='AbortError'){ toast('No se descargaron. Toca “Descargar imágenes” para intentarlo de nuevo.'); return; } }
+  }
+  if(!ok){   // respaldo: descarga directa de cada archivo
+    for(const f of files){
+      try{ const u=URL.createObjectURL(f), a=document.createElement('a'); a.href=u; a.download=f.name; a.style.display='none'; document.body.appendChild(a); a.click(); setTimeout(()=>{ a.remove(); URL.revokeObjectURL(u); },4000); }catch(e){ console.warn(e); }
+      await new Promise(res=>setTimeout(res,800));
+    }
+    ok=true;
+  }
+  if(state.repCapture!==c) return;
+  c.downloaded=true; c.confirmed=false; repSendRender();
+}
+async function repCapDoSend(){
   const c=state.repCapture, r=repCapRow(); if(!c||!r||c.busy||!c.files.length) return;
-  c.busy=true; repCapLiveStop(); repCapRenderThumbs();
+  c.busy=true; c.sendStep='sending'; repCapLiveStop(); repCapRenderThumbs(); repSendRender();
   try{
-    let first=null;
+    let first=null, k=0; const total=c.files.length;
     for(const it of c.files){            // cada archivo se sube una sola vez, aunque haya que reintentar el envío
-      if(!it.path){ it.path=await uploadVeriPhoto(it.file, r.id); }
+      if(!it.path){ it.path=await uploadVeriPhoto(it.file, r.id, {skipSave:true}); }
       if(!it.saved){ await insertRepPhoto(r.id, it.path, it.file.name); it.saved=true; }
       if(!first) first=it.path;
+      k++; repSendProgress(k,total);
     }
     const now=new Date().toISOString();
     await repPatchSafe(r.id,
       {estado:'sent', archivado:false, foto_path:first, foto_subida_en:now, revision_estado:'pendiente', revision_motivo:'', en_proceso_por:null, en_proceso_desde:null},
       {estado:'sent', archivado:false, foto_path:first, foto_subida_en:now, revision_estado:'pendiente', revision_motivo:''});
     Object.assign(r,{estado:'sent',archivado:false,fotoPath:first,fotoSubidaEn:now,revisionEstado:'pendiente',revisionMotivo:'',enProcesoPor:'',enProcesoDesde:null});
-    const n=c.files.length;
     await refreshRepPhotos();
+    if(state.repCapture!==c) return;
+    c.sendStep='done'; repSendRender();      // pantalla de éxito con chulito animado
+    await new Promise(res=>setTimeout(res,2000));
     await closeRepCapture(false);
-    toast(`✓ ${n} foto${n===1?'':'s'} enviada${n===1?'':'s'} · quedó en revisión`);
     render();
   }catch(e){
-    console.error(e); c.busy=false; repCapRenderThumbs();
-    toast('No se pudo enviar. Tus fotos siguen aquí: toca Enviar para reintentar.');
+    console.error(e); c.busy=false; c.sendStep='ready'; repCapRenderThumbs();
+    if(state.repCapture===c){ c.confirmed=true; c.downloaded=true; c.sendStep='download'; repSendRender(); }
+    toast('No se pudo enviar. Tus fotos siguen aquí: toca “Enviar ahora” para reintentar.');
   }
 }
 async function closeRepCapture(release){
@@ -9502,4 +9570,39 @@ html.lite .has-photo::after{background:none;box-shadow:inset 0 0 0 1.5px rgba(25
 .rep-cap-actions{position:sticky;top:0;z-index:5;padding:10px 0 8px;margin:6px 0 4px;background:linear-gradient(rgba(10,13,19,.97) 80%,rgba(10,13,19,0))}
 .rep-cap-bigbtn{-webkit-appearance:none;appearance:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
 .rep-cap-foot{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+</style>
+
+<style id="veri-v6">
+/* ===== Hoja de envío en pasos + pantalla de éxito ===== */
+.rep-send{position:absolute;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,5,9,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:repSendFade .25s ease}
+.rep-send.center{align-items:center}
+.rep-send-card{position:relative;width:100%;max-width:520px;background:#161a22;border:1px solid #333845;border-radius:26px 26px 0 0;padding:20px 16px calc(18px + env(safe-area-inset-bottom));color:#fff;animation:repSendUp .38s cubic-bezier(.22,1,.36,1);max-height:92%;overflow-y:auto}
+.rep-send-card.center{border-radius:26px;margin:0 18px;width:calc(100% - 36px);text-align:center;padding:28px 20px}
+.rep-send-card h3{margin:0 0 4px;font-size:20px;letter-spacing:-.02em}
+.rep-send-sub{margin:0 0 14px;font-size:13px;opacity:.75;line-height:1.4}
+.rep-send-x{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;border:0;background:#2a2f3a;color:#fff;font-size:16px;cursor:pointer;padding:0}
+.rep-send-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.rep-send-steps li{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:18px;background:#1d222c;border:1.5px solid #2f3541;transition:opacity .25s,border-color .25s}
+.rep-send-steps li.active{border-color:#0a84ff;background:rgba(10,132,255,.10)}
+.rep-send-steps li.done{border-color:rgba(52,199,89,.55);background:rgba(52,199,89,.08)}
+.rep-send-steps li.locked{opacity:.42;pointer-events:none}
+.rep-send-steps .n{flex:0 0 28px;height:28px;border-radius:50%;background:#2f3541;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800}
+.rep-send-steps li.active .n{background:#0a84ff}.rep-send-steps li.done .n{background:#34c759}
+.rep-send-steps .b{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.rep-send-steps .b b{font-size:15px}.rep-send-steps .b small{font-size:12px;opacity:.7;margin-bottom:6px}
+.rep-cap-bigbtn.row{flex-direction:row;min-height:50px;padding:10px 14px;border-radius:15px;gap:10px;justify-content:center}
+.rep-cap-bigbtn.row .ico{font-size:20px}.rep-cap-bigbtn.row .lbl{font-size:15.5px}
+.rep-send-bar{height:8px;border-radius:99px;background:#2a2f3a;overflow:hidden;margin-top:6px}
+.rep-send-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#0a84ff,#34c759);transition:width .35s ease}
+.rep-ok{width:128px;height:128px;margin:0 auto 10px;position:relative;animation:repOkPop .6s cubic-bezier(.34,1.56,.64,1)}
+.rep-ok::after{content:"";position:absolute;inset:0;border-radius:50%;border:3px solid rgba(52,199,89,.6);animation:repOkBurst .9s ease-out .35s both}
+.rep-ok svg{width:100%;height:100%}
+.rep-ok-bg{fill:rgba(52,199,89,.16)}
+.rep-ok-ring{fill:none;stroke:#34c759;stroke-width:6;stroke-linecap:round;stroke-dasharray:327;stroke-dashoffset:327;transform:rotate(-90deg);transform-origin:60px 60px;animation:repOkDraw .7s cubic-bezier(.4,0,.2,1) .05s forwards}
+.rep-ok-check{fill:none;stroke:#34c759;stroke-width:9;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:90;stroke-dashoffset:90;animation:repOkDraw .45s cubic-bezier(.4,0,.2,1) .6s forwards}
+@keyframes repOkDraw{to{stroke-dashoffset:0}}
+@keyframes repOkPop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@keyframes repOkBurst{from{transform:scale(1);opacity:.9}to{transform:scale(1.55);opacity:0}}
+@keyframes repSendFade{from{opacity:0}to{opacity:1}}
+@keyframes repSendUp{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
 </style>
