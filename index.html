@@ -2460,7 +2460,7 @@ const I18N = {
     veriFabAria:"Preguntarle a Veri", veriAIBetaTag:"Beta",
     cartSearchBtn:"Buscar", cartSearchPlaceholder:"Buscar en el carrito: nombre o últimos 6 dígitos", cartSearchNone:"Sin coincidencias: ese producto no está en el carrito.", cartQuickAddBtn:"Agregar", cartScannedLabel:"Código escaneado:", cartMatchLabel:"Coincide con",
     savePhotosLabel:"Guardar fotos de repeticiones en el celular", savePhotosSub:"Cada foto que tomes se descarga también al teléfono como respaldo (en iPhone queda en Archivos › Descargas).",
-    liteModeLabel:"Modo Lite", liteModeSub:"Prioriza el rendimiento antes que las animaciones y los efectos visuales.", liteModeHint:"¿Tu celular va lento? Prueba el Modo Lite en Ajustes.",
+    liteModeLabel:"Modo Lite", liteModeSub:"Más rápida y con menos datos: sin animaciones ni efectos, fotos solo cuando las pidas y sincronización más espaciada. Las fotos de repeticiones siempre se envían en calidad original.", liteModeHint:"¿Tu celular va lento? Prueba el Modo Lite en Ajustes.",
     preferencesSaved:"Preferencias guardadas", soundTest:"Probar sonido", edit:"Editar", delete:"Eliminar", editSave:"Guardar cambios",
     category:"Categoría", uncategorized:"Sin categoría", reorderHint:"Mantén presionado y arrastra para ordenar",
     importWhiteOnly:"Solo se importaron productos sin color. Amarillo, azul y verde fueron omitidos.",
@@ -2670,7 +2670,7 @@ const I18N = {
     veriFabAria:"Ask Veri", veriAIBetaTag:"Beta",
     cartSearchBtn:"Search", cartSearchPlaceholder:"Search the cart: name or last 6 digits", cartSearchNone:"No matches: that product is not in the cart.", cartQuickAddBtn:"Add", cartScannedLabel:"Scanned code:", cartMatchLabel:"Matches",
     savePhotosLabel:"Save repetition photos to this phone", savePhotosSub:"Every photo you take is also downloaded to the phone as a backup (on iPhone it goes to Files › Downloads).",
-    liteModeLabel:"Lite mode", liteModeSub:"Prioritizes performance over animations and visual effects.", liteModeHint:"Phone feeling slow? Try Lite mode in Settings.",
+    liteModeLabel:"Lite mode", liteModeSub:"Faster and lighter on data: no animations or effects, photos only when you ask and less frequent syncing. Repetition photos are always sent in original quality.", liteModeHint:"Phone feeling slow? Try Lite mode in Settings.",
     preferencesSaved:"Preferences saved", soundTest:"Test sound", edit:"Edit", delete:"Delete", editSave:"Save changes",
     category:"Category", uncategorized:"Uncategorized", reorderHint:"Press and drag to reorder",
     importWhiteOnly:"Only uncolored products were imported. Yellow, blue and green were skipped.",
@@ -2746,6 +2746,12 @@ const I18N = {
     adminSectionCollapseHint:"Tap a section to expand or collapse it.",
   }
 };
+const veriIsLite=()=>document.documentElement.classList.contains('lite');
+const __liteTicks={};
+// En Lite, las consultas periódicas se hacen 3 veces más espaciadas (menos datos y batería).
+function veriLiteSkip(k){ if(!veriIsLite()) return false; __liteTicks[k]=(__liteTicks[k]||0)+1; return __liteTicks[k]%3!==0; }
+function veriLiteShowBtn(id,n){ const en=state.prefs.lang==='en'; return `<button type="button" class="btn secondary sm" data-lite-show="${id}" style="margin-top:10px">📷 ${en?(n>1?'Show '+n+' photos':'Show photo'):(n>1?'Ver '+n+' fotos':'Ver foto')} · ${en?'loads on tap':'se descarga al tocar'}</button>`; }
+document.addEventListener('click',e=>{ const b=e.target&&e.target.closest&&e.target.closest('[data-lite-show]'); if(!b) return; state.liteShown=state.liteShown||{}; state.liteShown[b.dataset.liteShow]=true; try{ render(); }catch(err){} });
 const veriReduceMotion=()=>{ try{ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } };
 function veriLiteFxPill(on){
   const wrap=document.createElement('div'); wrap.className='veri-lite-fx';
@@ -2803,7 +2809,7 @@ function applyLiteMode(){
 }
 // Aviso único, solo en Android con poca memoria o pocos núcleos: sugiere el Modo Lite.
 setTimeout(()=>{ try{
-  if(state.session && state.prefs.liteMode===undefined && !localStorage.getItem('vp_lite_hint') && /Android/i.test(navigator.userAgent) && ((navigator.deviceMemory&&navigator.deviceMemory<=3)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4))){ localStorage.setItem('vp_lite_hint','1'); toast(t('liteModeHint')); }
+  if(state.session && state.prefs.liteMode===undefined && !localStorage.getItem('vp_lite_hint') && ((/Android/i.test(navigator.userAgent) && ((navigator.deviceMemory&&navigator.deviceMemory<=3)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4))) || (navigator.connection&&navigator.connection.saveData))){ localStorage.setItem('vp_lite_hint','1'); toast(t('liteModeHint')); }
 }catch(e){} },8000);
 let __xlsxP=null;
 function ensureXLSX(){
@@ -4947,7 +4953,7 @@ async function pollBases(){
 }
 function startBasePolling(){
   if(basePollTimer) return;
-  basePollTimer=setInterval(pollBases,BASE_POLL_INTERVAL_MS);
+  basePollTimer=setInterval(()=>{ if(veriLiteSkip('bases')) return; pollBases(); },BASE_POLL_INTERVAL_MS);
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pollBases(); });
   window.addEventListener('online',pollBases); window.addEventListener('focus',pollBases);
 }
@@ -5805,7 +5811,7 @@ function startNotifPolling(){
   if(notifPollTimer) return;
   let n=0;
   const tick=()=>{ if(!state.session) return; if(n++%5===0) loadNotifSettings(); refreshNotifications(); };
-  notifPollTimer = setInterval(tick, NOTIF_POLL_INTERVAL_MS);   // igual que el carrito: sondeo periódico por REST
+  notifPollTimer = setInterval(()=>{ if(veriLiteSkip('notif')) return; tick(); }, NOTIF_POLL_INTERVAL_MS);   // igual que el carrito: sondeo periódico por REST
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) tick(); });
   window.addEventListener('online', tick); window.addEventListener('focus', tick);
 }
@@ -6041,7 +6047,7 @@ function veriAvatarHTML(codigo, size){
     ? `<img src="${escapeHtml(photo)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit" onerror="this.remove()">`
     : '';
   const fallback = personAvatarInner(persona||{codigo:c,nombre:name}, c, size);
-  return `<div class="veri-avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.38)}px"><span class="veri-avatar-fb">${photo?personInitials(persona||{codigo:c,nombre:name},c):fallback}</span>${inner}</div>`;
+  return `<div class="veri-avatar${photo?' has-photo':''}" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.38)}px"><span class="veri-avatar-fb">${photo?personInitials(persona||{codigo:c,nombre:name},c):fallback}</span>${inner}</div>`;
 }
 async function veriRegisterPasskey(codigo,pin){
   if(!window.SimpleWebAuthnBrowser) throw new Error('No se pudo cargar el módulo de Passkeys. Comprueba tu conexión.');
@@ -6252,37 +6258,105 @@ function renderRoot(){
   updateVeriFab(true);
   render();
 }
+/* ===== Animación de entrada: anillo de carga alrededor de la foto, que se encoge y vuela a la esquina ===== */
+function veriSplashOk(){ try{ return !document.documentElement.classList.contains('lite') && !veriReduceMotion(); }catch(e){ return false; } }
+function veriSplashSet(S,p){
+  S.p=Math.max(S.p,Math.min(100,p));
+  const arc=S.el.querySelector('.vs-arc'); if(arc) arc.style.strokeDashoffset=String((S.circ*(1-S.p/100)).toFixed(2));
+}
+function veriSplashProgress(S,p){ if(!S) return; S.cap=Math.max(S.cap,p); veriSplashSet(S,p); }
+function veriSplashShow(codigo){
+  if(!veriSplashOk()) return null;
+  try{
+    const old=document.getElementById('veriSplash'); if(old) old.remove();
+    const c=normalize(codigo), persona=state.personas.find(x=>x.codigo===c);
+    const nombre=(persona&&persona.nombre)||c, R=67.5, CIRC=2*Math.PI*R;
+    const el=document.createElement('div'); el.id='veriSplash'; el.className='vs';
+    el.innerHTML=`<div class="vs-bg"></div><div class="vs-stage"><div class="vs-wrap"><div class="vs-avatar">${veriAvatarHTML(c,140)}</div><svg class="vs-ring" viewBox="0 0 140 140" aria-hidden="true"><circle class="vs-track" cx="70" cy="70" r="${R}"/><circle class="vs-arc" cx="70" cy="70" r="${R}" stroke-dasharray="${CIRC.toFixed(2)}" stroke-dashoffset="${CIRC.toFixed(2)}"/></svg></div><div class="vs-name">${escapeHtml(nombre)}</div></div>`;
+    document.body.appendChild(el);
+    const S={el,circ:CIRC,p:0,cap:0,t0:Date.now(),timer:null};
+    veriSplashSet(S,6); S.cap=6;
+    S.timer=setInterval(()=>{ const lim=Math.min(92,S.cap+10); if(S.p<lim) veriSplashSet(S,S.p+(lim-S.p)*0.12); },280);
+    return S;
+  }catch(e){ console.warn('splash',e); return null; }
+}
+function veriSplashFinish(S){
+  if(!S) return;
+  clearInterval(S.timer);
+  const cleanup=()=>{ try{S.el.remove();}catch(e){} document.documentElement.classList.remove('vs-landing'); };
+  setTimeout(cleanup,9000);                      // red de seguridad
+  const wait=Math.max(0,1000-(Date.now()-S.t0)); // que se alcance a ver aunque cargue rápido
+  setTimeout(()=>{
+    try{ veriSplashSet(S,100); }catch(e){}
+    setTimeout(()=>{ try{ veriSplashFly(S,cleanup); }catch(e){ cleanup(); } },560);
+  },wait);
+}
+function veriSplashFly(S,cleanup){
+  const el=S.el, wrap=el.querySelector('.vs-wrap'), av=el.querySelector('.vs-avatar'), ring=el.querySelector('.vs-ring'), bg=el.querySelector('.vs-bg'), nm=el.querySelector('.vs-name');
+  const tgt=document.getElementById('topbarAvatarBtn');
+  if(!tgt || !tgt.offsetWidth || !state.booted){          // sin destino visible: solo se disuelve
+    el.animate([{opacity:1},{opacity:0}],{duration:450,easing:'ease',fill:'forwards'}).onfinish=cleanup; return;
+  }
+  document.documentElement.classList.add('vs-landing');   // oculta el avatar real hasta que aterriza
+  const a=av.getBoundingClientRect(), r=tgt.getBoundingClientRect();
+  const k=r.width/a.width;
+  const dx=(r.left+r.width/2)-(a.left+a.width/2), dy=(r.top+r.height/2)-(a.top+a.height/2);
+  const ease='cubic-bezier(.22,1,.36,1)', D=900;
+  bg.animate([{opacity:1},{opacity:0}],{duration:640,delay:240,easing:'ease-in-out',fill:'forwards'});
+  nm.animate([{opacity:.85,transform:'none'},{opacity:0,transform:'translateY(8px)'}],{duration:260,easing:'ease-out',fill:'forwards'});
+  ring.animate([{opacity:1,transform:'rotate(-90deg)'},{opacity:0,transform:'rotate(-30deg)'}],{duration:520,easing:'ease-in',fill:'forwards'});
+  const fly=wrap.animate([{transform:'translate(0,0) scale(1)'},{transform:`translate(${dx}px,${dy}px) scale(${k})`}],{duration:D,easing:ease,fill:'forwards'});
+  fly.onfinish=()=>{
+    const t2=document.getElementById('topbarAvatarBtn');
+    cleanup();
+    if(t2){
+      try{
+        t2.animate([{transform:'scale(1.14)'},{transform:'scale(1)'}],{duration:420,easing:'cubic-bezier(.34,1.56,.64,1)'});
+        t2.animate([{boxShadow:'0 0 0 0 rgba(var(--accent-rgb),.45)'},{boxShadow:'0 0 0 14px rgba(var(--accent-rgb),0)'}],{duration:760,easing:'ease-out'});
+      }catch(e){}
+    }
+  };
+}
 async function completeLogin(codigo, photoUrl=null, pin=null){
   state.session = codigo; localStorage.setItem('vp_session', codigo);
   const savedForUser = localStorage.getItem('vp_prefs_'+normalize(codigo));
   if(savedForUser){ try{ state.prefs = {...state.prefs, ...JSON.parse(savedForUser)}; }catch(e){} }
   state.loginError=''; state.loginStep='code'; state.loginCandidate=null; state.termsChecked=false; state.termsAccepted=false;
+  const pre=state.personas.find(x=>x.codigo===normalize(codigo)); if(pre && photoUrl) pre.profile_photo_url=photoUrl;
+  const splash=veriSplashShow(codigo);
   state.booted=false; renderRoot();
-  await loadCoreData();
-  if(!photoUrl && pin){
   try{
-    const profile=await veriPasskeyCall('get-profile-photo',{
-      codigo,
-      pin
-    });
-    photoUrl=profile.photoUrl;
-  }catch(e){
-    console.warn('No se pudo cargar la foto de perfil:',e);
+    veriSplashProgress(splash,14);
+    await loadCoreData();
+    veriSplashProgress(splash,46);
+    if(!photoUrl && pin){
+      try{
+        const profile=await veriPasskeyCall('get-profile-photo',{ codigo, pin });
+        photoUrl=profile.photoUrl;
+      }catch(e){
+        console.warn('No se pudo cargar la foto de perfil:',e);
+      }
+    }
+    const loggedPerson=state.personas.find(x=>x.codigo===normalize(codigo));
+    if(loggedPerson) loggedPerson.profile_photo_url=photoUrl;
+    veriRememberUser(codigo, loggedPerson||{codigo:normalize(codigo)});
+    veriTouchActivity();
+    veriSplashProgress(splash,58);
+    await loadRemotePrefs(codigo);
+    veriSplashProgress(splash,70);
+    state.termsAccepted=await checkTermsAccepted(codigo); state.termsChecked=true;
+    veriSplashProgress(splash,80);
+    // Al iniciar sesión (sin recargar) se carga también la lista de nombrados del día desde el servidor.
+    resetUserScopedState();
+    loadNaming();
+    try{ await pushPendingNamingOfPastDays(); }catch(e){}
+    veriSplashProgress(splash,90);
+    try{ const rows=await fetchNamingRemote(); if(Array.isArray(rows)) await syncNamingRemoteRows(rows); }catch(e){ console.error('Error sincronizando nombrados:',e); }
+    startNamingDayWatcher();
+    state.booted=true; renderRoot();
+  } finally {
+    veriSplashFinish(splash);
   }
-}
-  const loggedPerson=state.personas.find(p=>p.codigo===normalize(codigo));
-if(loggedPerson) loggedPerson.profile_photo_url=photoUrl;
-  veriRememberUser(codigo, loggedPerson||{codigo:normalize(codigo)});
-  veriTouchActivity();
-  await loadRemotePrefs(codigo);
-  state.termsAccepted=await checkTermsAccepted(codigo); state.termsChecked=true;
-  // Al iniciar sesión (sin recargar) se carga también la lista de nombrados del día desde el servidor.
-  resetUserScopedState();
-  loadNaming();
-  try{ await pushPendingNamingOfPastDays(); }catch(e){}
-  try{ const rows=await fetchNamingRemote(); if(Array.isArray(rows)) await syncNamingRemoteRows(rows); }catch(e){ console.error('Error sincronizando nombrados:',e); }
-  startNamingDayWatcher();
-  state.booted=true; renderRoot();
 }
 // Datos que pertenecen a una cuenta: se limpian al cambiar de usuario para no mezclar listas entre cuentas.
 function resetUserScopedState(){
@@ -6331,7 +6405,7 @@ function render(){
       <div class="badge">${t('base')} ${state.scanBase}</div>
       <div class="topbar-actions">
         <button class="topbar-icon-btn" id="topbarBellBtn" aria-label="Notificaciones">${ICONS.bell}<span class="bell-badge" id="bellBadge"></span></button>
-        <button class="topbar-avatar" id="topbarAvatarBtn" aria-label="${t('tabSettings')}">${avatarInner}</button>
+        <button class="topbar-avatar${veriPersonPhoto(persona)?' has-photo':''}" id="topbarAvatarBtn" aria-label="${t('tabSettings')}">${avatarInner}</button>
       </div>
     </div>
     ${state.tab==='home' ? renderHome() : ''}
@@ -7271,6 +7345,7 @@ function renderRepItem(r){
   const review = r.revisionEstado || 'pendiente';
   const photoUrl = (!r.archivado && r.fotoPath) ? veriPhotoUrl(r.fotoPath) : '';
   const multiPhotos=(state.repetitionPhotos||[]).filter(f=>String(f.repeticionId)===String(r.id));
+  const liteHide=veriIsLite() && !(state.liteShown&&state.liteShown[String(r.id)]);
   const multiPending=multiPhotos.filter(f=>f.estado!=='aprobada').length;
   const allMultiApproved=multiPhotos.length>0 && multiPhotos.every(f=>f.estado==='aprobada');
   const reviewLabel = allMultiApproved?'Todas las fotos aprobadas':multiPhotos.length?`${multiPhotos.length-multiPending}/${multiPhotos.length} fotos aprobadas`:review==='aprobada'?'Foto aprobada':review==='repetir'?'Debe tomar la foto nuevamente':'Foto pendiente de revisión';
@@ -7283,8 +7358,10 @@ function renderRepItem(r){
       ${r.motivo ? `<div class="rep-detail"><strong>Motivo de la repetición:</strong> ${escapeHtml(r.motivo)}</div>` : ''}</div>
       ${reviewer ? `<button class="btn ghost sm" data-del="${r.id}">${ICONS.trash}</button>`:''}</div>
     <div class="rep-meta">${r.categoria ? `<span class="chip">${r.categoria}</span>`:''}${r.fotografo ? `<span class="chip">Fotógrafo: ${escapeHtml(r.fotografo)}</span>`:''}${repParseId(r.codigoProducto)?`<span class="chip">${repFmtDate(repParseId(r.codigoProducto).date)} · Almacén ${escapeHtml(repParseId(r.codigoProducto).store)}</span>`:''}<span class="chip"><span class="status-dot ${r.estado=='done'?'working':r.estado}"></span>${statusLabel}</span><span class="chip">${reviewLabel}</span>${r.archivado ? `<span class="chip">${t('archivedLabel')}</span>` : ''}</div>
-    ${!r.archivado && multiPhotos.length ? `<div class="rep-photo-strip" style="display:flex;gap:8px;overflow:auto;margin-top:10px">${multiPhotos.map(f=>{const u=veriPhotoUrl(f.path);return `<div style="min-width:100px;width:100px">${u?`<img src="${u}" alt="Foto" style="width:100px;height:86px;object-fit:cover;border-radius:10px">`:''}<div class="small-note">${escapeHtml(f.estado)}</div>${photographerOwns && f.estado==='repetir'?`<label class="btn secondary sm" for="retake-photo-${f.id}">Reemplazar</label><input id="retake-photo-${f.id}" data-retake-photo="${f.id}" type="file" accept="image/*" capture="environment" style="display:none">`:''}</div>`}).join('')}</div>`:''}
-    ${photoUrl && !multiPhotos.length ? `<button type="button" class="veri-photo-preview-trigger" data-photo-preview="${encodeURIComponent(photoUrl)}" data-photo-title="${String(r.nombreProducto||r.codigoProducto||'Fotografía del producto').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}"><img src="${photoUrl}" alt="Vista previa de fotografía de ${r.nombreProducto||r.codigoProducto||'producto'}" style="display:block;width:min(100%,420px);max-height:360px;object-fit:contain;border-radius:14px;background:var(--surface,#f4f4f4);"><span>⤢ Ver imagen en grande · zoom y revisión de enfoque</span></button>`:''}
+    ${!r.archivado && multiPhotos.length && liteHide ? veriLiteShowBtn(r.id,multiPhotos.length) : ''}
+    ${!r.archivado && multiPhotos.length && !liteHide ? `<div class="rep-photo-strip" style="display:flex;gap:8px;overflow:auto;margin-top:10px">${multiPhotos.map(f=>{const u=veriPhotoUrl(f.path);return `<div style="min-width:100px;width:100px">${u?`<img src="${u}" alt="Foto" loading="lazy" decoding="async" style="width:100px;height:86px;object-fit:cover;border-radius:10px">`:''}<div class="small-note">${escapeHtml(f.estado)}</div>${photographerOwns && f.estado==='repetir'?`<label class="btn secondary sm" for="retake-photo-${f.id}">Reemplazar</label><input id="retake-photo-${f.id}" data-retake-photo="${f.id}" type="file" accept="image/*" capture="environment" style="display:none">`:''}</div>`}).join('')}</div>`:''}
+    ${photoUrl && !multiPhotos.length && liteHide ? veriLiteShowBtn(r.id,1) : ''}
+    ${photoUrl && !multiPhotos.length && !liteHide ? `<button type="button" class="veri-photo-preview-trigger" data-photo-preview="${encodeURIComponent(photoUrl)}" data-photo-title="${String(r.nombreProducto||r.codigoProducto||'Fotografía del producto').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}"><img src="${photoUrl}" loading="lazy" decoding="async" alt="Vista previa de fotografía de ${r.nombreProducto||r.codigoProducto||'producto'}" style="display:block;width:min(100%,420px);max-height:360px;object-fit:contain;border-radius:14px;background:var(--surface,#f4f4f4);"><span>⤢ Ver imagen en grande · zoom y revisión de enfoque</span></button>`:''}
     ${review==='repetir' && r.revisionMotivo ? `<div class="warning-banner" style="margin-top:10px;"><span><strong>Motivo para repetir:</strong> ${r.revisionMotivo}</span></div>`:''}
     <div class="row wrap" style="margin-top:10px;gap:8px;">
       ${repStartButtonHTML(r)}
@@ -7383,9 +7460,10 @@ async function uploadVeriPhoto(file, repId){
   if(!file.type || !file.type.startsWith('image/')) throw new Error('Selecciona un archivo de imagen.');
   saveRepPhotoToDevice(file, repId);
   if(file.size>30*1024*1024) throw new Error('La foto debe pesar menos de 30 MB.');
-  const path=`${normalize(state.session||'anon')}/${repId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-  // Se pasa el File original directamente a Storage; no hay canvas ni compresión intermedia.
-  const {error}=await veriStorageClient().storage.from('veri-repetition-photos').upload(path,file,{upsert:false,contentType:file.type,cacheControl:'3600'});
+  // Siempre se sube el File original, sin compresión ni redimensionado (también en Modo Lite).
+  const src=file;
+  const path=`${normalize(state.session||'anon')}/${repId}/${Date.now()}-${(src.name||file.name||'foto.jpg').replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+  const {error}=await veriStorageClient().storage.from('veri-repetition-photos').upload(path,src,{upsert:false,contentType:src.type||file.type,cacheControl:'3600'});
   if(error) throw error;
   try{await refreshVeriPhotoUrl(path);}catch(e){console.warn('La foto se subió, pero no se pudo crear su vista previa firmada.',e);}
   return path;
@@ -7424,7 +7502,7 @@ const COLOR_PALETTES={vivos:{label:'Vivos',colors:[['#3B82F6','Azul'],['#6D5DFC'
 function renderSettings(){
   const persona=state.personas.find(p=>p.codigo===normalize(state.session||'')); const name=persona?.nombre||state.session||''; const avatarInner=personAvatarInner(persona, state.session, 52);
   return `<div class="settings-shell"><div class="settings-header"><h2>${t('tabSettings')}</h2><p>${t('settingsSub')}</p></div>
-    <div class="profile-card glass"><button type="button" class="profile-avatar avatar-editable" id="avatarEditBtn" aria-label="${t('chooseAvatar')}">${avatarInner||'?'}<span class="avatar-edit-badge">✎</span></button><div style="min-width:0;flex:1;"><div class="profile-name">${name||'—'}</div><div class="profile-code">${state.session||'—'} · ${t('personCode')}</div><div class="account-role-chip ${isAdmin()?'role-admin':isCoAdmin()?'role-coadmin':'role-user'}"><span class="account-role-dot"></span>${isAdmin()?(state.prefs.lang==='en'?'Administrator':'Administrador'):isCoAdmin()?(state.prefs.lang==='en'?'Co-administrator':'Coadministrador'):(state.prefs.lang==='en'?'User':'Usuario')}</div><div class="inline-edit"><input id="usernameEdit" type="text" value="${String(name).replace(/"/g,'&quot;')}" placeholder="${t('usernameLabel')}" /><button class="btn sm" id="saveUsernameBtn">${t('saveName')}</button></div><div class="small-note" style="margin-top:6px;">${t('usernameHint')}</div></div></div>
+    <div class="profile-card glass"><button type="button" class="profile-avatar avatar-editable${veriPersonPhoto(persona)?' has-photo':''}" id="avatarEditBtn" aria-label="${t('chooseAvatar')}">${avatarInner||'?'}<span class="avatar-edit-badge">✎</span></button><div style="min-width:0;flex:1;"><div class="profile-name">${name||'—'}</div><div class="profile-code">${state.session||'—'} · ${t('personCode')}</div><div class="account-role-chip ${isAdmin()?'role-admin':isCoAdmin()?'role-coadmin':'role-user'}"><span class="account-role-dot"></span>${isAdmin()?(state.prefs.lang==='en'?'Administrator':'Administrador'):isCoAdmin()?(state.prefs.lang==='en'?'Co-administrator':'Coadministrador'):(state.prefs.lang==='en'?'User':'Usuario')}</div><div class="inline-edit"><input id="usernameEdit" type="text" value="${String(name).replace(/"/g,'&quot;')}" placeholder="${t('usernameLabel')}" /><button class="btn sm" id="saveUsernameBtn">${t('saveName')}</button></div><div class="small-note" style="margin-top:6px;">${t('usernameHint')}</div></div></div>
  ${avatarPickerHTML()}<div class="settings-group glass"><div class="settings-group-title">${t('settingsGeneral')}</div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('language')}</div></div><div class="settings-row-control"><div class="pill-toggle"><button data-lang="es" class="${state.prefs.lang==='es'?'active':''}">ES</button><button data-lang="en" class="${state.prefs.lang==='en'?'active':''}">EN</button></div></div></div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('theme')}</div></div><div class="settings-row-control"><div class="pill-toggle"><button data-theme-btn="light" class="${state.prefs.theme==='light'?'active':''}">${t('light')}</button><button data-theme-btn="dark" class="${state.prefs.theme==='dark'?'active':''}">${t('dark')}</button></div></div></div>
@@ -8056,7 +8134,7 @@ function unsubscribeCartRealtime(){ stopCartPolling(); }
 function startCartPolling(){
   if(state.cartPollTimer) return;
   state.cartPollTimer = setInterval(()=>{
-    if(document.hidden) return;
+    if(document.hidden || veriLiteSkip('cart')) return;
     if(state.scanMode==='cart' && toolVisible('carrito')) loadCartToday();
     else stopCartPolling();
   }, CART_POLL_INTERVAL_MS);
@@ -8824,38 +8902,84 @@ function openRepCapture(r){
       ${r.fotografo?`<div><span>Fotógrafo original</span> <b>${escapeHtml(r.fotografo)}</b></div>`:''}</div>
     <div class="rep-cap-motivo"><strong>Qué hay que repetir</strong><br>${escapeHtml(r.motivo||'No se indicó un motivo.')}</div>
     <div class="rep-cap-actions">
-      <button type="button" class="rep-cap-btn primary" id="repCapTake">📷 Tomar foto</button>
-      <label class="rep-cap-btn" for="repCapPick">🖼️ Adjuntar foto</label>
-      <input id="repCapCam" type="file" accept="image/*" capture="environment" style="display:none">
-      <input id="repCapPick" type="file" accept="image/*" multiple style="display:none">
+      <button type="button" class="rep-cap-bigbtn primary" id="repCapTake"><span class="ico">📷</span><span class="lbl">Tomar foto</span><span class="sub">Abre la cámara</span></button>
+      <button type="button" class="rep-cap-bigbtn" id="repCapPickBtn"><span class="ico">🖼️</span><span class="lbl">Galería</span><span class="sub">Elige una o varias</span></button>
+      <input id="repCapCam" type="file" accept="image/*" capture="environment" class="rep-cap-hidden" tabindex="-1">
+      <input id="repCapPick" type="file" accept="image/*" multiple class="rep-cap-hidden" tabindex="-1">
     </div>
-    <p class="veri-photo-modal-note">Toma todas las fotos seguidas, revísalas y quita con ✕ las que no te gusten. Cuando estés seguro, toca Enviar.</p>
+    <p class="veri-photo-modal-note">Toma las fotos seguidas, revísalas y quita con ✕ las que no sirvan. Luego toca Enviar.</p>
     <div id="repCapThumbs" class="rep-cap-thumbs"></div>
   </div>
   <div class="rep-cap-foot"><span id="repCapCount"></span><button type="button" id="repCapSend" class="rep-cap-btn primary" disabled>Enviar</button></div>`;
   document.body.appendChild(m);
   m.querySelector('#repCapClose').onclick=()=>{ const c=state.repCapture; if(c&&c.files.length && !confirm('Se descartarán las fotos de esta ventana y el producto volverá a pendientes. ¿Continuar?')) return; closeRepCapture(true); };
   const cam=m.querySelector('#repCapCam'), pick=m.querySelector('#repCapPick');
-  cam.onchange=()=>{ repCapAddFiles(Array.from(cam.files||[])); cam.value=''; };
-  pick.onchange=()=>{ repCapAddFiles(Array.from(pick.files||[])); pick.value=''; };
-  m.querySelector('#repCapTake').onclick=()=>{ if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia) repCapLiveStart(); else cam.click(); };
+  // Se copian los archivos a memoria ANTES de limpiar el input (en iPhone, limpiar el input antes puede dejar la foto sin leer).
+  cam.onchange=async()=>{ const fs=Array.from(cam.files||[]); await repCapAddFiles(fs); cam.value=''; };
+  pick.onchange=async()=>{ const fs=Array.from(pick.files||[]); await repCapAddFiles(fs); pick.value=''; };
+  m.querySelector('#repCapPickBtn').onclick=()=>pick.click();
+  m.querySelector('#repCapTake').onclick=()=>{ if(window.ImageCapture && navigator.mediaDevices&&navigator.mediaDevices.getUserMedia) repCapLiveStart(); else cam.click(); };   // sin ImageCapture (iPhone) la cámara nativa entrega la foto original a máxima resolución
   m.querySelector('#repCapSend').onclick=repCapSubmit;
   repCapRenderThumbs();
 }
-function repCapAddFiles(files){
-  const c=state.repCapture; if(!c||c.busy) return;
-  files.forEach(f=>{
-    if(!f) return;
-    if(f.type && !f.type.startsWith('image/')){ toast('Solo se pueden adjuntar imágenes.'); return; }
-    c.files.push({file:f, url:URL.createObjectURL(f), path:null, saved:false});
+/* --- Ayudas de fotos (iPhone/HEIC/archivos grandes) --- */
+function veriGuessImgType(name){
+  const e=((String(name||'').match(/\.([a-z0-9]+)$/i)||[])[1]||'').toLowerCase();
+  return {jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif',heic:'image/heic',heif:'image/heif'}[e]||'';
+}
+// Copia la foto a memoria propia y le asegura nombre y tipo (iOS a veces entrega tipo vacío o el archivo se invalida al limpiar el input).
+async function veriStableFile(f){
+  try{
+    const type=f.type||veriGuessImgType(f.name)||'image/jpeg';
+    const buf=await f.arrayBuffer();
+    const name=f.name||('foto_'+Date.now()+'.jpg');
+    return new File([buf],name,{type,lastModified:f.lastModified||Date.now()});
+  }catch(e){ return f; }
+}
+// Miniatura liviana (máx. 360 px): no se decodifica la foto completa 12 MP en cada tarjeta.
+function veriMakeThumb(file){
+  return new Promise(res=>{
+    let done=false, u=null;
+    const fin=v=>{ if(done) return; done=true; try{ if(u) URL.revokeObjectURL(u); }catch(e){} res(v); };
+    try{
+      u=URL.createObjectURL(file);
+      const im=new Image();
+      im.onload=()=>{ try{
+        const w=im.naturalWidth,h=im.naturalHeight; if(!w||!h) return fin(null);
+        const k=Math.min(1,360/Math.max(w,h)), cv=document.createElement('canvas');
+        cv.width=Math.max(1,Math.round(w*k)); cv.height=Math.max(1,Math.round(h*k));
+        cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
+        cv.toBlob(b=>{ if(!b) return fin(null); done=true; try{URL.revokeObjectURL(u);}catch(e){} res(URL.createObjectURL(b)); },'image/jpeg',0.72);
+      }catch(e){ fin(null); } };
+      im.onerror=()=>fin(null);
+      setTimeout(()=>fin(null),8000);
+      im.src=u;
+    }catch(e){ fin(null); }
   });
-  repCapRenderThumbs();
+}
+function repCapFree(f){ try{ if(f&&f.url) URL.revokeObjectURL(f.url); }catch(e){} try{ if(f&&f.thumb) URL.revokeObjectURL(f.thumb); }catch(e){} }
+async function repCapAddFiles(files){
+  const c=state.repCapture; if(!c||c.busy) return;
+  for(const f0 of files){
+    if(!f0) continue;
+    if(f0.type && !f0.type.startsWith('image/')){ toast('Solo se pueden adjuntar imágenes.'); continue; }
+    const f=await veriStableFile(f0);
+    if(state.repCapture!==c) return;
+    const it={file:f, url:URL.createObjectURL(f), thumb:null, path:null, saved:false};
+    c.files.push(it);
+    repCapRenderThumbs();
+    veriMakeThumb(f).then(t=>{
+      if(!t) return;
+      if(state.repCapture!==c || !c.files.includes(it)){ try{URL.revokeObjectURL(t);}catch(e){} return; }
+      it.thumb=t; repCapRenderThumbs();
+    });
+  }
 }
 function repCapRenderThumbs(){
   const c=state.repCapture, box=document.getElementById('repCapThumbs'); if(!c||!box) return;
-  box.innerHTML=c.files.map((f,i)=>`<div class="rep-cap-thumb"><button type="button" class="rep-cap-img" data-cap-view="${i}" aria-label="Ver foto ${i+1}"><img src="${f.url}" alt="Foto ${i+1}"></button>${c.busy?'':`<button type="button" class="rep-cap-del" data-cap-del="${i}" aria-label="Quitar foto ${i+1}">✕</button>`}</div>`).join('') || '<p class="small-note" style="opacity:.7;text-align:center;margin:14px 0">Aún no hay fotos.</p>';
+  box.innerHTML=c.files.map((f,i)=>`<div class="rep-cap-thumb"><button type="button" class="rep-cap-img" data-cap-view="${i}" aria-label="Ver foto ${i+1}"><img src="${f.thumb||f.url}" alt="Foto ${i+1}" decoding="async" onerror="this.style.display='none';this.closest('.rep-cap-thumb').classList.add('nopv')"></button>${c.busy?'':`<button type="button" class="rep-cap-del" data-cap-del="${i}" aria-label="Quitar foto ${i+1}">✕</button>`}</div>`).join('') || '<p class="small-note" style="opacity:.7;text-align:center;margin:14px 0">Aún no hay fotos.</p>';
   box.querySelectorAll('[data-cap-view]').forEach(b=>b.onclick=()=>{ const f=c.files[Number(b.dataset.capView)]; if(!f) return; openVeriPhotoPreview(f.url,'Foto '+(Number(b.dataset.capView)+1)); const v=document.getElementById('veriPhotoModal'); if(v) v.style.zIndex=100002; });
-  box.querySelectorAll('[data-cap-del]').forEach(b=>b.onclick=()=>{ const i=Number(b.dataset.capDel); const f=c.files[i]; if(!f) return; try{URL.revokeObjectURL(f.url);}catch(e){} c.files.splice(i,1); repCapRenderThumbs(); });
+  box.querySelectorAll('[data-cap-del]').forEach(b=>b.onclick=()=>{ const i=Number(b.dataset.capDel); const f=c.files[i]; if(!f) return; repCapFree(f); c.files.splice(i,1); repCapRenderThumbs(); });
   const n=c.files.length, cnt=document.getElementById('repCapCount'), send=document.getElementById('repCapSend');
   if(cnt) cnt.textContent = n ? `${n} foto${n===1?'':'s'}` : 'Sin fotos';
   if(send){ send.disabled = !n || c.busy; send.textContent = c.busy ? 'Enviando…' : 'Enviar'; }
@@ -8888,7 +9012,7 @@ async function repCapSubmit(){
 async function closeRepCapture(release){
   const c=state.repCapture; repCapLiveStop();
   const m=document.getElementById('repCaptureModal'); if(m) m.remove();
-  if(c){ c.files.forEach(f=>{ try{URL.revokeObjectURL(f.url);}catch(e){} }); state.repCapture=null; if(release) await repRelease(c.id,true); }
+  if(c){ c.files.forEach(f=>{ repCapFree(f); }); state.repCapture=null; if(release) await repRelease(c.id,true); }
 }
 
 /* ---- Cámara continua dentro de la app (sin zoom propio: el celular ya cambia de lente) ---- */
@@ -8915,8 +9039,8 @@ async function repCapLiveStart(){
   video.srcObject=stream;
   const paint=()=>{
     const tb=box.querySelector('#repCapLiveThumbs'); if(!tb) return;
-    tb.innerHTML=c.files.map((f,i)=>`<div class="rep-cap-thumb"><img src="${f.url}" alt="Foto ${i+1}"><button type="button" class="rep-cap-del" data-live-del="${i}" aria-label="Quitar foto ${i+1}">✕</button></div>`).join('');
-    tb.querySelectorAll('[data-live-del]').forEach(b=>b.onclick=()=>{ const i=Number(b.dataset.liveDel), f=c.files[i]; if(!f) return; try{URL.revokeObjectURL(f.url);}catch(e){} c.files.splice(i,1); paint(); });
+    tb.innerHTML=c.files.map((f,i)=>`<div class="rep-cap-thumb"><img src="${f.thumb||f.url}" alt="Foto ${i+1}" decoding="async" onerror="this.style.display='none';this.closest('.rep-cap-thumb').classList.add('nopv')"><button type="button" class="rep-cap-del" data-live-del="${i}" aria-label="Quitar foto ${i+1}">✕</button></div>`).join('');
+    tb.querySelectorAll('[data-live-del]').forEach(b=>b.onclick=()=>{ const i=Number(b.dataset.liveDel), f=c.files[i]; if(!f) return; repCapFree(f); c.files.splice(i,1); paint(); });
     tb.scrollLeft=tb.scrollWidth;
     const n=box.querySelector('#repCapLiveN'); if(n) n.textContent=c.files.length?`${c.files.length} foto${c.files.length===1?'':'s'}`:'';
   };
@@ -8932,13 +9056,14 @@ async function repCapLiveStart(){
         const vw=video.videoWidth, vh=video.videoHeight; if(!vw||!vh){ toast('La cámara aún no está lista.'); return; }
         const cv=document.createElement('canvas'); cv.width=vw; cv.height=vh;
         cv.getContext('2d').drawImage(video,0,0,vw,vh);
-        blob=await new Promise(res=>cv.toBlob(res,'image/jpeg',0.95));
+        blob=await new Promise(res=>cv.toBlob(res,'image/jpeg',1));
       }
       if(!blob){ toast('No se pudo capturar la foto.'); return; }
       const fl=box.querySelector('#repCapFlash'); if(fl){ fl.style.opacity='.8'; setTimeout(()=>fl.style.opacity='0',90); }
       c.files.push({file:new File([blob],`veri_${Date.now()}.jpg`,{type:blob.type||'image/jpeg'}), url:null, path:null, saved:false});
-      const it=c.files[c.files.length-1]; it.url=URL.createObjectURL(it.file);
+      const it=c.files[c.files.length-1]; it.url=URL.createObjectURL(it.file); it.thumb=null;
       paint();
+      veriMakeThumb(it.file).then(t=>{ if(!t) return; if(!c.files.includes(it)){ try{URL.revokeObjectURL(t);}catch(e){} return; } it.thumb=t; paint(); repCapRenderThumbs(); });
     } finally { shooting=false; }
   };
 }
@@ -8960,7 +9085,7 @@ async function pollRepeticiones(force){
   }catch(e){ /* sin red: se reintenta en el siguiente ciclo */ }
   finally{ __repPolling=false; }
 }
-setInterval(()=>{ if(document.hidden || !state.session) return; if(state.tab==='rep' && state.repView==='list') pollRepeticiones(); }, 10000);
+setInterval(()=>{ if(document.hidden || !state.session || veriLiteSkip('rep')) return; if(state.tab==='rep' && state.repView==='list') pollRepeticiones(); }, 10000);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden && state.session && state.tab==='rep' && state.repView==='list') pollRepeticiones(); });
 
 /* Visor de revisión de fotografías: zoom, giro, ajuste y arrastre */
@@ -9339,4 +9464,79 @@ html.lite .btn:hover,html.lite .nav-btn:hover,html.lite .home-card:hover,html.li
 .naming-multi-row .naming-duplicate-product{margin-top:0;flex:1;min-width:0}
 .fast-pick{display:block;width:100%;text-align:left;margin-top:5px;padding:8px 11px;border-radius:12px;font-size:13px;font-weight:600;background:var(--input-bg);color:var(--text-1);border:1.5px solid transparent;transition:border-color .2s ease,background-color .2s ease}
 .fast-pick.on{border-color:var(--accent);background:rgba(var(--accent-rgb),.10)}
+</style>
+
+<style id="veri-v3">
+/* ===== Captura de repeticiones: pensada para celular ===== */
+.rep-cap{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+.rep-cap-body{padding:2px 0 16px;overscroll-behavior:contain}
+.rep-cap-info{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+.rep-cap-info h3{font-size:16px}
+.rep-cap-hidden{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;left:-9999px}
+.rep-cap-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 6px}
+.rep-cap-bigbtn{font:inherit;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:108px;padding:14px 10px;border-radius:20px;border:1.5px solid #4b505b;background:#242832;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:transform .15s ease,background-color .15s ease}
+.rep-cap-bigbtn:active{transform:scale(.96)}
+.rep-cap-bigbtn.primary{background:#0a84ff;border-color:#0a84ff}
+.rep-cap-bigbtn .ico{font-size:32px;line-height:1}
+.rep-cap-bigbtn .lbl{font-size:16px;font-weight:750}
+.rep-cap-bigbtn .sub{font-size:11.5px;opacity:.78}
+.rep-cap-thumbs{grid-template-columns:repeat(3,1fr);gap:8px}
+@media(min-width:560px){.rep-cap-thumbs{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}}
+.rep-cap-thumb{position:relative;aspect-ratio:1/1;background:#0b0d11}
+.rep-cap-thumb .rep-cap-img{position:absolute;inset:0;display:block;width:100%;height:100%;padding:0;margin:0;border:0;border-radius:0;background:transparent;cursor:zoom-in}
+.rep-cap-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.rep-cap-thumb.nopv::before{content:"📷";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px;background:#1b1f27}
+.rep-cap-del{width:34px;height:34px;top:4px;right:4px;font-size:15px;z-index:2}
+.rep-cap-live-thumbs .rep-cap-thumb{flex:0 0 56px;width:56px;height:56px;aspect-ratio:auto}
+.rep-cap-live-thumbs .rep-cap-del{width:24px;height:24px;font-size:11px;top:2px;right:2px}
+.rep-cap-foot .rep-cap-btn{flex:1;min-height:54px;font-size:17px;border-radius:16px}
+.rep-cap-foot #repCapCount{flex:0 0 auto}
+
+/* ===== Animación de entrada con foto de perfil ===== */
+.vs{position:fixed;inset:0;z-index:2147483000}
+.vs-bg{position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 30%,rgba(var(--accent-rgb),.16),transparent 62%),var(--bg-1,#eef1f6)}
+.vs-stage{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;pointer-events:none}
+.vs-wrap{position:relative;width:140px;height:140px;will-change:transform;animation:vsIn .6s cubic-bezier(.22,1,.36,1)}
+.vs-ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.vs-track,.vs-arc{fill:none;stroke-width:5}
+.vs-track{stroke:rgba(var(--accent-rgb),.16)}
+.vs-arc{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .5s cubic-bezier(.4,0,.2,1)}
+.vs-avatar{position:absolute;left:16px;top:16px;width:108px;height:108px;border-radius:50%;overflow:hidden}
+.vs-avatar .veri-avatar{margin:0;background:var(--accent);color:#fff;box-shadow:0 10px 30px rgba(var(--accent-rgb),.28)}
+.vs-name{font-size:17px;font-weight:700;letter-spacing:-.02em;color:var(--text-1);opacity:.85;animation:vsIn .7s cubic-bezier(.22,1,.36,1) .1s backwards}
+@keyframes vsIn{from{opacity:0;transform:scale(.84)}to{opacity:1;transform:none}}
+html.vs-landing .topbar-avatar{visibility:hidden}
+html.lite .vs{display:none!important}
+
+/* ===== Modo Lite: aún más liviano ===== */
+html.lite body[data-theme="light"]{--glass-bg:#fff;--glass-bg-strong:#fff;--nav-bg:#fff;--input-bg:#f1f3f7;--glass-shadow:none;--icloud-card:#fff}
+html.lite body[data-theme="dark"]{--glass-bg:#242426;--glass-bg-strong:#2c2c2e;--nav-bg:#1c1c1e;--input-bg:#303033;--glass-shadow:none}
+html.lite .glass,html.lite .card,html.lite .home-card,html.lite .modal-sheet,html.lite .settings-group,html.lite .profile-card,html.lite .rep-item,html.lite .list-item,html.lite .btn,html.lite .topbar-avatar,html.lite .veri-avatar,html.lite .veri-fab{box-shadow:none!important}
+html.lite .rep-item,html.lite .list-item{content-visibility:auto;contain-intrinsic-size:auto 110px}
+</style>
+
+<style id="veri-v4">
+/* ===== Foto de perfil: llena todo el círculo y solo queda un borde tipo vidrio ===== */
+.has-photo{position:relative;padding:0!important;overflow:hidden}
+.has-photo>img{width:100%!important;height:100%!important;object-fit:cover!important;display:block;border-radius:inherit}
+.has-photo::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:3;
+  background:linear-gradient(135deg,rgba(255,255,255,.32),rgba(255,255,255,0) 42%,rgba(255,255,255,.10));
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.62),inset 0 2px 7px rgba(255,255,255,.38),inset 0 -3px 9px rgba(0,0,0,.20)}
+.has-photo .avatar-edit-badge{z-index:4}
+/* splash: la foto ocupa todo el círculo y el anillo de carga va sobre el borde de vidrio */
+.vs-avatar{left:0!important;top:0!important;width:140px!important;height:140px!important}
+.vs-avatar .veri-avatar{width:100%!important;height:100%!important;font-size:52px!important}
+.vs-ring{z-index:4;pointer-events:none}
+.vs-track{stroke:rgba(255,255,255,.38);stroke-width:5}
+.vs-arc{stroke-width:5;filter:drop-shadow(0 0 5px rgba(var(--accent-rgb),.55))}
+/* ===== Mismo código, varios nombres: cada nombre en su propia tarjeta sombreada ===== */
+.scan-multi-name,.naming-multi-row .naming-duplicate-product{display:block;margin-top:7px!important;padding:8px 11px!important;border-radius:12px;border:1px solid rgba(245,158,11,.34)!important;border-left:3px solid rgba(245,158,11,.85)!important;background:linear-gradient(135deg,rgba(245,158,11,.16),rgba(245,158,11,.06));box-shadow:0 3px 10px rgba(245,158,11,.14),inset 0 1px 0 rgba(255,255,255,.35)}
+.scan-multi-note+.scan-multi-name{margin-top:6px!important}
+.scan-multi-more .scan-multi-name{margin-top:7px!important}
+.naming-multi-row{gap:8px;margin-top:7px}
+.naming-multi-row .naming-duplicate-product{margin-top:0!important}
+.fast-pick{box-shadow:0 2px 8px rgba(0,0,0,.08);margin-top:7px}
+[data-theme="dark"] .scan-multi-name,[data-theme="dark"] .naming-multi-row .naming-duplicate-product{background:linear-gradient(135deg,rgba(245,158,11,.20),rgba(245,158,11,.08));box-shadow:0 3px 10px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08)}
+html.lite .scan-multi-name,html.lite .naming-multi-row .naming-duplicate-product{background:rgba(245,158,11,.12)!important;box-shadow:none!important}
+html.lite .has-photo::after{background:none;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.6)}
 </style>
