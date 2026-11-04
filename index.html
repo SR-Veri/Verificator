@@ -8918,7 +8918,7 @@ function openRepCapture(r){
   cam.onchange=async()=>{ const fs=Array.from(cam.files||[]); await repCapAddFiles(fs); cam.value=''; };
   pick.onchange=async()=>{ const fs=Array.from(pick.files||[]); await repCapAddFiles(fs); pick.value=''; };
   m.querySelector('#repCapPickBtn').onclick=()=>pick.click();
-  m.querySelector('#repCapTake').onclick=()=>{ if(window.ImageCapture && navigator.mediaDevices&&navigator.mediaDevices.getUserMedia) repCapLiveStart(); else cam.click(); };   // sin ImageCapture (iPhone) la cámara nativa entrega la foto original a máxima resolución
+  m.querySelector('#repCapTake').onclick=()=>cam.click();   // siempre la cámara nativa del dispositivo (foto original, máxima calidad)
   m.querySelector('#repCapSend').onclick=repCapSubmit;
   repCapRenderThumbs();
 }
@@ -8982,6 +8982,7 @@ function repCapRenderThumbs(){
   box.querySelectorAll('[data-cap-del]').forEach(b=>b.onclick=()=>{ const i=Number(b.dataset.capDel); const f=c.files[i]; if(!f) return; repCapFree(f); c.files.splice(i,1); repCapRenderThumbs(); });
   const n=c.files.length, cnt=document.getElementById('repCapCount'), send=document.getElementById('repCapSend');
   if(cnt) cnt.textContent = n ? `${n} foto${n===1?'':'s'}` : 'Sin fotos';
+  const takeLbl=document.querySelector('#repCapTake .lbl'); if(takeLbl) takeLbl.textContent = n ? 'Tomar otra foto' : 'Tomar foto';
   if(send){ send.disabled = !n || c.busy; send.textContent = c.busy ? 'Enviando…' : 'Enviar'; }
 }
 async function repCapSubmit(){
@@ -9539,4 +9540,11 @@ html.lite .rep-item,html.lite .list-item{content-visibility:auto;contain-intrins
 [data-theme="dark"] .scan-multi-name,[data-theme="dark"] .naming-multi-row .naming-duplicate-product{background:linear-gradient(135deg,rgba(245,158,11,.20),rgba(245,158,11,.08));box-shadow:0 3px 10px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08)}
 html.lite .scan-multi-name,html.lite .naming-multi-row .naming-duplicate-product{background:rgba(245,158,11,.12)!important;box-shadow:none!important}
 html.lite .has-photo::after{background:none;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.6)}
+</style>
+
+<style id="veri-v5">
+/* Botones siempre a mano mientras se hace scroll en las miniaturas (útil en iPhone) */
+.rep-cap-actions{position:sticky;top:0;z-index:5;padding:10px 0 8px;margin:6px 0 4px;background:linear-gradient(rgba(10,13,19,.97) 80%,rgba(10,13,19,0))}
+.rep-cap-bigbtn{-webkit-appearance:none;appearance:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+.rep-cap-foot{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
 </style>
