@@ -3062,27 +3062,71 @@ function sharedRequestRender(force){
 document.addEventListener('focusout',()=>{ const sh=state.shared; if(sh&&sh.pendingRender){ sh.pendingRender=false; setTimeout(()=>{ try{ render(); }catch(e){} },350); } });
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden && sharedIsActive()) sharedSyncNow(); });
 /* Reserva de puestos */
-async function sharedReserve(){
+async function sharedReserve(code){
   const sh=sharedState(), s=sh.sesion; if(!s) throw new Error('sin sesión');
   for(let i=0;i<8;i++){
     const max=Math.max(Number(s.base)||0,...sh.puestos.map(p=>Number(p.posicion)||0));
     try{
       const now=Date.now();
-      const res=await sb(`${SH_P}puestos`,{method:'POST',body:JSON.stringify([{sesion_id:s.id,posicion:max+1,codigo_persona:sharedMe(),nombre_persona:sharedMeName(),estado:'reservado',creado_en:now,actualizado_en:now}]),headers:{'Prefer':'return=representation'},silent:true});
+      const res=await sb(`${SH_P}puestos`,{method:'POST',body:JSON.stringify([{sesion_id:s.id,posicion:max+1,codigo_persona:sharedMe(),nombre_persona:sharedMeName(),estado:'reservado',codigo:code||null,creado_en:now,actualizado_en:now}]),headers:{'Prefer':'return=representation'},silent:true});
       if(res&&res[0]){ sh.puestos.push(res[0]); sharedPaintLive(); return res[0]; }
     }catch(e){ await sharedRefreshPuestos(); }   // otro tomó ese puesto: se recalcula y se pide el siguiente
   }
   throw new Error('No se pudo reservar un puesto');
 }
-function sharedReserveForCode(code){
+/* ¿Ese código ya fue nombrado, o lo está nombrando alguien? Devuelve {kind:'done'|'busy'|'list', p, who} o null. */
+function sharedCheckCode(code, mineId){
+  const sh=sharedState(), me=sharedMe();
+  const p=(sh.puestos||[]).find(x=>x.codigo===code && String(x.id)!==String(mineId||'') && !(x.estado==='reservado' && x.codigo_persona===me && sh.openReservation && sh.openReservation.code===code));
+  if(p){
+    const mine=p.codigo_persona===me;
+    return {kind:p.estado==='listo'?'done':'busy', p, who:mine?'ti':(p.nombre_persona||p.codigo_persona)};
+  }
+  if(sh.role==='host' && state.naming){
+    const it=state.naming.items.find(x=>x.codigo===code && !x.puestoId);
+    if(it) return {kind:'list', p:null, who:'ti', nombre:it.nombre};
+  }
+  return null;
+}
+function sharedAlertInner(){
+  const c=sharedState().conflict; if(!c) return '';
+  const e=c.info, esc=sharedEsc;
+  let txt='';
+  if(e.kind==='busy') txt=`<b>${esc(e.who==='ti'?'Ya lo estás nombrando tú':e.who+' lo está nombrando ahora')}</b> (puesto #${e.p.posicion}). Evita repetirlo.`;
+  else if(e.kind==='done') txt=`<b>Ya fue nombrado por ${esc(e.who)}</b> en el puesto #${e.p.posicion}:<br><span class="sh-alert-name">${esc(e.p.nombre||'')}</span>`;
+  else txt=`<b>Ya está en tu lista de hoy:</b><br><span class="sh-alert-name">${esc(e.nombre||'')}</span>`;
+  return `<div class="sh-alert ${e.kind}" role="alert"><span class="sh-alert-ico">${e.kind==='busy'?'⏳':'✅'}</span><div>${txt}</div><button type="button" class="btn secondary sm" data-shared-act="override">Nombrar igual</button></div>`;
+}
+function sharedPaintAlert(){ const el=document.getElementById('sharedAlert'); if(el) el.innerHTML=sharedAlertInner(); }
+async function sharedReserveForCode(code){
   const sh=sharedState(); if(!sh.sesion) return;
+  if(sh.conflict && sh.conflict.code===code){ sharedPaintAlert(); return; }
   if(sh.openReservation && sh.openReservation.code===code) return;
   sharedReleaseOpenReservation();
-  const promise=sharedReserve(); promise.catch(()=>{});
-  sh.openReservation={code,promise};
+  sh.conflict=null;
+  if(sh.override!==code){
+    await sharedRefreshPuestos();
+    const hit=sharedCheckCode(code);
+    if(hit){ sh.conflict={code,info:hit}; sharedPaintAlert(); return; }
+  }
+  sharedPaintAlert();
+  const promise=sharedReserve(code); promise.catch(()=>{});
+  const mineRes={code,promise}; sh.openReservation=mineRes;
+  // Si otra persona reservó el mismo código en el mismo instante, el segundo en llegar suelta su puesto y recibe el aviso.
+  promise.then(async(mine)=>{
+    if(sh.override===code) return;
+    await sharedRefreshPuestos();
+    const other=sh.puestos.find(x=>x.codigo===code && String(x.id)!==String(mine.id) && x.posicion<mine.posicion);
+    if(other && sh.openReservation===mineRes){
+      sh.openReservation=null; sharedRelease(mine.id);
+      sh.conflict={code,info:{kind:other.estado==='listo'?'done':'busy',p:other,who:other.codigo_persona===sharedMe()?'ti':(other.nombre_persona||other.codigo_persona)}};
+      sharedPaintAlert();
+    }
+  }).catch(()=>{});
 }
 function sharedReleaseOpenReservation(){
-  const sh=sharedState(), o=sh.openReservation; if(!o) return; sh.openReservation=null;
+  const sh=sharedState(); if(sh.conflict){ sh.conflict=null; sharedPaintAlert(); }
+  const o=sh.openReservation; if(!o) return; sh.openReservation=null;
   o.promise.then(p=>sharedRelease(p.id)).catch(()=>{});
 }
 async function sharedRelease(id){
@@ -3095,7 +3139,12 @@ async function sharedCommit(codigoRaw,nombreRaw){
   try{
     let p=null; const o=sh.openReservation;
     if(o && o.code===code){ p=await o.promise; sh.openReservation=null; }
-    else { if(o) sharedReleaseOpenReservation(); p=await sharedReserve(); }
+    else {
+      if(o) sharedReleaseOpenReservation();
+      if(sh.override!==code){ await sharedRefreshPuestos(); const hit=sharedCheckCode(code); if(hit && !confirm(hit.kind==='busy' ? `${hit.who==='ti'?'Tú':hit.who} ya lo está nombrando (puesto #${hit.p.posicion}). ¿Nombrarlo de todos modos?` : hit.kind==='done' ? `Ya fue nombrado por ${hit.who} (puesto #${hit.p.posicion}): ${hit.p.nombre}. ¿Nombrarlo de todos modos?` : `Ya está en tu lista: ${hit.nombre}. ¿Nombrarlo de todos modos?`)) return null; }
+      p=await sharedReserve(code);
+    }
+    sh.override=null; sh.conflict=null; sharedPaintAlert();
     await sb(`${SH_P}puestos?id=eq.${p.id}`,{method:'PATCH',body:JSON.stringify({estado:'listo',codigo:code,nombre,actualizado_en:Date.now()}),headers:{'Prefer':'return=minimal'},silent:true});
     p.estado='listo'; p.codigo=code; p.nombre=nombre;
     toast(sh.role==='host' ? `✓ Puesto ${p.posicion} listo` : `✓ Puesto ${p.posicion} enviado a ${sh.sesion.host_nombre}`);
@@ -3136,8 +3185,8 @@ function sharedOnline(hb){ return Date.now()-Number(hb||0) < 25000; }
 function sharedBarInner(){
   const sh=sharedState(), s=sh.sesion; if(!s) return '';
   const host=sh.role==='host', me=sharedMe();
-  const chips=[`<span class="sh-chip ${(host||sharedOnline(s.heartbeat))?'on':''}"><i></i>${sharedEsc(host?'Tú (anfitrión)':s.host_nombre+' (anfitrión)')}</span>`]
-    .concat((sh.participantes||[]).map(p=>`<span class="sh-chip ${(p.codigo_persona===me||sharedOnline(p.heartbeat))?'on':''}"><i></i>${sharedEsc(p.codigo_persona===me?'Tú':p.nombre||p.codigo_persona)}</span>`)).join('');
+  const chips=[`<span class="sh-chip ${(host||sharedOnline(s.heartbeat))?'on':''}"><span class="sh-mini">${veriAvatarHTML(s.host_codigo,22)}</span>${sharedEsc(host?'Tú (anfitrión)':s.host_nombre+' (anfitrión)')}</span>`]
+    .concat((sh.participantes||[]).map(p=>`<span class="sh-chip ${(p.codigo_persona===me||sharedOnline(p.heartbeat))?'on':''}"><span class="sh-mini">${veriAvatarHTML(p.codigo_persona,22)}</span>${sharedEsc(p.codigo_persona===me?'Tú':p.nombre||p.codigo_persona)}</span>`)).join('');
   const mineN=(state.naming?state.naming.items.filter(it=>it.codigo&&it.nombre&&!it.puestoId).length:0)+((state.namingFast&&state.namingFast.items)||[]).filter(e=>!e.added&&e.codigo&&e.nombre&&e.nombre.trim()).length;
   return `<div class="sh-title">🤝 ${host?'Tu sesión compartida':'Ayudando a '+sharedEsc(s.host_nombre)}</div>
     <p class="small-note" style="margin:2px 0 8px;">${host?'Lo que nombren tus compañeros llega a tu lista, en orden de puesto.':'Todo lo que nombres se añade a la lista de '+sharedEsc(s.host_nombre)+'.'}</p>
@@ -3162,7 +3211,7 @@ function sharedPuestosInner(){
 function sharedLobbyInner(){
   const sh=sharedState(), me=sharedMe();
   const rows=(sh.disponibles||[]).filter(r=>r.host_codigo!==me);
-  return rows.length ? rows.map(r=>`<div class="sh-host"><div><b>${sharedEsc(r.host_nombre)}</b><small>sesión activa · conectado</small></div><button type="button" class="btn sm" data-shared-act="join" data-shared-id="${r.id}">Unirme</button></div>`).join('')
+  return rows.length ? rows.map(r=>`<div class="sh-host"><div class="sh-av">${veriAvatarHTML(r.host_codigo,52)}</div><div class="sh-hinfo"><b>${sharedEsc(r.host_nombre)}</b><small><i class="sh-live"></i>En línea · sesión activa</small></div><button type="button" class="btn sm" data-shared-act="join" data-shared-id="${r.id}">Unirme</button></div>`).join('')
     : `<div class="empty">Nadie ha activado una sesión todavía. Pídele a tu compañero que toque “Activar mi sesión”.</div>`;
 }
 function renderNamingSharedLobby(){
@@ -3180,12 +3229,14 @@ function sharedStartLobbyPoll(){
   const tick=async()=>{
     if(!document.getElementById('sharedLobby') || sharedIsActive()){ clearInterval(sh.lobbyTimer); sh.lobbyTimer=null; return; }
     try{ const rows=await sb(`${SH_P}sesiones?activa=eq.true&fecha=eq.${encodeURIComponent(todayKey())}&heartbeat=gte.${Date.now()-25000}&select=*&order=creado_en.desc`,{silent:true}); sh.disponibles=Array.isArray(rows)?rows:[]; }catch(e){}
-    const el=document.getElementById('sharedLive'); if(el) el.innerHTML=sharedLobbyInner();
+    const sig=(sh.disponibles||[]).map(r=>r.id).join(',');
+    const el=document.getElementById('sharedLive'); if(el && (sh.lobbySig!==sig || !el.dataset.painted)){ sh.lobbySig=sig; el.dataset.painted='1'; el.innerHTML=sharedLobbyInner(); }   // solo se repinta si cambió (para no reiniciar las ondas)
   };
   sh.lobbyTimer=setInterval(tick,4000); tick();
 }
 function sharedPaintLive(){
   const b=document.getElementById('sharedBar'); if(b) b.innerHTML=sharedBarInner();
+  sharedPaintAlert();
   const p=document.getElementById('sharedPuestos'); if(p) p.innerHTML=sharedPuestosInner();
 }
 document.addEventListener('click',(e)=>{
@@ -3196,6 +3247,7 @@ document.addEventListener('click',(e)=>{
   else if(act==='leave') sharedLeave();
   else if(act==='pass') sharedPassMine();
   else if(act==='release') sharedRelease(b.dataset.sharedPid);
+  else if(act==='override'){ const sh=sharedState(), c=sh.conflict; if(c){ sh.override=c.code; sh.conflict=null; sharedPaintAlert(); sharedReserveForCode(c.code); } }
 });
 
 /* ===================== Herramientas: nombrador (datos locales, temporales por día) ===================== */
@@ -6690,7 +6742,34 @@ const TABS = [
 function veriIsWide(){ try{ return window.innerWidth>=768 && Math.min(screen.width,screen.height)>=600; }catch(e){ return false; } }
 function veriSyncWide(){ document.body.classList.toggle('veri-wide', veriIsWide()); }
 veriSyncWide(); window.addEventListener('resize',veriSyncWide);
-function render(){
+/* Antes de volver a dibujar la pantalla se guardan los campos de Nombrar/Escanear con texto y se restauran después,
+   para que una actualización (p. ej. llega un nombrado de un compañero) no borre lo que la persona está escribiendo. */
+const VERI_FORM_SEL='#namingBarcode,#namingNombre,#scanInput,.naming-fast-code-input,.naming-fast-name-input';
+function veriSnapForms(){
+  try{
+    const out=[], act=document.activeElement;
+    document.querySelectorAll(VERI_FORM_SEL).forEach(el=>{
+      if(!el.value) return;
+      const key=el.id ? '#'+el.id : (el.dataset.fastcode!=null ? '[data-fastcode="'+el.dataset.fastcode+'"]' : (el.dataset.fastname!=null ? '[data-fastname="'+el.dataset.fastname+'"]' : null));
+      if(key) out.push({key,value:el.value,focus:el===act,s:el.selectionStart,e:el.selectionEnd});
+    });
+    return out;
+  }catch(e){ return []; }
+}
+function veriRestoreForms(snap){
+  if(!snap||!snap.length) return;
+  let needSug=false;
+  snap.forEach(x=>{
+    const el=document.querySelector(x.key); if(!el||el.value) return;
+    el.value=x.value;
+    if(x.key==='#namingBarcode') needSug=true;
+    if(x.key==='#namingNombre'){ try{ el.dispatchEvent(new Event('input')); }catch(e){} }
+    if(x.focus){ try{ el.focus(); el.setSelectionRange(x.s,x.e); }catch(e){} }
+  });
+  if(needSug){ try{ updateNamingSuggestion(); }catch(e){} }
+}
+function render(){ const __snap=veriSnapForms(); try{ __renderCore(); } finally{ veriRestoreForms(__snap); } }
+function __renderCore(){
   applyTheme();
   const app = document.getElementById('app');
   // En pantallas grandes el lector de Nombrar queda activo entre renders: se conserva su nodo de video.
@@ -7318,6 +7397,7 @@ function renderRepNaming(){
           ${veriIsWide()?`<p class="small-note" style="margin:4px 0 0;">El lector sigue activo hasta que toques “Detener”.</p>`:''}
         </div>
         <div class="naming-col-form">
+          <div id="sharedAlert">${sharedAlertInner()}</div>
           <div id="namingSuggestion"></div>
           <div class="field" style="margin-top:10px;"><label>${t('namingName')}</label><textarea id="namingNombre" rows="${veriIsWide()?4:2}" autocapitalize="characters" style="text-transform:uppercase;resize:vertical;"></textarea></div>
           <div id="namingFormatCheck"></div>
@@ -10014,4 +10094,24 @@ body[data-theme="dark"] .scan-result-float[data-cardstyle="solid"] .scan-result-
 .sh-ok{color:#34c759;font-weight:800}
 .sh-dot{width:9px;height:9px;border-radius:50%;background:var(--amber,#ff9f0a);animation:shPulse 1.2s ease-in-out infinite}
 @keyframes shPulse{50%{opacity:.35;transform:scale(.8)}}
+</style>
+
+<style id="veri-v9">
+.sh-host{padding:12px}
+.sh-av{position:relative;flex:0 0 52px;width:52px;height:52px;margin:6px 8px 6px 6px}
+.sh-av .veri-avatar{margin:0;position:relative;z-index:1}
+.sh-av::before,.sh-av::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid #34c759;opacity:0;animation:shWave 2.6s ease-out infinite;pointer-events:none}
+.sh-av::after{animation-delay:1.3s}
+@keyframes shWave{0%{transform:scale(1);opacity:.75}100%{transform:scale(1.85);opacity:0}}
+.sh-hinfo{flex:1;min-width:0}.sh-hinfo b{display:block;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sh-hinfo small{display:flex;align-items:center;gap:6px;color:var(--text-2);font-size:12px}
+.sh-live{width:8px;height:8px;border-radius:50%;background:#34c759;box-shadow:0 0 0 3px rgba(52,199,89,.22);display:inline-block}
+.sh-mini{display:inline-block;width:22px;height:22px;border-radius:50%;overflow:hidden;flex:0 0 22px}
+.sh-mini .veri-avatar{margin:0}
+.sh-chip{padding:4px 10px 4px 4px}
+.sh-alert{display:flex;align-items:flex-start;gap:10px;margin:8px 0;padding:10px 12px;border-radius:14px;font-size:13.5px;line-height:1.35;border:1.5px solid}
+.sh-alert.busy{background:rgba(255,159,10,.12);border-color:rgba(255,159,10,.55)}
+.sh-alert.done,.sh-alert.list{background:rgba(52,199,89,.10);border-color:rgba(52,199,89,.5)}
+.sh-alert>div{flex:1;min-width:0}.sh-alert-ico{font-size:20px}.sh-alert-name{font-weight:700;overflow-wrap:anywhere}
+.sh-alert .btn{flex:0 0 auto;align-self:center}
 </style>
