@@ -5148,11 +5148,12 @@ async function syncNamingRemoteRows(remoteRows){
     let idx=localItems.findIndex((it,i)=>!used.has(i)&&it.id===('remote_'+row.id));
     if(idx<0&&rc) idx=localItems.findIndex((it,i)=>!used.has(i)&&Number(it.createdAt)===rc&&it.codigo===row.codigo);
     if(idx<0) idx=localItems.findIndex((it,i)=>!used.has(i)&&!it.createdAt&&it.codigo===row.codigo&&it.nombre===row.nombre);
-    if(idx>=0){ Object.assign(localItems[idx],remoteRowToNamingItem(row)); used.add(idx); }
+    if(idx>=0){ if(!localItems[idx].editPending) Object.assign(localItems[idx],remoteRowToNamingItem(row)); used.add(idx); }
     else localItems.push(remoteRowToNamingItem(row));
   });
   state.naming.items=localItems; saveNaming();
   let allOk=true;
+  for(const it of state.naming.items){ if(it.editPending && String(it.id).startsWith('remote_')){ if(!(await persistNamingEditRemote(it))) allOk=false; } }
   for(const item of state.naming.items){
     if(item.id&&String(item.id).startsWith('remote_')) continue;
     try{ const row=await persistNamingRemote(item); item.id='remote_'+row.id; item.syncStatus='synced'; }
@@ -5165,7 +5166,7 @@ async function syncNamingRemoteRows(remoteRows){
 let namingRefreshing=false;
 function namingSignature(){ return (state.naming&&state.naming.items||[]).map(i=>[i.id,i.codigo,i.nombre,i.duplicado?1:0].join('|')).join('~'); }
 async function refreshNamingFromRemote(){
-  if(namingRefreshing || !state.session || !state.naming) return false;
+  if(namingRefreshing || namingEditsInFlight>0 || !state.session || !state.naming) return false;
   if(state.naming.date!==todayKey()) return false;
   namingRefreshing=true;
   try{
@@ -5242,12 +5243,29 @@ async function persistNamingRemote(item, fechaOverride){
 }
 /* Guarda en el servidor la corrección de un nombre/código ya nombrado hoy (solo aplica
    si el ítem ya tiene un id remoto conocido, es decir, viene prefijado con 'remote_'). */
+let namingEditsInFlight=0, namingEditWarned=false;
 async function persistNamingEditRemote(item){
-  if(!item.id || !item.id.startsWith('remote_')) return;
-  const remoteId = item.id.slice(7);
+  if(!item.id || !String(item.id).startsWith('remote_')) return true; // aún no subido: la sincronización lo sube con los valores nuevos
+  const remoteId = String(item.id).slice(7);
+  const url = `nombrados_diarios?id=eq.${encodeURIComponent(remoteId)}`;
+  const hdr = {'Prefer':'return=representation'};
+  item.editPending = true; namingEditsInFlight++;
   try{
-    await sb(`nombrados_diarios?id=eq.${encodeURIComponent(remoteId)}`, {method:'PATCH', body:JSON.stringify({codigo:item.codigo, nombre:item.nombre, duplicado:!!item.duplicado, duplicado_codigo:item.duplicadoCodigo||null, duplicado_nombre:item.duplicadoNombre||null, duplicado_tipo:item.duplicadoTipo||null, duplicado_sesion:!!item.sessionDup, duplicado_sesion_con:item.sessionDupCode||null}), headers:{'Prefer':'return=minimal'}});
-  }catch(e){}
+    let rows;
+    try{
+      rows = await sb(url, {method:'PATCH', body:JSON.stringify({codigo:item.codigo, nombre:item.nombre, duplicado:!!item.duplicado, duplicado_codigo:item.duplicadoCodigo||null, duplicado_nombre:item.duplicadoNombre||null, duplicado_tipo:item.duplicadoTipo||null, duplicado_sesion:!!item.sessionDup, duplicado_sesion_con:item.sessionDupCode||null}), headers:hdr, silent:true});
+    }catch(e1){
+      console.error('PATCH completo falló (¿faltan columnas en nombrados_diarios?):', e1 && e1.message);
+      rows = await sb(url, {method:'PATCH', body:JSON.stringify({codigo:item.codigo, nombre:item.nombre, duplicado:!!item.duplicado}), headers:hdr});
+    }
+    // Supabase responde OK aunque no actualice nada (p. ej. si RLS no tiene política UPDATE). Se verifica.
+    if(!Array.isArray(rows) || !rows.length) throw new Error('El servidor no actualizó ninguna fila (revisa la política UPDATE de nombrados_diarios).');
+    item.editPending = false; saveNaming(); return true;
+  }catch(e){
+    item.editPending = true; saveNaming(); console.error('No se pudo guardar la edición:', e && e.message);
+    if(!namingEditWarned){ namingEditWarned=true; try{ toast('No se pudo guardar el cambio en el servidor'); }catch(_){} }
+    return false;
+  }finally{ namingEditsInFlight--; }
 }
 async function updateBaseTimestamp(year){ const patch={}; patch['base_'+year+'_updated_at']=new Date().toISOString(); try{await sb('config?id=eq.1',{method:'PATCH',body:JSON.stringify(patch),headers:{'Prefer':'return=minimal'}});}catch(e){} }
 
@@ -7608,6 +7626,7 @@ function openNamingEditModal(itemId){
     const dup = findNameDuplicate2026(nn, nc);
     it.codigo=nc; it.nombre=nn; it.duplicado=!!dup; it.duplicadoCodigo=dup?dup.codigo:null; it.duplicadoNombre=dup?dup.nombre:null; it.duplicadoTipo=dup?.__dupReason||null;
     it.veriChecked=false; it.veriReason=null; it.veriChecking=false;
+    if(String(it.id).startsWith('remote_')) it.editPending=true;
     saveNaming();
     persistNamingEditRemote(it);
     closeNamingEditModal();
