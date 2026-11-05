@@ -2392,7 +2392,7 @@ const I18N = {
     archivedDayEmpty:"Ese día no tiene productos guardados.", archivedCount:"productos", archivedDownload:"Descargar Excel de este día",
     archivedExpiryNote:"Los días archivados se guardan 7 días y luego se eliminan automáticamente para no saturar la base de datos.",
     archivedLoading:"Cargando archivados…", namingSyncPending:"Pendiente de sincronizar con Supabase", namingSyncError:"No se pudo sincronizar este nombrado. Quedó guardado localmente y se reintentará automáticamente.", namingSyncOk:"Nombrado guardado en Supabase.",
-    namingDupWith:"posible duplicado con", namingDupWarning:"Agregado, pero ya existe un posible duplicado en la base 2026", namingSpellTypo:"Posible error de escritura", namingSpellSplit:"Posible palabra pegada",
+    namingDupWith:"posible duplicado con", namingDupWarning:"Agregado, pero ya existe un posible duplicado en la base 2026", namingSpellTypo:"Posible error de escritura", namingSpellBrand:"¿Quisiste decir la marca?", namingSpellBrandUse:"Usar", namingSpellBrandCount:"productos con esa marca", namingSpellSplit:"Posible palabra pegada",
     namingSpellDoubleSpace:"Espacios de más", namingSpellDoubleSpaceWord:"(doble espacio)", namingSpellMissingWeight:"Falta el peso o volumen", namingSpellMissingWeightWord:"(peso/volumen)", namingSpellMissingWeightHint:"agrega KG, G, ML, L, etc.",
     namingSessionDupBadge:"repetido hoy con", namingSessionDupWarning:"Agregado, pero ya habías nombrado un producto igual hoy",
     namingFormatTitle:"Formato incompleto", namingMissingBrand:"falta la marca",
@@ -2602,7 +2602,7 @@ const I18N = {
     archivedDayEmpty:"That day has no saved products.", archivedCount:"products", archivedDownload:"Download this day's Excel",
     archivedExpiryNote:"Archived days are kept for 7 days and then removed automatically to keep the database lean.",
     archivedLoading:"Loading archived days…",
-    namingDupWith:"possible duplicate with", namingDupWarning:"Added, but a possible duplicate already exists in the 2026 base", namingSpellTypo:"Possible spelling mistake", namingSpellSplit:"Possible stuck-together word",
+    namingDupWith:"possible duplicate with", namingDupWarning:"Added, but a possible duplicate already exists in the 2026 base", namingSpellTypo:"Possible spelling mistake", namingSpellBrand:"Did you mean the brand?", namingSpellBrandUse:"Use", namingSpellBrandCount:"products with that brand", namingSpellSplit:"Possible stuck-together word",
     namingSpellDoubleSpace:"Extra spaces", namingSpellDoubleSpaceWord:"(double space)", namingSpellMissingWeight:"Missing weight or volume", namingSpellMissingWeightWord:"(weight/volume)", namingSpellMissingWeightHint:"add KG, G, ML, L, etc.",
     namingSessionDupBadge:"repeated today with", namingSessionDupWarning:"Added, but you already named an identical product today",
     namingFormatTitle:"Incomplete format", namingMissingBrand:"missing the brand",
@@ -3720,7 +3720,7 @@ function extractFlavorWord(name){
    coinciden (ej. agregar/quitar una palabra como "ESPECIAL"). */
 function namesLookSimilar(nameA, nameB){
   const brandA=extractBrand(nameA), brandB=extractBrand(nameB);
-  if(brandA && brandB && brandA!==brandB) return false;
+  if(brandA && brandB && !sameBrandFuzzy(brandA,brandB)) return false;
   const qtyA=extractQuantity(nameA), qtyB=extractQuantity(nameB);
   if(qtyA && qtyB && !sameQuantity(qtyA,qtyB)) return false;
   const flavorA=extractFlavorWord(nameA), flavorB=extractFlavorWord(nameB);
@@ -3741,6 +3741,52 @@ function namesLookSimilar(nameA, nameB){
 function dupSeverity(tipo){
   return (tipo==='exact' || tipo==='code' || tipo==='veri') ? 'alta' : 'media';
 }
+/* ===== Marcas: vocabulario de la base 2026 y tolerancia a errores de escritura ===== */
+let __brandFreqCache=null;
+function getBrandFreq(){
+  const idx=state.index['2026']; const size=idx?idx.list.length:0;
+  if(__brandFreqCache && __brandFreqCache.__size===size) return __brandFreqCache;
+  const m=new Map(); m.orig=new Map();
+  if(idx) for(const p of idx.list){
+    const b = p.brandSearch!==undefined ? p.brandSearch : extractBrand(p.nombre||'');
+    if(!b || b.length<3) continue;
+    m.set(b,(m.get(b)||0)+1);
+    if(!m.orig.has(b)){ const first=normalize(p.nombre||'').split(',')[0].trim(); const mm=first.match(/^(?:SMP|VMP)\b\s*(.*)$/); m.orig.set(b,(mm?mm[1]:first).trim()); }
+  }
+  m.__size=size; __brandFreqCache=m; return m;
+}
+function brandMaxDist(len){ return len<5?0 : len<=7?1 : 2; }
+/* ¿Son la misma marca aunque una esté mal escrita? (COLATNA ~ COLANTA). Si las dos marcas ya
+   existen bien establecidas en la base (3+ productos cada una) se consideran marcas distintas. */
+function sameBrandFuzzy(a,b){
+  if(a===b) return true;
+  if(!a||!b) return false;
+  if(a.replace(/ /g,'')===b.replace(/ /g,'')) return true;
+  if(Math.abs(a.length-b.length)>2) return false;
+  const md=brandMaxDist(Math.min(a.length,b.length)); if(!md) return false;
+  const f=getBrandFreq();
+  if((f.get(a)||0)>=3 && (f.get(b)||0)>=3) return false;
+  return vsDist(a,b,md)<=md;
+}
+/* Si la marca escrita no es una marca establecida de la base pero está a 1-2 letras de una que sí lo es, la sugiere. */
+function suggestBrandFix(brand){
+  const f=getBrandFreq(); if(!brand||f.size<20) return null;
+  if((f.get(brand)||0)>=3) return null;
+  const md=brandMaxDist(brand.length); if(!md) return null;
+  let best=null,bd=99,bc=0;
+  for(const [w,c] of f){
+    if(c<3||Math.abs(w.length-brand.length)>md) continue;
+    const d=vsDist(brand,w,md);
+    if(d<=md && (d<bd || (d===bd && c>bc))){ best=w; bd=d; bc=c; }
+  }
+  return best ? {brand:best, fix:(f.orig.get(best)||best), count:bc} : null;
+}
+function fixBrandInName(value,newBrand){
+  const parts=String(value||'').split(',');
+  const m=parts[0].match(/^(\s*(?:SMP|VMP)\s+)/i);
+  parts[0]=(m?m[1]:'')+newBrand;
+  return parts.join(',');
+}
 function findNameDuplicate2026(nombreNorm, excludeCodigo){
   const idx=state.index['2026']; if(!idx) return null;
   // Mismo código ya usado/nombrado en la base 2026 -> ese producto ya existe, sin importar si el nombre coincide.
@@ -3759,7 +3805,16 @@ function findNameDuplicate2026(nombreNorm, excludeCodigo){
   }
   const qty=extractQuantity(nombreNorm), flavor=flavorSignature(nombreNorm), brand=extractBrand(nombreNorm);
   if(qty && flavor && brand){
-    for(const p of idx.list){if(p.codigo===excludeCodigo)continue; const pq=extractQuantity(p.nombre), pf=flavorSignature(p.nombre), pb=extractBrand(p.nombre); if(pq&&sameQuantity(pq,qty)&&pf&&pf===flavor&&pb&&pb===brand)return Object.assign({},p,{__dupReason:'sameFlavorMass'});}
+    let fuzzyHit=null;
+    for(const p of idx.list){
+      if(p.codigo===excludeCodigo) continue;
+      const pq=extractQuantity(p.nombre), pf=flavorSignature(p.nombre), pb=extractBrand(p.nombre);
+      if(pq&&sameQuantity(pq,qty)&&pf&&pf===flavor&&pb){
+        if(pb===brand) return Object.assign({},p,{__dupReason:'sameFlavorMass'});
+        if(!fuzzyHit && sameBrandFuzzy(pb,brand)) fuzzyHit=p;   // misma cosa pero con la marca mal escrita
+      }
+    }
+    if(fuzzyHit) return Object.assign({},fuzzyHit,{__dupReason:'similar',__brandFuzzy:true});
   }
   // Última red: nombre muy parecido (misma marca, misma cantidad neta, casi las mismas palabras) -> posible duplicado, se deja pasar si el usuario confirma que es distinto.
   for(const p of idx.list){
@@ -3823,6 +3878,13 @@ function checkNameSpelling(nombreNorm){
   if(raw.trim() && !NAMING_WEIGHT_REGEX.test(normalize(raw))){
     issues.push({type:'weight', word:t('namingSpellMissingWeightWord'), suggestion:t('namingSpellMissingWeightHint')});
   }
+  // Marca mal escrita: solo se revisa cuando ya hay una coma (la marca es lo que va antes de la primera coma).
+  let brandTokens=null;
+  if(raw.includes(',')){
+    const br=extractBrand(raw);
+    const sg=suggestBrandFix(br);
+    if(sg){ issues.push({type:'brand', word:br, suggestion:sg.brand, fix:sg.fix, count:sg.count}); brandTokens=new Set(br.split(' ')); }
+  }
   const freq = getNaming2026WordFreq();
   const MIN_FREQ = 3;
   if(freq.size < 20) return issues; // muy poca base para confiar en el diccionario todavía (los 2 chequeos de arriba sí aplican)
@@ -3833,6 +3895,7 @@ function checkNameSpelling(nombreNorm){
     // Los tokens con números (pesos, porcentajes, medidas: "500ML", "35G", "8") no se revisan
     // ortográficamente: el peso/valor varía legítimamente de un producto a otro, no es un error.
     if(tok.length<4 || /\d/.test(tok)) continue;
+    if(brandTokens && brandTokens.has(tok)) continue; // la marca ya tiene su propio aviso
     if(isKnownWord(tok)) continue; // palabra ya conocida (base 2026 o diccionario fijo), está bien
     let found=false;
     // ¿palabras pegadas? (se puede partir en dos palabras conocidas, incluyendo conectores cortos como "A"/"DE")
@@ -4334,7 +4397,21 @@ function checkNamingAgreements(rawNombre){
   if(/\bTABLETAS?\b/.test(descSeg) && pesoSeg && !/\d\s*T\b/.test(pesoSeg)) push('agreeTabletasSinT');
 
   // 1.7.4.1 Huevos: si aparece la talla (AA, AAA, AAAA, A) debe ir la palabra HUEVOS antes.
-  if(/\b(AAAA|AAA|AA|A)\b/.test(descSeg) && !/\bHUEVOS?\b/.test(nombre)) push('agreeHuevoTallaSinPalabra');
+  // Solo avisa si de verdad parece un huevo: la "A" suelta (SABOR A, VITAMINA A, A LA, A BASE DE...) y las
+  // pilas AA/AAA no cuentan como talla de huevo.
+  if(!/\bHUEVOS?\b/.test(nombre) && !/\b(PILAS?|BATERIAS?|ALCALINAS?|RECARGABLES?|VOLTIOS?|LITIO)\b/.test(nombre)){
+    const EGG_CTX=/\b(CUBETA|CARTON|PANAL|DOCENA|CAMPESINOS?|GALLINAS?|CODORNIZ|CRIOLLOS?)\b/;
+    const re=/\b(AAAA|AAA|AA|A)\b/g; let mm, huevoFlag=false;
+    while((mm=re.exec(descSeg))){
+      const size=mm[1];
+      const before=descSeg.slice(0,mm.index).trim().split(/\s+/).pop()||'';
+      const after=descSeg.slice(mm.index+size.length).trim().split(/\s+/)[0]||'';
+      if(size!=='A'){ if(!/^(SABOR|VITAMINA|VIT)$/.test(before)){ huevoFlag=true; break; } continue; }
+      if(/^(LA|LAS|EL|LOS|LO|BASE|GRANEL|PARTIR|UN|UNA|DE)$/.test(after)) continue;
+      if(/^(TIPO|TALLA|CALIBRE|CATEGORIA|CLASE|GRADO)$/.test(before) || descSeg.trim()==='A' || EGG_CTX.test(descSeg)){ huevoFlag=true; break; }
+    }
+    if(huevoFlag) push('agreeHuevoTallaSinPalabra');
+  }
 
   // 1.7.4.4 Quesos: distinguir tajado/bloque/rallado y fresco/madurado/semimadurado.
   if(/\bQUESO\b/.test(descSeg) && !/\b(TAJADO|BLOQUE|RALLADO)\b/.test(nombre) && !/\b(FRESCO|MADURADO|SEMIMADURADO)\b/.test(nombre)){
@@ -8802,7 +8879,13 @@ function bindTabEvents(){
         const renderSpellCheck = ()=>{
           if(!spellWrap) return;
           const issues = checkNameSpelling(nombreInput.value);
-          spellWrap.innerHTML = issues.length ? `<div class="naming-spell-alert" role="alert"><span class="naming-spell-alert-icon">✏️</span><div>${issues.map(i=>`<div>${i.type==='split' ? t('namingSpellSplit') : i.type==='space' ? t('namingSpellDoubleSpace') : i.type==='weight' ? t('namingSpellMissingWeight') : t('namingSpellTypo')}: <strong>${i.word}</strong> → <strong>${i.suggestion}</strong></div>`).join('')}</div></div>` : '';
+          spellWrap.innerHTML = issues.length ? `<div class="naming-spell-alert" role="alert"><span class="naming-spell-alert-icon">✏️</span><div>${issues.map(i=>i.type==='brand'
+            ? `<div>${t('namingSpellBrand')} <strong>${escapeHtml(i.word)}</strong> → <strong>${escapeHtml(i.suggestion)}</strong> <small>(${i.count} ${t('namingSpellBrandCount')})</small> <button type="button" class="btn ghost sm" data-brandfix="${encodeURIComponent(i.fix)}">${t('namingSpellBrandUse')}</button></div>`
+            : `<div>${i.type==='split' ? t('namingSpellSplit') : i.type==='space' ? t('namingSpellDoubleSpace') : i.type==='weight' ? t('namingSpellMissingWeight') : t('namingSpellTypo')}: <strong>${i.word}</strong> → <strong>${i.suggestion}</strong></div>`).join('')}</div></div>` : '';
+          spellWrap.querySelectorAll('[data-brandfix]').forEach(b=> b.onclick=()=>{
+            nombreInput.value = fixBrandInName(nombreInput.value, decodeURIComponent(b.dataset.brandfix));
+            renderSpellCheck(); renderFormatCheck(); renderAgreementsCheck(); nombreInput.focus();
+          });
         };
         const renderFormatCheck = ()=>{
           if(!formatWrap) return;
