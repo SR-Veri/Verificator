@@ -1256,13 +1256,29 @@ body.veri-wide .naming-col-scan .scan-frame{width:100%}
 .rep-thumb .st{position:absolute;right:5px;bottom:5px;width:22px;height:22px;border-radius:50%;background:#30d158;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
 .rep-thumb.st-repetir .st{background:#ff9f0a}
 .rep-thumb.st-aprobada img,.rep-thumb.st-repetir img{opacity:.5}
-.rep-review-shell.wide{grid-template-columns:92px minmax(0,1fr)}
-.rep-review-shell.wide .rep-review-photo{min-height:74vh}
-.rep-review-shell.wide .rep-review-photo img{max-height:80vh}
-.rep-review-shell.wide .rep-thumbs{max-height:82vh}
+.rep-review-shell.wide{display:flex;flex-direction:column;gap:10px}
+.rep-review-shell.wide .rep-review-photo{min-height:58vh}
+.rep-review-shell.wide .rep-review-photo img{max-height:68vh}
+/* Ampliar: barra de botones y conteo ARRIBA, miniaturas ABAJO en una tira horizontal */
+.rep-review-shell.wide .rep-review-split{grid-template-columns:1fr;gap:10px}
+.rep-review-shell.wide .rep-thumbs{flex-direction:row;max-height:none;overflow-x:auto;overflow-y:hidden;padding:4px 2px;scroll-snap-type:x proximity;justify-content:center}
+.rep-review-shell.wide .rep-thumb{width:88px;flex:0 0 88px;scroll-snap-align:center}
 .rep-review-mini{align-items:center;padding:14px 8px;gap:10px}
 .rep-review-mini .btn{padding:0;width:46px;min-width:0;height:46px;font-size:20px;justify-content:center}
-@media(max-width:760px){.rep-review-split{grid-template-columns:1fr}.rep-thumbs{flex-direction:row;max-height:none}.rep-thumb{width:84px;flex:0 0 84px}.rep-review-shell.wide{grid-template-columns:1fr}}
+.rep-review-shell.wide .rep-review-mini{flex-direction:row;flex-wrap:wrap;padding:8px 14px;gap:10px;justify-content:flex-start}
+.rep-review-shell.wide .rep-review-mini .rep-mini-count{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rep-review-shell.wide .rep-review-mini .rep-mini-title{flex:1 1 120px;min-width:0;font-size:13px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rep-review-shell.wide .rep-review-mini .rep-mini-sep{width:1px;height:28px;background:currentColor;opacity:.15}
+/* Carga progresiva de la foto */
+.rep-review-photo img{width:100%}
+.rep-review-photo img.rev-lo{filter:saturate(.95)}
+.rev-q{position:absolute;right:10px;top:10px;z-index:3;display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:700;pointer-events:none;backdrop-filter:blur(3px);transition:opacity .4s ease}
+.rev-q i{width:10px;height:10px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:revSpin .8s linear infinite}
+.rev-q[data-s="hd"]{opacity:0}
+.rev-q[data-s="hd"] i{animation:none}
+@keyframes revSpin{to{transform:rotate(360deg)}}
+.rep-thumb img:not([src]){opacity:0}
+@media(max-width:760px){.rep-review-split{grid-template-columns:1fr}.rep-thumbs{flex-direction:row;max-height:none}.rep-thumb{width:84px;flex:0 0 84px}.rep-review-shell.wide{grid-template-columns:1fr}.rep-review-shell.wide .rep-review-mini .rep-mini-title{display:none}.rep-review-shell.wide .rep-thumbs{justify-content:flex-start}.rep-review-shell.wide .rep-review-photo{min-height:40vh}.rep-review-shell.wide .rep-review-photo img{max-height:52vh}}
 
 
 
@@ -8324,16 +8340,130 @@ function applyInlineReviewTransform(img,scale,rotation,x,y,direct){
   const label=document.querySelector(`[data-review-zoom-label="${CSS.escape(img.dataset.reviewInlineImage||'')}"]`);if(label)label.textContent=`${Math.round(scale*100)}%`;
   img.style.cursor=scale>1?'grab':'zoom-in';
 }
-/* Precarga de fotos de Revisión: URLs firmadas en lote + imágenes ya descargadas y decodificadas en memoria,
-   así al pasar de un producto a otro la foto aparece al instante en vez de quedarse cargando. */
-const revImgCache=new Map();
-function revPreloadImg(url){
-  if(!url||revImgCache.has(url)) return;
-  const im=new Image(); im.decoding='async'; im.src=url;
-  revImgCache.set(url,im);
-  if(im.decode) im.decode().catch(()=>{});
-  if(revImgCache.size>40){ const k=revImgCache.keys().next().value; revImgCache.delete(k); }
+/* ===== Carga progresiva en Revisión =====
+   1) La foto que se está viendo tiene prioridad absoluta (nada más se descarga hasta que termina).
+   2) Mientras llega el original se muestra lo mejor disponible: miniatura guardada → versión intermedia
+      (1280 px, si el almacenamiento soporta transformaciones) → original a máxima calidad.
+   3) Cuando el original llega, se cambia sin parpadeo y se conservan zoom, giro y posición.
+   4) Después se precargan, de a 2 en paralelo y con prioridad baja, las demás fotos del producto y de los vecinos.
+   Las miniaturas de la tira se generan a 240 px a partir del original descargado y quedan guardadas. */
+const revBlobCache=new Map(), revThumbCache=new Map(), revTierCache=new Map(), revInflight=new Map();
+let revTxOK=(()=>{try{const v=sessionStorage.getItem('veri_rev_tx');return v===null?null:v==='1';}catch(e){return null;}})();
+function revSetTx(ok){revTxOK=ok;try{sessionStorage.setItem('veri_rev_tx',ok?'1':'0');}catch(e){}}
+let revCurPath='', revStagePending=null, __revStageTok=0, __revPre=0, revBg=0; const revBgQ=[];
+function revBlobTrim(){
+  while(revBlobCache.size>12){
+    let victim=null; for(const k of revBlobCache.keys()){ if(k!==revCurPath){victim=k;break;} }
+    if(victim===null) break;
+    try{URL.revokeObjectURL(revBlobCache.get(victim));}catch(e){}
+    revBlobCache.delete(victim);
+  }
 }
+function revBlobTouch(path){ const o=revBlobCache.get(path); if(o){ revBlobCache.delete(path); revBlobCache.set(path,o); } return o||''; }
+async function revTierUrl(path,w,q){
+  if(!path||revTxOK===false) return '';
+  const k=path+'|'+w; if(revTierCache.has(k)) return revTierCache.get(k);
+  try{
+    const {data,error}=await veriStorageClient().storage.from('veri-repetition-photos').createSignedUrl(path,3600,{transform:{width:w,quality:q,resize:'contain'}});
+    if(error||!data||!data.signedUrl){ revSetTx(false); return ''; }
+    revTierCache.set(k,data.signedUrl); return data.signedUrl;
+  }catch(e){ revSetTx(false); return ''; }
+}
+async function revMakeThumb(path,blob){
+  if(revThumbCache.has(path)) return;
+  try{
+    let bmp; try{ bmp=await createImageBitmap(blob,{resizeWidth:240,resizeQuality:'medium',imageOrientation:'from-image'}); }catch(e){ bmp=await createImageBitmap(blob); }
+    const sc=Math.min(1,240/bmp.width), cw=Math.max(1,Math.round(bmp.width*sc)), ch=Math.max(1,Math.round(bmp.height*sc));
+    const c=document.createElement('canvas'); c.width=cw; c.height=ch; c.getContext('2d').drawImage(bmp,0,0,cw,ch);
+    try{ bmp.close&&bmp.close(); }catch(e){}
+    revThumbCache.set(path,c.toDataURL('image/jpeg',.72));
+    if(revThumbCache.size>300) revThumbCache.delete(revThumbCache.keys().next().value);
+    document.querySelectorAll('.rep-thumbs img[data-rev-path]').forEach(im=>{ if(im.dataset.revPath===path&&!im.getAttribute('src')) im.src=revThumbCache.get(path); });
+  }catch(e){}
+}
+function revFetchFull(path,high){
+  const hit=revBlobTouch(path); if(hit) return Promise.resolve(hit);
+  if(revInflight.has(path)) return revInflight.get(path);
+  const url=veriPhotoUrl(path); if(!url) return Promise.resolve('');
+  const p=fetch(url,{priority:high?'high':'low'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.blob(); })
+    .then(blob=>{ const o=URL.createObjectURL(blob); revBlobCache.set(path,o); revBlobTrim(); revMakeThumb(path,blob); return o; })
+    .catch(e=>{ console.warn('Foto completa no disponible por fetch',e.message||e); return ''; })
+    .finally(()=>revInflight.delete(path));
+  revInflight.set(path,p); return p;
+}
+function revBgPump(){
+  while(revBg<2&&revBgQ.length){
+    const it=revBgQ.shift(); if(it.tok!==__revPre) continue;
+    if(revBlobCache.has(it.path)||revInflight.has(it.path)) continue;
+    revBg++; revFetchFull(it.path,false).finally(()=>{ revBg--; revBgPump(); });
+  }
+}
+function revFit(img,aspect){
+  // Mantiene el mismo tamaño en pantalla sin importar la resolución cargada (miniatura, intermedia u original).
+  const stage=img.closest('[data-review-stage]'); if(!stage) return;
+  aspect=aspect||Number(img.dataset.aspect)||0; if(!aspect) return; img.dataset.aspect=String(aspect);
+  const cw=stage.clientWidth||img.parentElement.clientWidth; let mh=parseFloat(getComputedStyle(img).maxHeight); if(!isFinite(mh)) mh=window.innerHeight*.68;
+  img.style.width=Math.max(40,Math.min(cw,mh*aspect))+'px'; img.style.height='auto';
+}
+function revSwap(img,src,lo,guard){
+  return new Promise(res=>{
+    const im=new Image(); im.decoding='async';
+    im.onload=async()=>{
+      try{ if(im.decode) await im.decode(); }catch(e){}
+      if(guard&&!guard()) return res(false);
+      img.src=src; revFit(img,(im.naturalWidth||1)/(im.naturalHeight||1)); img.classList.toggle('rev-lo',!!lo); res(true);
+    };
+    im.onerror=()=>res(false);
+    im.src=src;
+  });
+}
+function revHydrateStage(){
+  const img=document.querySelector('[data-review-inline-image]'); if(!img){ revStagePending=null; return; }
+  const path=img.dataset.revPath, tok=++__revStageTok, stage=img.closest('[data-review-stage]');
+  const badge=stage&&stage.querySelector('.rev-q');
+  const setB=(st,txt)=>{ if(!badge) return; badge.dataset.s=st; const t=badge.querySelector('span'); if(t&&txt) t.textContent=txt; };
+  const alive=()=>tok===__revStageTok;
+  revCurPath=path;
+  const have=revBlobTouch(path);
+  if(have){ img.dataset.revFull='1'; revSwap(img,have,false,alive); setB('hd'); revStagePending=null; return; }
+  setB('lo','Cargando…');
+  const th=revThumbCache.get(path);
+  if(th) revSwap(img,th,true,()=>alive()&&img.dataset.revFull!=='1').then(ok=>{ if(ok&&alive()&&img.dataset.revFull!=='1') setB('lo','Mejorando calidad…'); });
+  const full=revFetchFull(path,true); revStagePending=full;
+  revTierUrl(path,1280,72).then(u=>{
+    if(!u||!alive()||img.dataset.revFull==='1') return;
+    revSwap(img,u,true,()=>alive()&&img.dataset.revFull!=='1').then(ok=>{
+      if(ok){ if(alive()&&img.dataset.revFull!=='1') setB('lo','Mejorando calidad…'); }
+      else if(alive()&&img.dataset.revFull!=='1') revSetTx(false);
+    });
+  });
+  full.then(async obj=>{
+    if(!alive()) return;
+    img.dataset.revFull='1';
+    const ok=obj?await revSwap(img,obj,false,alive):false;
+    if(!alive()) return;
+    if(!ok){ const u=veriPhotoUrl(path); if(u) img.src=u; img.classList.remove('rev-lo'); }
+    setB('hd');
+  });
+}
+function revHydrateThumbs(){
+  document.querySelectorAll('.rep-thumbs img[data-rev-path]').forEach(im=>{
+    if(im.getAttribute('src')) return;
+    const path=im.dataset.revPath, c=revThumbCache.get(path);
+    if(c){ im.src=c; return; }
+    if(revTxOK===false) return;                       // sin transformaciones: se llenan solas cuando llega el original
+    revTierUrl(path,240,60).then(u=>{
+      if(!u||!im.isConnected||im.getAttribute('src')) return;
+      const t=new Image(); t.onload=()=>{ if(im.isConnected&&!im.getAttribute('src')) im.src=u; }; t.onerror=()=>revSetTx(false); t.src=u;
+    });
+  });
+}
+function revHydrate(){
+  try{ revHydrateStage(); revHydrateThumbs(); }
+  catch(e){ console.warn(e); const img=document.querySelector('[data-review-inline-image]'); if(img&&!img.getAttribute('src')) img.src=veriPhotoUrl(img.dataset.revPath); }
+  revPreloadAround();
+}
+if(!window.__revResize){ window.__revResize=true; window.addEventListener('resize',()=>{ const i=document.querySelector('[data-review-inline-image]'); if(i) revFit(i); }); }
 async function revEnsureUrls(paths){
   const need=[...new Set(paths.filter(p=>p&&!veriPhotoUrlCache.has(p)))];
   if(!need.length) return;
@@ -8342,22 +8472,27 @@ async function revEnsureUrls(paths){
     if(!error&&data) data.forEach(d=>{ if(d&&d.signedUrl&&d.path) veriPhotoUrlCache.set(d.path,d.signedUrl); });
   }catch(e){ console.warn('Lote de URLs no disponible',e.message||e); }
 }
-let __revPre=0;
 function revWarmQueue(){
   const P=getReviewProducts();
-  revEnsureUrls(P.flatMap(pr=>pr.photos.map(ph=>ph.path))).then(()=>revPreloadAround());
+  revEnsureUrls(P.flatMap(pr=>pr.photos.map(ph=>ph.path))).then(()=>{
+    // si la vista se pintó antes de tener las URLs firmadas, se repinta una sola vez
+    if(state.tab==='rep'&&state.repView==='review'&&P.length&&!document.querySelector('[data-review-inline-image]')) render();
+    else revPreloadAround();
+  });
 }
 async function revPreloadAround(){
-  const tok=++__revPre;
+  const tok=++__revPre; revBgQ.length=0;
   const P=getReviewProducts(); if(!P.length) return;
   const i=Math.min(state.repReviewIndex||0,P.length-1);
-  // producto actual completo, luego siguiente, anterior y los próximos
-  const order=[i,i+1,i-1,i+2,i+3,i-2].filter(n=>n>=0&&n<P.length);
+  // producto actual completo, luego siguiente, anterior y el que sigue
+  const order=[i,i+1,i-1,i+2].filter(n=>n>=0&&n<P.length);
   const paths=[]; order.forEach(n=>P[n].photos.forEach(ph=>paths.push(ph.path)));
-  const list=paths.slice(0,30);
+  const list=paths.slice(0,10);
   await revEnsureUrls(list);
   if(tok!==__revPre) return;
-  list.forEach(pt=>revPreloadImg(veriPhotoUrl(pt)));
+  if(revStagePending){ try{ await revStagePending; }catch(e){} }   // primero termina la foto actual
+  if(tok!==__revPre) return;
+  list.forEach(pt=>revBgQ.push({path:pt,tok})); revBgPump();
 }
 /* Fotos de un producto: todas las que subió quien repitió (multifoto) o la única foto antigua. */
 function revProductPhotos(r){
@@ -8402,7 +8537,7 @@ function renderRepReview(){
   const navBtns=`<div class="rep-review-nav"><button class="btn secondary rep-review-action" data-review-prev="${sel.key}" ${idx===0?'disabled':''} aria-label="Producto anterior">← Anterior</button><button class="btn secondary rep-review-action" data-review-next="${sel.key}" ${idx>=prods.length-1?'disabled':''} aria-label="Producto siguiente">Siguiente →</button></div>`;
   const actBtns=`<button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'}>✓ Aprobar foto</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'}>↻ Devolver para repetir</button>`;
   const info = wide
-  ? `<section class="card glass rep-review-info rep-review-mini">${ring}<div class="small-note" title="Fotos aprobadas de este producto">${nOk}/${nTotal}</div><button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Aprobar foto" aria-label="Aprobar foto">✓</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Devolver para repetir" aria-label="Devolver para repetir">↻</button><button class="btn secondary rep-review-action" data-review-prev="${sel.key}" ${idx===0?'disabled':''} title="Producto anterior" aria-label="Producto anterior">←</button><button class="btn secondary rep-review-action" data-review-next="${sel.key}" ${idx>=prods.length-1?'disabled':''} title="Producto siguiente" aria-label="Producto siguiente">→</button></section>`
+  ? `<section class="card glass rep-review-info rep-review-mini">${ring}<div class="rep-mini-count" title="Fotos aprobadas de este producto">${nOk}/${nTotal}</div><div class="rep-mini-title" title="${pName} · ${escapeHtml(r.codigoProducto||'')}">${pName}</div><span class="rep-mini-sep"></span><button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Aprobar foto" aria-label="Aprobar foto">✓</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Devolver para repetir" aria-label="Devolver para repetir">↻</button><button class="btn secondary rep-review-action" data-review-prev="${sel.key}" ${idx===0?'disabled':''} title="Producto anterior" aria-label="Producto anterior">←</button><button class="btn secondary rep-review-action" data-review-next="${sel.key}" ${idx>=prods.length-1?'disabled':''} title="Producto siguiente" aria-label="Producto siguiente">→</button></section>`
   : `<section class="card glass rep-review-info"><div class="rep-review-head">${ring}<div><strong>Revisión de repeticiones</strong><div class="small-note" style="margin-top:2px">Producto ${idx+1} de ${prods.length} · ${totalPending} foto${totalPending===1?'':'s'} pendiente${totalPending===1?'':'s'} en total</div></div></div>
     <div><div class="small-note">PRODUCTO</div><h2 style="font-size:22px;margin:4px 0 10px">${pName}</h2><div class="rep-detail"><strong>Código:</strong> ${escapeHtml(r.codigoProducto||'—')}</div><div class="rep-detail"><strong>Código de barras:</strong> ${escapeHtml(r.codigoBarras||'—')}</div><div class="rep-detail"><strong>Fotógrafo original:</strong> ${escapeHtml(r.fotografo||'—')}</div></div>
     <div class="rep-prod-prog"><div class="rep-prod-prog-top"><strong>Fotos de este producto</strong><span>${nOk} de ${nTotal} aprobadas${nRet?` · ${nRet} por repetir`:''}</span></div><div class="rep-review-progress"><span style="width:${pct}%"></span></div></div>
@@ -8410,8 +8545,8 @@ function renderRepReview(){
     <div class="warning-banner"><span><strong>Motivo de repetición</strong><br>${escapeHtml(r.motivo||'No se indicó un motivo.')}</span></div>${reason?`<div class="warning-banner"><span><strong>Motivo de devolución</strong><br>${escapeHtml(reason)}</span></div>`:''}
     <div class="row wrap" style="gap:8px">${actBtns}</div>${navBtns}<div class="small-note">El producto se archiva automáticamente cuando todas sus fotos están aprobadas. La descarga usa el código del producto.</div></section>`;
   const thumbs=photos.map((p,i)=>{const u=veriPhotoUrl(p.path);const mark=p.estado==='aprobada'?'✓':p.estado==='repetir'?'↻':'';
-    return `<button type="button" class="rep-thumb st-${p.estado} ${p.key===sel.key?'active':''}" data-review-thumb="${p.key}" title="Foto ${i+1} · ${p.estado==='aprobada'?'aprobada':p.estado==='repetir'?'devuelta':'pendiente'}" aria-label="Ver foto ${i+1} de ${nTotal}">${u?`<img src="${u}" alt="Foto ${i+1}" loading="eager" decoding="async" onerror="this.style.display='none'">`:''}<span class="n">${i+1}</span>${mark?`<span class="st">${mark}</span>`:''}</button>`;}).join('');
-  const stage=`<div class="rep-review-photo" data-review-stage="${sel.key}">${url?`<img src="${url}" alt="Foto de ${pName}" data-review-inline-image="${sel.key}" draggable="false" decoding="async" fetchpriority="high">`:'<p class="small-note">No hay imagen disponible.</p>'}</div><div class="rep-review-inline-controls">${url?`<button type="button" class="btn secondary sm" data-review-zoom="out" aria-label="Alejar">−</button><span class="rep-review-zoom-label" data-review-zoom-label="${sel.key}">100%</span><button type="button" class="btn secondary sm" data-review-zoom="in" aria-label="Acercar">＋</button><button type="button" class="btn secondary sm" data-review-reset="${sel.key}">Ajustar</button><button type="button" class="btn secondary sm" data-review-rotate="${sel.key}">↻ Girar</button><a class="btn secondary sm" href="${url}" target="_blank" rel="noopener">Abrir original ↗</a>`:''}<button type="button" class="btn secondary sm" data-review-wide="1" title="${wide?'Volver a la vista normal (Esc)':'Ampliar la zona de la foto'}">${wide?'⤡ Reducir':'⤢ Ampliar'}</button></div>`;
+    return `<button type="button" class="rep-thumb st-${p.estado} ${p.key===sel.key?'active':''}" data-review-thumb="${p.key}" title="Foto ${i+1} · ${p.estado==='aprobada'?'aprobada':p.estado==='repetir'?'devuelta':'pendiente'}" aria-label="Ver foto ${i+1} de ${nTotal}">${u?`<img ${revThumbCache.get(p.path)?`src="${revThumbCache.get(p.path)}" `:''}data-rev-path="${escapeHtml(p.path)}" alt="Foto ${i+1}" loading="lazy" decoding="async" fetchpriority="low">`:''}<span class="n">${i+1}</span>${mark?`<span class="st">${mark}</span>`:''}</button>`;}).join('');
+  const stage=`<div class="rep-review-photo" data-review-stage="${sel.key}">${url?`<img ${revBlobCache.get(sel.path)?`src="${revBlobCache.get(sel.path)}" `:''}alt="Foto de ${pName}" data-review-inline-image="${sel.key}" data-rev-path="${escapeHtml(sel.path)}" draggable="false" decoding="async" fetchpriority="high"><span class="rev-q" data-s="${revBlobCache.get(sel.path)?'hd':'lo'}"><i></i><span>Cargando…</span></span>`:'<p class="small-note">No hay imagen disponible.</p>'}</div><div class="rep-review-inline-controls">${url?`<button type="button" class="btn secondary sm" data-review-zoom="out" aria-label="Alejar">−</button><span class="rep-review-zoom-label" data-review-zoom-label="${sel.key}">100%</span><button type="button" class="btn secondary sm" data-review-zoom="in" aria-label="Acercar">＋</button><button type="button" class="btn secondary sm" data-review-reset="${sel.key}">Ajustar</button><button type="button" class="btn secondary sm" data-review-rotate="${sel.key}">↻ Girar</button><a class="btn secondary sm" href="${url}" target="_blank" rel="noopener">Abrir original ↗</a>`:''}<button type="button" class="btn secondary sm" data-review-wide="1" title="${wide?'Volver a la vista normal (Esc)':'Ampliar la zona de la foto'}">${wide?'⤡ Reducir':'⤢ Ampliar'}</button></div>`;
   return `<div class="rep-review-shell${wide?' wide':''}">${info}<section class="card glass" style="padding:12px"><div class="rep-review-split"><div class="rep-review-main">${stage}</div>${nTotal>1||true?`<div class="rep-thumbs" role="list" aria-label="Fotos de este producto">${thumbs}</div>`:''}</div></section></div>`;
 }
 function repParseId(code){
@@ -9900,7 +10035,7 @@ function bindTabEvents(){
     document.querySelectorAll('[data-review-prev]').forEach(b=>b.onclick=()=>{state.repReviewIndex=Math.max(0,(state.repReviewIndex||0)-1);state.repReviewPhoto=null;render();});
     document.querySelectorAll('[data-review-thumb]').forEach(b=>b.onclick=()=>{state.repReviewPhoto=b.dataset.reviewThumb;render();});
     document.querySelectorAll('[data-review-wide]').forEach(b=>b.onclick=()=>{state.repReviewWide=!state.repReviewWide;render();});
-    try{document.querySelector('.rep-thumb.active')?.scrollIntoView({block:'nearest'});}catch(_){}
+    try{document.querySelector('.rep-thumb.active')?.scrollIntoView({block:'nearest',inline:'center'});}catch(_){}
     if(!window.__revKeys){window.__revKeys=true;document.addEventListener('keydown',e=>{
       if(state.tab!=='rep'||state.repView!=='review')return;
       if(/INPUT|TEXTAREA|SELECT/.test((e.target&&e.target.tagName)||''))return;
@@ -9911,7 +10046,7 @@ function bindTabEvents(){
       else if(e.key==='ArrowDown'||e.key==='ArrowUp'){const th=[...document.querySelectorAll('[data-review-thumb]')];const i=th.findIndex(x=>x.classList.contains('active'));b=th[i+(e.key==='ArrowDown'?1:-1)];if(b)e.preventDefault();}
       if(b&&!b.disabled)b.click();
     });}
-    revPreloadAround();
+    revHydrate();
     const revImg=()=>document.querySelector('[data-review-inline-image]');
     document.querySelectorAll('[data-review-zoom]').forEach(b=>b.onclick=()=>{const img=revImg();if(!img)return;const z=Number(img.dataset.zoom||1);veriZoomTo(img,b.dataset.reviewZoom==='in'?z*1.35:z/1.35,0,0,260);});
     document.querySelectorAll('[data-review-reset]').forEach(b=>b.onclick=()=>{const img=revImg();if(img)veriZoomTo(img,1,0,0,420,0);});
