@@ -2870,10 +2870,11 @@ const TOOL_FLAGS = [
   { id:'quality', label: ()=>t('repSubQuality') },
   { id:'rep', label: ()=>t('repList') },
   { id:'carrito', label: ()=>t('toolCartLabel') },
+  { id:'budget', label: ()=>'Presupuesto (grupos y gastos)' },
 ];
 // Valores por defecto que aplican a una persona mientras no tenga su propio tool_access guardado
 // (o para las herramientas que aún no se han tocado dentro de su tool_access).
-const DEFAULT_TOOL_ACCESS = { veriai:false, naming:true, quality:true, rep:true, carrito:false };
+const DEFAULT_TOOL_ACCESS = { veriai:false, naming:true, quality:true, rep:true, carrito:false, budget:false };
 function personaToolAccess(persona){
   if(!persona) return {};
   const raw = persona.tool_access;
@@ -3248,6 +3249,535 @@ document.addEventListener('click',(e)=>{
   else if(act==='pass') sharedPassMine();
   else if(act==='release') sharedRelease(b.dataset.sharedPid);
   else if(act==='override'){ const sh=sharedState(), c=sh.conflict; if(c){ sh.override=c.code; sh.conflict=null; sharedPaintAlert(); sharedReserveForCode(c.code); } }
+});
+
+/* ===================== Presupuesto (Herramientas) =====================
+   El administrador crea grupos con un presupuesto general y asigna integrantes. Cada integrante registra gastos
+   (partes iguales, porcentajes distintos o solo para quien paga), sube el comprobante o genera uno de caja menor,
+   y el administrador descarga un Excel por persona. Tablas: presupuesto_grupos / _miembros / _gastos / _partes. */
+const BUD_P='presupuesto_', BUD_BUCKET='veri-budget-receipts';
+const BUD_CATS=[['transporte','🚌','Transporte'],['alimentacion','🍽️','Alimentación'],['hospedaje','🛏️','Hospedaje'],['combustible','⛽','Combustible'],['materiales','🧰','Materiales'],['otros','🧾','Otros']];
+const budEnc=encodeURIComponent;
+const budEsc=(x)=>escapeHtml(String(x==null?'':x));
+const budMoney=(n)=>'$'+Math.round(Number(n)||0).toLocaleString('es-CO');
+const budParse=(v)=>Number(String(v||'').replace(/\D/g,''))||0;
+const budFirst=(n)=>String(n||'').trim().split(/\s+/)[0]||'';
+function budState(){ return state.budget||(state.budget={loaded:false,loading:false,error:false,mineLoaded:false,memberOf:0,groups:[],members:[],gastos:[],groupId:null,tab:'mov',poll:null,urls:{}}); }
+function budMe(){ return normalize(state.session||''); }
+function budName(code){ const p=state.personas.find(x=>x.codigo===normalize(code)); return (p&&p.nombre)||code||''; }
+function budVisible(){ return isAdmin() || toolVisible('budget') || budState().memberOf>0; }
+function budGroup(){ const b=budState(); return b.groups.find(g=>String(g.id)===String(b.groupId))||null; }
+async function budLoadMine(){
+  const b=budState(), me=budMe(); if(b.mineLoaded||!me) return; b.mineLoaded=true;
+  try{ const rows=await sb(`${BUD_P}miembros?codigo_persona=eq.${budEnc(me)}&select=grupo_id`,{silent:true}); b.memberOf=(rows||[]).length; if(b.memberOf && state.tab==='rep' && !isAdmin() && !toolVisible('budget')) render(); }catch(e){}
+}
+async function budLoad(quiet){
+  const b=budState(); if(b.loading) return; b.loading=true; if(!quiet){ b.error=false; }
+  try{
+    let groups=[];
+    if(isAdmin()) groups=await sb(`${BUD_P}grupos?activo=eq.true&order=creado_en.asc&select=*`,{silent:true});
+    else{
+      const mem=await sb(`${BUD_P}miembros?codigo_persona=eq.${budEnc(budMe())}&select=grupo_id`,{silent:true});
+      const ids=(mem||[]).map(m=>m.grupo_id);
+      groups=ids.length ? await sb(`${BUD_P}grupos?id=in.(${ids.join(',')})&activo=eq.true&order=creado_en.asc&select=*`,{silent:true}) : [];
+    }
+    b.groups=groups||[]; b.memberOf=Math.max(b.memberOf, b.groups.length);
+    if(!b.groups.some(g=>String(g.id)===String(b.groupId))) b.groupId=b.groups[0]?String(b.groups[0].id):null;
+    if(b.groupId) await budLoadGroup(); else { b.members=[]; b.gastos=[]; }
+    b.loaded=true; b.error=false;
+  }catch(e){ console.error(e); if(!b.loaded) b.error=true; }
+  finally{ b.loading=false; b.mineAt=0; budRepaint(); }
+}
+async function budLoadGroup(){
+  const b=budState(), gid=b.groupId; if(!gid) return;
+  const [mem,gas,sol]=await Promise.all([
+    sb(`${BUD_P}miembros?grupo_id=eq.${gid}&select=*`,{silent:true}),
+    sb(`${BUD_P}gastos?grupo_id=eq.${gid}&order=fecha.desc,creado_en.desc&select=*,presupuesto_partes(*)`,{silent:true}),
+    sb(`${BUD_P}solicitudes?grupo_id=eq.${gid}&order=creado_en.desc&select=*`,{silent:true}).catch(()=>[])
+  ]);
+  if(String(b.groupId)!==String(gid)) return;
+  b.members=Array.isArray(mem)?mem:[]; b.gastos=Array.isArray(gas)?gas:[]; b.solic=Array.isArray(sol)?sol:[];
+}
+function budRepaint(){ const el=document.getElementById('budgetRoot'); if(el) el.innerHTML=budgetInner(); }
+function budEnsure(){
+  const b=budState(); if(!b.loaded && !b.loading) budLoad();
+  if(!b.poll) b.poll=setInterval(()=>{
+    if(!document.getElementById('budgetRoot')){ clearInterval(b.poll); b.poll=null; return; }
+    if(document.hidden || veriLiteSkip('bud')) return; budLoad(true);
+  },20000);
+}
+function renderBudget(){ setTimeout(budEnsure,0); return `<div id="budgetRoot">${budgetInner()}</div>`; }
+/* Cálculos: presupuesto por persona = asignación propia o el resto repartido en partes iguales */
+function budCalc(){ const b=budState(); return budCalcFor(budGroup(), b.members, b.gastos); }
+function budCalcFor(g, members, gastos){
+  const codes=members.map(m=>m.codigo_persona);
+  const budget=Number(g&&g.presupuesto)||0;
+  const custom=members.filter(m=>m.asignacion!=null), sumCustom=custom.reduce((a,m)=>a+Number(m.asignacion),0);
+  const free=codes.length-custom.length, auto=free>0 ? Math.max(0,(budget-sumCustom)/free) : 0;
+  const per={}; codes.forEach(c=>{ const m=members.find(x=>x.codigo_persona===c); per[c]={asignado:m.asignacion!=null?Number(m.asignacion):auto,gastado:0,pago:0}; });
+  let spent=0;
+  gastos.filter(x=>!x.anulado).forEach(x=>{
+    spent+=Number(x.monto)||0;
+    if(per[x.pagado_por]) per[x.pagado_por].pago+=Number(x.monto)||0;
+    (x.presupuesto_partes||[]).forEach(p=>{ if(!per[p.codigo_persona]) per[p.codigo_persona]={asignado:0,gastado:0,pago:0}; per[p.codigo_persona].gastado+=Number(p.monto)||0; });
+  });
+  return {budget,spent,left:budget-spent,pct:budget>0?Math.min(100,spent/budget*100):0,per,codes};
+}
+const budModoTxt=(x)=>x.modo==='personal'?'Solo para quien pagó':x.modo==='igual'?'Partes iguales':x.modo==='monto'?'Por valor':'Porcentajes';
+const budCompact=(n)=>{ const a=Math.abs(n), sg=n<0?'-':''; return a>=1e6 ? sg+'$'+(a/1e6).toFixed(1).replace('.',',')+' M' : a>=1000 ? sg+'$'+Math.round(a/1000)+' mil' : sg+'$'+Math.round(a); };
+/* Círculo con burbujitas de las fotos de perfil */
+function budCluster(codes, centerHtml){
+  const arr=codes.slice(0,14), extra=codes.length-arr.length, many=arr.length>9;
+  const bubs=[]; const ring=(list,r,size,off)=>list.forEach((c,i)=>{ const a=(-90+off+i*360/list.length)*Math.PI/180; bubs.push(`<div class="bud-bub" style="--s:${size}px;--x:${(r*Math.cos(a)).toFixed(1)}px;--y:${(r*Math.sin(a)).toFixed(1)}px;--d:${(i*.35).toFixed(2)}s" title="${budEsc(budName(c))}"><div class="in">${veriAvatarHTML(c,size)}</div></div>`); });
+  if(arr.length===1) bubs.push(`<div class="bud-bub" style="--s:64px;--x:0px;--y:-62px;--d:0s" title="${budEsc(budName(arr[0]))}"><div class="in">${veriAvatarHTML(arr[0],64)}</div></div>`);
+  else if(!many) ring(arr,92,arr.length>6?42:48,0);
+  else { ring(arr.slice(0,9),100,40,0); ring(arr.slice(9),56,36,20); }
+  if(extra>0) bubs.push(`<div class="bud-bub" style="--s:34px;--x:0px;--y:0px;--d:0s"><div class="in bud-more">+${extra}</div></div>`);
+  return `<div class="bud-cluster">${bubs.join('')}${many?'':`<div class="bud-center">${centerHtml}</div>`}</div>`;
+}
+function budgetInner(){
+  const b=budState(), admin=isAdmin();
+  if(!b.loaded) return b.error
+    ? `<div class="card glass"><div class="empty">No se pudo cargar el Presupuesto. ¿Ya ejecutaste <b>presupuesto.sql</b> en Supabase?</div><button type="button" class="btn block" data-bud-act="reload">Reintentar</button></div>`
+    : `<div class="card glass"><div class="empty">Cargando presupuesto…</div></div>`;
+  if(!b.groups.length) return `<div class="card glass bud-emptycard"><div style="font-size:44px">💼</div><h3 style="margin:6px 0 4px">${admin?'Crea tu primer grupo':'Todavía no tienes grupo'}</h3><p class="small-note">${admin?'Define el presupuesto, suma a las personas y empiecen a registrar gastos.':'Cuando el administrador te sume a un grupo, aparecerá aquí.'}</p>${admin?'<button type="button" class="btn block" data-bud-act="group-new">＋ Crear grupo</button>':''}</div>`;
+  const g=budGroup(), C=budCalc(), me=budMe(), mine=C.per[me];
+  const chips=(b.groups.length>1||admin) ? `<div class="bud-chips">${b.groups.map(x=>`<button type="button" class="bud-chip ${String(x.id)===String(b.groupId)?'on':''}" data-bud-act="group" data-id="${x.id}">${budEsc(x.nombre)}</button>`).join('')}${admin?'<button type="button" class="bud-chip add" data-bud-act="group-new">＋ Grupo</button>':''}</div>` : '';
+  const over=C.left<0;
+  const head=`<div class="card glass bud-head">
+    ${chips}
+    ${budCluster(C.codes,`<small>Disponible</small><b class="${over?'neg':''}">${budCompact(C.left)}</b>`)}
+    <h2 class="bud-gname">${budEsc(g.nombre)}</h2>
+    <div class="bud-meta">${C.codes.length} integrante${C.codes.length===1?'':'s'} · presupuesto del grupo</div>
+    <div class="bud-stats"><div><small>Presupuesto</small><b>${budMoney(C.budget)}</b></div><div><small>Gastado</small><b>${budMoney(C.spent)}</b></div><div><small>${over?'Te pasaste por':'Disponible'}</small><b class="${over?'neg':'pos'}">${budMoney(Math.abs(C.left))}</b></div></div>
+    <div class="bud-bar"><i class="${over?'neg':''}" style="width:${C.pct.toFixed(1)}%"></i></div>
+    ${mine?`<div class="bud-mine3"><div><small>Tu presupuesto</small><b>${budMoney(mine.asignado)}</b></div><div><small>Has gastado</small><b>${budMoney(mine.gastado)}</b></div><div><small>Te queda</small><b class="${mine.asignado-mine.gastado<0?'neg':'pos'}">${budMoney(mine.asignado-mine.gastado)}</b></div></div>`:''}
+    <div class="bud-actions"><button type="button" class="btn block" data-bud-act="add">＋ Registrar gasto</button>
+      ${admin?`<button type="button" class="btn secondary" data-bud-act="group-edit">⚙️ Grupo</button><button type="button" class="btn secondary" data-bud-act="excel">📥 Excel</button>`:''}</div>
+  </div>`;
+  const tabs=`<div class="card glass"><div class="pill-toggle"><button type="button" data-bud-act="tab" data-tab="mov" class="${b.tab==='mov'?'active':''}">Movimientos</button><button type="button" data-bud-act="tab" data-tab="per" class="${b.tab==='per'?'active':''}">Por persona</button></div>
+    <div style="margin-top:12px">${b.tab==='mov'?budMovList():budPerList(C)}</div></div>`;
+  return head+budReqCard()+tabs;
+}
+function budReqCard(){
+  const b=budState(); if(!isAdmin()) return '';
+  const pend=(b.solic||[]).filter(r=>r.estado==='pendiente' && b.gastos.some(x=>String(x.id)===String(r.gasto_id)));
+  if(!pend.length) return '';
+  return `<div class="card glass bud-reqcard"><div class="bud-reqtitle">🔔 Piden eliminar un gasto <span class="bud-badge">${pend.length}</span></div>${pend.map(r=>{ const x=b.gastos.find(y=>String(y.id)===String(r.gasto_id)); return `<div class="bud-req"><div class="bud-req-main"><b>${budEsc(x.concepto)} · ${budMoney(x.monto)}</b><small>Lo pide ${budEsc(r.solicitado_nombre||budName(r.solicitado_por))}${r.motivo?' · “'+budEsc(r.motivo)+'”':''}</small></div><div class="bud-req-btns"><button type="button" class="btn secondary sm" data-bud-act="req-no" data-id="${r.id}">Rechazar</button><button type="button" class="btn danger sm" data-bud-act="req-ok" data-id="${r.id}" data-gid="${x.id}">Eliminar</button></div></div>`; }).join('')}</div>`;
+}
+function budMovList(){
+  const b=budState(); if(!b.gastos.length) return `<div class="empty">Todavía no hay gastos. Toca “Registrar gasto” para agregar el primero.</div>`;
+  let last='', out='';
+  b.gastos.forEach(x=>{
+    if(x.fecha!==last){ last=x.fecha; let lbl=x.fecha; try{ lbl=new Date(x.fecha+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'}); }catch(e){} out+=`<div class="bud-day">${budEsc(lbl)}</div>`; }
+    const cat=BUD_CATS.find(c=>c[0]===x.categoria)||BUD_CATS[BUD_CATS.length-1], sh=x.presupuesto_partes||[];
+    const modo=x.modo==='personal'?'Solo '+budFirst(budName(x.pagado_por)):x.modo==='igual'?`Entre ${sh.length}`:`Por valor · ${sh.length}`;
+    out+=`<button type="button" class="bud-mov ${x.anulado?'void':''}" data-bud-act="gasto" data-id="${x.id}"><span class="bud-mov-ico">${cat[1]}</span><div class="bud-mov-main"><b>${budEsc(x.concepto)}</b><small>${budEsc(budFirst(budName(x.pagado_por)))} · ${modo}${x.comprobante_path?' · 📎':''}${x.anulado?' · anulado':''}</small></div><div class="bud-mov-amt">${budMoney(x.monto)}</div></button>`;
+  });
+  return out;
+}
+function budPerList(C){
+  return C.codes.map(c=>{ const p=C.per[c], left=p.asignado-p.gastado, pct=p.asignado>0?Math.min(100,p.gastado/p.asignado*100):(p.gastado>0?100:0);
+    return `<div class="bud-person"><div class="bud-pav">${veriAvatarHTML(c,44)}</div><div class="bud-pinfo"><b>${budEsc(budName(c))}</b><div class="bud-bar sm"><i class="${left<0?'neg':''}" style="width:${pct.toFixed(1)}%"></i></div><small>Presupuesto ${budMoney(p.asignado)} · gastó ${budMoney(p.gastado)}${p.pago?` · adelantó ${budMoney(p.pago)}`:''}</small></div><div class="bud-pleft ${left<0?'neg':'pos'}">${budMoney(left)}</div></div>`; }).join('');
+}
+/* ---------- Hojas (modales) ---------- */
+function budOpenSheet(title, body){
+  budCloseSheet();
+  const ov=document.createElement('div'); ov.id='budOv'; ov.className='bud-ov';
+  ov.innerHTML=`<div class="bud-sheet" role="dialog"><div class="bud-sheet-h"><h3>${title}</h3><button type="button" class="bud-x" data-bud-act="close" aria-label="Cerrar">✕</button></div><div class="bud-sheet-b">${body}</div></div>`;
+  ov.addEventListener('click',e=>{ if(e.target===ov) budCloseSheet(); });
+  document.body.appendChild(ov); document.documentElement.classList.add('bud-lock');
+  return ov;
+}
+function budCloseSheet(){ const o=document.getElementById('budOv'); if(o) o.remove(); document.documentElement.classList.remove('bud-lock'); }
+function budBindMoney(inp,onChange){
+  inp.addEventListener('input',()=>{ const n=budParse(inp.value); inp.value=n?n.toLocaleString('es-CO'):''; if(onChange) onChange(n); });
+}
+/* ----- Grupo (crear / editar) ----- */
+function budOpenGroupForm(edit){
+  if(!isAdmin()) return;
+  const b=budState(), g=edit?budGroup():null; if(edit&&!g) return;
+  const sel=new Map(); if(g) b.members.forEach(m=>sel.set(m.codigo_persona,m.asignacion==null?'':String(Math.round(m.asignacion))));
+  const f={nombre:g?g.nombre:'',presupuesto:g?Number(g.presupuesto)||0:0,custom:g?b.members.some(m=>m.asignacion!=null):false,q:''};
+  const people=state.personas.filter(p=>p.codigo).slice().sort((a,c)=>String(a.nombre||a.codigo).localeCompare(String(c.nombre||c.codigo),'es'));
+  const ov=budOpenSheet(g?'Editar grupo':'Nuevo grupo',`
+    <label class="bud-l">Nombre del grupo</label><input id="bgNombre" placeholder="Ej: Viaje Cartagena, Equipo campo…" maxlength="60">
+    <label class="bud-l">Presupuesto general</label><input id="bgPres" inputmode="numeric" placeholder="$ 0">
+    <label class="bud-l">Integrantes <span id="bgCount" class="small-note"></span></label>
+    <input id="bgBuscar" placeholder="Buscar persona…" style="margin-bottom:8px">
+    <div id="bgPeople" class="bud-people"></div>
+    <label class="bud-check"><input type="checkbox" id="bgCustom"> Asignar un presupuesto distinto a cada persona (si no, se reparte en partes iguales)</label>
+    <button type="button" class="btn block" id="bgSave" style="margin-top:12px">${g?'Guardar cambios':'Crear grupo'}</button>
+    ${g?'<button type="button" class="btn danger block" id="bgArchive" style="margin-top:8px">Archivar grupo</button>':''}`);
+  const $=(id)=>ov.querySelector(id);
+  $('#bgNombre').value=f.nombre; if(f.presupuesto) $('#bgPres').value=f.presupuesto.toLocaleString('es-CO'); $('#bgCustom').checked=f.custom;
+  budBindMoney($('#bgPres'),n=>{ f.presupuesto=n; });
+  const paintPeople=()=>{
+    const q=normalize(f.q||'').toLowerCase();
+    $('#bgPeople').innerHTML=people.filter(p=>!q||String(p.nombre||p.codigo).toLowerCase().includes(q)||String(p.codigo).toLowerCase().includes(q)).map(p=>{
+      const on=sel.has(p.codigo);
+      return `<div class="bud-pp ${on?'on':''}" data-code="${budEsc(p.codigo)}"><div class="bud-pp-av">${veriAvatarHTML(p.codigo,38)}</div><div class="bud-pp-n"><b>${budEsc(p.nombre||p.codigo)}</b><small>${budEsc(p.rol||'')}</small></div>${on&&$('#bgCustom').checked?`<input class="bud-pp-amt" inputmode="numeric" placeholder="auto" value="${budEsc(sel.get(p.codigo)?Number(sel.get(p.codigo)).toLocaleString('es-CO'):'')}">`:''}<span class="bud-pp-ck">${on?'✓':''}</span></div>`;
+    }).join('')||'<div class="empty">Sin resultados</div>';
+    $('#bgCount').textContent='· '+sel.size+' seleccionado'+(sel.size===1?'':'s');
+  };
+  paintPeople();
+  $('#bgBuscar').addEventListener('input',e=>{ f.q=e.target.value; paintPeople(); });
+  $('#bgCustom').addEventListener('change',paintPeople);
+  $('#bgPeople').addEventListener('click',e=>{
+    if(e.target.closest('.bud-pp-amt')) return;
+    const row=e.target.closest('.bud-pp'); if(!row) return; const c=row.dataset.code;
+    if(sel.has(c)) sel.delete(c); else sel.set(c,''); paintPeople();
+  });
+  $('#bgPeople').addEventListener('input',e=>{
+    const inp=e.target.closest('.bud-pp-amt'); if(!inp) return; const c=inp.closest('.bud-pp').dataset.code;
+    const n=budParse(inp.value); inp.value=n?n.toLocaleString('es-CO'):''; sel.set(c,n?String(n):'');
+  });
+  $('#bgSave').onclick=async()=>{
+    const nombre=$('#bgNombre').value.trim();
+    if(!nombre){ toast('Ponle un nombre al grupo.'); return; }
+    if(!sel.size){ toast('Selecciona al menos un integrante.'); return; }
+    const btn=$('#bgSave'); btn.disabled=true; btn.textContent='Guardando…';
+    try{
+      let gid=g&&g.id;
+      if(g) await sb(`${BUD_P}grupos?id=eq.${g.id}`,{method:'PATCH',body:JSON.stringify({nombre,presupuesto:f.presupuesto}),headers:{'Prefer':'return=minimal'},silent:true});
+      else{ const r=await sb(`${BUD_P}grupos`,{method:'POST',body:JSON.stringify([{nombre,presupuesto:f.presupuesto,creado_por:budMe(),creado_en:Date.now(),activo:true}]),headers:{'Prefer':'return=representation'},silent:true}); gid=r&&r[0]&&r[0].id; }
+      if(!gid) throw new Error('sin id');
+      const existing=g?b.members.map(m=>m.codigo_persona):[], toDel=existing.filter(c=>!sel.has(c));
+      if(toDel.length) await sb(`${BUD_P}miembros?grupo_id=eq.${gid}&codigo_persona=in.(${toDel.map(c=>budEnc('"'+c+'"')).join(',')})`,{method:'DELETE',headers:{'Prefer':'return=minimal'},silent:true});
+      const useCustom=$('#bgCustom').checked;
+      await sb(`${BUD_P}miembros`,{method:'POST',body:JSON.stringify([...sel.entries()].map(([c,v])=>({grupo_id:gid,codigo_persona:c,asignacion:(useCustom&&v!=='')?Number(v):null}))),headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},silent:true});
+      b.groupId=String(gid); budCloseSheet(); toast(g?'✓ Grupo actualizado':'✓ Grupo creado'); await budLoad(true);
+    }catch(err){ console.error(err); toast('No se pudo guardar el grupo.'); btn.disabled=false; btn.textContent=g?'Guardar cambios':'Crear grupo'; }
+  };
+  const ar=$('#bgArchive'); if(ar) ar.onclick=async()=>{
+    if(!confirm('¿Archivar este grupo? Dejará de aparecer, pero sus gastos se conservan.')) return;
+    try{ await sb(`${BUD_P}grupos?id=eq.${g.id}`,{method:'PATCH',body:JSON.stringify({activo:false}),headers:{'Prefer':'return=minimal'},silent:true}); budCloseSheet(); toast('Grupo archivado'); await budLoad(true); }catch(e){ toast('No se pudo archivar.'); }
+  };
+}
+/* ----- Registrar gasto ----- */
+function budShares(f){
+  const total=Math.round(f.monto||0);
+  if(f.modo==='personal') return [{code:f.payer,pct:100,monto:total}];
+  if(f.modo==='igual'){
+    const arr=[...f.part]; if(!arr.length) return [];
+    const base=Math.floor(total/arr.length), rem=total-base*arr.length;
+    return arr.map((c,i)=>({code:c,pct:+(100/arr.length).toFixed(4),monto:base+(i<rem?1:0)}));
+  }
+  return Object.entries(f.vals).map(([c,v])=>({code:c,monto:Math.round(Number(v)||0)})).filter(x=>x.monto>0).map(x=>({...x,pct:total?+(x.monto/total*100).toFixed(4):0}));
+}
+function budOpenExpenseForm(){
+  const b=budState(), g=budGroup(); if(!g) return;
+  const me=budMe(), members=b.members.map(m=>m.codigo_persona), admin=isAdmin();
+  if(!admin && !members.includes(me)){ toast('Solo los integrantes del grupo pueden registrar gastos.'); return; }
+  const f={concepto:'',monto:0,fecha:todayKey(),cat:'otros',payer:members.includes(me)?me:members[0],modo:'igual',part:new Set(members),vals:{},file:null,fileUrl:'',caja:true,proveedor:'',notas:''};
+  const ov=budOpenSheet('Registrar gasto',`
+    <label class="bud-l" for="bfConcepto">¿En qué se gastó?</label><input id="bfConcepto" placeholder="Ej: Almuerzo del equipo, peajes, hotel" maxlength="120" autocomplete="off">
+    <label class="bud-l" for="bfMonto">Valor total</label><input id="bfMonto" class="bud-big" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+    <div class="bud-row2"><div><label class="bud-l" for="bfFecha">Fecha</label><input id="bfFecha" type="date"></div>
+      ${admin?`<div><label class="bud-l" for="bfPayer">Quién pagó</label><select id="bfPayer">${members.map(c=>`<option value="${budEsc(c)}">${budEsc(budName(c))}</option>`).join('')}</select></div>`:''}</div>
+    <div class="bud-l">Categoría</div><div class="bud-cats" id="bfCats">${BUD_CATS.map(c=>`<button type="button" class="bud-cat ${c[0]===f.cat?'on':''}" data-cat="${c[0]}">${c[1]} ${c[2]}</button>`).join('')}</div>
+    <div class="bud-l">¿Cómo se reparte?</div>
+    <div class="bud-seg" id="bfSeg"><button type="button" data-modo="igual" class="on">Iguales</button><button type="button" data-modo="monto">Por valor</button><button type="button" data-modo="personal">Solo yo</button></div>
+    <div id="budSplit"></div>
+    <div class="bud-l">Comprobante</div><div id="budRcpt"></div>
+    <label class="bud-l" for="bfNotas">Notas <span class="small-note">(opcional)</span></label><textarea id="bfNotas" rows="2" maxlength="300" placeholder="Algún detalle que ayude a entender el gasto"></textarea>
+    <button type="button" class="btn block bud-save" id="bfSave">Guardar gasto</button>`);
+  const $=(id)=>ov.querySelector(id);
+  $('#bfFecha').value=f.fecha; if(admin) $('#bfPayer').value=f.payer;
+  budBindMoney($('#bfMonto'),n=>{ f.monto=n; paintAmounts(); });
+  $('#bfConcepto').addEventListener('input',e=>{ f.concepto=e.target.value; });
+  $('#bfFecha').addEventListener('change',e=>{ f.fecha=e.target.value||todayKey(); });
+  $('#bfNotas').addEventListener('input',e=>{ f.notas=e.target.value; });
+  if(admin) $('#bfPayer').addEventListener('change',e=>{ f.payer=e.target.value; if(f.modo==='personal') paintSplit(); });
+  $('#bfCats').addEventListener('click',e=>{ const bt=e.target.closest('[data-cat]'); if(!bt) return; f.cat=bt.dataset.cat; $('#bfCats').querySelectorAll('.bud-cat').forEach(x=>x.classList.toggle('on',x===bt)); });
+  $('#bfSeg').addEventListener('click',e=>{ const bt=e.target.closest('[data-modo]'); if(!bt) return; f.modo=bt.dataset.modo; $('#bfSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===bt)); paintSplit(); });
+  const sumVals=()=>Object.values(f.vals).reduce((a,v)=>a+(Number(v)||0),0);
+  function paintAmounts(){
+    const each=$('#budEach'); if(each){ const n=f.part.size; each.textContent=n&&f.monto?`${budMoney(Math.floor(f.monto/n))} por persona`:''; }
+    const sum=$('#budValTotal'); if(sum){
+      const T=Math.round(f.monto||0), S=sumVals(), d=T-S;
+      if(!T){ sum.className='bud-valsum'; sum.textContent='Primero escribe el valor total.'; }
+      else if(d===0){ sum.className='bud-valsum ok'; sum.textContent='✓ Todo repartido · '+budMoney(T); }
+      else if(d>0){ sum.className='bud-valsum warn'; sum.textContent=`Repartido ${budMoney(S)} de ${budMoney(T)} · falta ${budMoney(d)}`; }
+      else { sum.className='bud-valsum bad'; sum.textContent=`Te pasaste por ${budMoney(-d)} (${budMoney(S)} de ${budMoney(T)})`; }
+    }
+  }
+  function paintSplit(){
+    const el=$('#budSplit');
+    if(f.modo==='personal'){ el.innerHTML=`<div class="bud-note">Es solo de <b>${budEsc(budName(f.payer))}</b>. Se descuenta de sus viáticos.</div>`; return; }
+    if(f.modo==='igual'){
+      el.innerHTML=`<div class="bud-note">Todos los marcados pagan la misma parte. <b id="budEach"></b></div><div class="bud-chips2">${members.map(c=>`<button type="button" class="bud-pchip ${f.part.has(c)?'on':''}" data-code="${budEsc(c)}"><span class="bud-pchip-av">${veriAvatarHTML(c,26)}</span>${budEsc(budFirst(budName(c)))}</button>`).join('')}</div>`;
+      el.querySelectorAll('.bud-pchip').forEach(bt=>bt.onclick=()=>{ const c=bt.dataset.code; if(f.part.has(c)) f.part.delete(c); else f.part.add(c); bt.classList.toggle('on',f.part.has(c)); paintAmounts(); });
+    } else {
+      el.innerHTML=`<div class="bud-note">Escribe cuánto le toca a cada persona. La suma debe dar el valor total.</div>${members.map(c=>`<div class="bud-prow"><span class="bud-pchip-av">${veriAvatarHTML(c,34)}</span><b>${budEsc(budName(c))}</b><input class="bud-vin" inputmode="numeric" placeholder="$ 0" data-code="${budEsc(c)}" value="${f.vals[c]?Number(f.vals[c]).toLocaleString('es-CO'):''}" autocomplete="off"></div>`).join('')}<div id="budValTotal" class="bud-valsum"></div><button type="button" class="btn ghost sm" id="budFill">Repartir lo que falta en partes iguales</button>`;
+      el.querySelectorAll('.bud-vin').forEach(inp=>inp.addEventListener('input',()=>{ const n=budParse(inp.value); inp.value=n?n.toLocaleString('es-CO'):''; f.vals[inp.dataset.code]=n; paintAmounts(); }));
+      $('#budFill').onclick=()=>{
+        const T=Math.round(f.monto||0); if(!T){ toast('Primero escribe el valor total.'); return; }
+        const empty=members.filter(c=>!(f.vals[c]>0)), rest=T-sumVals();
+        if(!empty.length||rest<=0){ toast(rest<=0?'Ya está todo repartido.':'Todos tienen un valor; ajusta alguno.'); return; }
+        const base=Math.floor(rest/empty.length); let rem=rest-base*empty.length;
+        empty.forEach((c,i)=>{ f.vals[c]=base+(i<rem?1:0); }); paintSplit();
+      };
+    }
+    paintAmounts();
+  }
+  function paintRcpt(){
+    const el=$('#budRcpt');
+    if(f.file){
+      el.innerHTML=`<div class="bud-rc"><img src="${f.fileUrl}" alt="Comprobante"><div><b>${budEsc(f.file.name||'Comprobante')}</b><small>${Math.round((f.file.size||0)/1024)} KB · calidad original</small><button type="button" class="btn ghost sm" id="bfRcDel">Quitar</button></div></div>`;
+      $('#bfRcDel').onclick=()=>{ try{URL.revokeObjectURL(f.fileUrl);}catch(e){} f.file=null; f.fileUrl=''; paintRcpt(); };
+      return;
+    }
+    el.innerHTML=`<div class="bud-rc-btns"><button type="button" class="rep-cap-bigbtn primary row" id="bfTake"><span class="ico">📷</span><span class="lbl">Tomar foto</span></button><button type="button" class="rep-cap-bigbtn row" id="bfPick"><span class="ico">🖼️</span><span class="lbl">Adjuntar</span></button></div>
+      <input id="bfCam" type="file" accept="image/*" capture="environment" class="rep-cap-hidden" tabindex="-1"><input id="bfFile" type="file" accept="image/*,application/pdf" class="rep-cap-hidden" tabindex="-1">
+      <label class="bud-check"><input type="checkbox" id="bfCaja" ${f.caja?'checked':''}><span>Si no hay factura, crear un comprobante de <b>caja menor</b></span></label>
+      <div id="bfProvWrap" style="${f.caja?'':'display:none'}"><input id="bfProv" placeholder="Pagado a (opcional)" value="${budEsc(f.proveedor)}" maxlength="80" autocomplete="off"></div>`;
+    $('#bfTake').onclick=()=>$('#bfCam').click(); $('#bfPick').onclick=()=>$('#bfFile').click();
+    const got=async(inp)=>{ const file=inp.files&&inp.files[0]; if(!file) return; const st=(typeof veriStableFile==='function')?await veriStableFile(file):file; f.file=st; f.fileUrl=URL.createObjectURL(st); paintRcpt(); };
+    $('#bfCam').onchange=()=>got($('#bfCam')); $('#bfFile').onchange=()=>got($('#bfFile'));
+    $('#bfCaja').onchange=(e)=>{ f.caja=e.target.checked; $('#bfProvWrap').style.display=f.caja?'':'none'; };
+    $('#bfProv').addEventListener('input',e=>{ f.proveedor=e.target.value; });
+  }
+  paintSplit(); paintRcpt();
+  $('#bfSave').onclick=()=>budSaveExpense(f,g,$('#bfSave'));
+}
+async function budSaveExpense(f,g,btn){
+  const b=budState(); f.concepto=(f.concepto||'').trim();
+  if(!f.concepto){ toast('Escribe el concepto del gasto.'); return; }
+  if(!(f.monto>0)){ toast('Escribe el valor del gasto.'); return; }
+  const shares=budShares(f);
+  if(!shares.length){ toast('Marca al menos una persona para repartir.'); return; }
+  if(f.modo==='monto'){ const S=Object.values(f.vals).reduce((a,v)=>a+(Number(v)||0),0), T=Math.round(f.monto); if(S!==T){ toast(S<T?`Falta repartir ${budMoney(T-S)}.`:`Te pasaste por ${budMoney(S-T)}.`); return; } }
+  btn.disabled=true; const label=btn.textContent; btn.textContent='Guardando…';
+  const useCaja=!f.file && f.caja;
+  let gasto=null;
+  try{
+    let consecutivo=null;
+    for(let attempt=0; attempt<5; attempt++){
+      if(useCaja){ const r=await sb(`${BUD_P}gastos?grupo_id=eq.${g.id}&consecutivo=not.is.null&order=consecutivo.desc&limit=1&select=consecutivo`,{silent:true}); consecutivo=((r&&r[0]&&Number(r[0].consecutivo))||0)+1; }
+      try{
+        const res=await sb(`${BUD_P}gastos`,{method:'POST',body:JSON.stringify([{grupo_id:g.id,concepto:f.concepto,monto:Math.round(f.monto),fecha:f.fecha,categoria:f.cat,pagado_por:f.payer,modo:f.modo,comprobante_tipo:f.file?'recibo':(useCaja?'caja_menor':'ninguno'),consecutivo,proveedor:useCaja?(f.proveedor||null):null,notas:f.notas||null,creado_por:budMe(),creado_en:Date.now(),anulado:false}]),headers:{'Prefer':'return=representation'},silent:true});
+        gasto=res&&res[0]; if(gasto) break;
+      }catch(e){ if(!useCaja||attempt===4) throw e; }   // choque de consecutivo: se recalcula
+    }
+    if(!gasto) throw new Error('sin gasto');
+    try{ await sb(`${BUD_P}partes`,{method:'POST',body:JSON.stringify(shares.map(x=>({gasto_id:gasto.id,codigo_persona:x.code,porcentaje:x.pct,monto:x.monto}))),headers:{'Prefer':'return=minimal'},silent:true}); }
+    catch(e){ await sb(`${BUD_P}gastos?id=eq.${gasto.id}`,{method:'DELETE',headers:{'Prefer':'return=minimal'},silent:true}).catch(()=>{}); throw e; }
+    let warn='';
+    try{
+      let blob=null, name='';
+      if(f.file){ blob=f.file; name=(f.file.name||'comprobante').replace(/[^a-zA-Z0-9._-]/g,'_'); }
+      else if(useCaja){ blob=await budVoucherBlob(g,gasto,shares,f.proveedor); name=`caja_menor_${String(consecutivo).padStart(4,'0')}.png`; }
+      if(blob){
+        const path=`${g.id}/${gasto.id}/${Date.now()}-${name}`;
+        const {error}=await veriStorageClient().storage.from(BUD_BUCKET).upload(path,blob,{upsert:false,contentType:blob.type||'image/png',cacheControl:'3600'});
+        if(error) throw error;
+        await sb(`${BUD_P}gastos?id=eq.${gasto.id}`,{method:'PATCH',body:JSON.stringify({comprobante_path:path}),headers:{'Prefer':'return=minimal'},silent:true});
+      }
+    }catch(e){ console.error(e); warn=' (no se pudo subir el comprobante; elimina el gasto y regístralo de nuevo)'; }
+    budCloseSheet();
+    toast((useCaja?`✓ Guardado · caja menor N° ${String(consecutivo).padStart(4,'0')}`:'✓ Gasto guardado')+warn);
+    await budLoad(true);
+  }catch(err){ console.error(err); toast('No se pudo guardar el gasto. Revisa tu conexión.'); btn.disabled=false; btn.textContent=label; }
+}
+/* ----- Detalle de un gasto ----- */
+function budOpenGasto(id){
+  const b=budState(), x=b.gastos.find(y=>String(y.id)===String(id)); if(!x) return;
+  const me=budMe(), admin=isAdmin(), own=x.creado_por===me;
+  const cat=BUD_CATS.find(c=>c[0]===x.categoria)||BUD_CATS[BUD_CATS.length-1], sh=(x.presupuesto_partes||[]).slice().sort((p,q)=>q.monto-p.monto);
+  const tipo={recibo:'Recibo o factura',caja_menor:`Caja menor N° ${String(x.consecutivo||0).padStart(4,'0')}`,ninguno:'Sin comprobante'}[x.comprobante_tipo]||'Sin comprobante';
+  const reqs=(b.solic||[]).filter(r=>String(r.gasto_id)===String(x.id)), pend=reqs.find(r=>r.estado==='pendiente'), rej=reqs.find(r=>r.estado==='rechazada'&&r.solicitado_por===me);
+  let actions='';
+  if(admin&&pend) actions+=`<div class="bud-note">🔔 <b>${budEsc(pend.solicitado_nombre||budName(pend.solicitado_por))}</b> pide eliminar este gasto${pend.motivo?': “'+budEsc(pend.motivo)+'”':''}.</div><div class="bud-two"><button type="button" class="btn secondary" id="bdRej">Rechazar</button><button type="button" class="btn danger" id="bdApprove">Aprobar y eliminar</button></div>`;
+  else if(admin||own) actions+=`<button type="button" class="btn danger block" style="margin-top:14px" id="bdDel">🗑️ Eliminar gasto</button>${own&&!admin?'<p class="small-note" style="margin:6px 2px 0">Lo registraste tú: si fue un error, puedes eliminarlo.</p>':''}`;
+  else if(pend) actions+=`<div class="bud-note">⏳ Ya pediste eliminarlo. Falta la autorización del administrador.</div>`;
+  else actions+=`${rej?'<div class="bud-note">El administrador rechazó tu última solicitud.</div>':''}<button type="button" class="btn secondary block" style="margin-top:14px" id="bdReq">Pedir autorización para eliminar</button><p class="small-note" style="margin:6px 2px 0">Solo quien lo registró o el administrador pueden eliminarlo directamente.</p>`;
+  if(admin&&x.anulado) actions+=`<button type="button" class="btn secondary block" style="margin-top:8px" id="bdRestore">Restaurar gasto anulado</button>`;
+  const ov=budOpenSheet('Detalle del gasto',`
+    <div class="bud-det-top"><span class="bud-mov-ico big">${cat[1]}</span><div><b class="bud-det-title">${budEsc(x.concepto)}</b><small class="small-note" style="display:block">${budEsc(cat[2])} · ${budEsc(x.fecha)}</small></div><div class="bud-det-amt">${budMoney(x.monto)}</div></div>
+    ${x.anulado?'<div class="bud-note" style="border-color:#ff453a">Este gasto está <b>anulado</b> y no cuenta en los totales.</div>':''}
+    <div class="bud-det-row"><span>Pagó</span><b>${budEsc(budName(x.pagado_por))}</b></div>
+    <div class="bud-det-row"><span>Reparto</span><b>${budModoTxt(x)}</b></div>
+    <div class="bud-det-row"><span>Comprobante</span><b>${budEsc(tipo)}</b></div>
+    ${x.proveedor?`<div class="bud-det-row"><span>Pagado a</span><b>${budEsc(x.proveedor)}</b></div>`:''}
+    ${x.notas?`<div class="bud-det-row"><span>Notas</span><b>${budEsc(x.notas)}</b></div>`:''}
+    <div class="bud-l">Cuánto le toca a cada uno</div>
+    ${sh.map(p=>`<div class="bud-prt"><span class="bud-pchip-av">${veriAvatarHTML(p.codigo_persona,32)}</span><b>${budEsc(budName(p.codigo_persona))}</b><span class="bud-prt-amt">${budMoney(p.monto)}</span></div>`).join('')}
+    ${x.comprobante_path?`<button type="button" class="btn secondary block" style="margin-top:12px" data-bud-act="receipt" data-path="${budEsc(x.comprobante_path)}">📎 Ver comprobante</button>`:''}
+    ${actions}`);
+  const q=(id)=>ov.querySelector(id);
+  if(q('#bdDel')) q('#bdDel').onclick=()=>{ if(confirm('¿Eliminar este gasto? Se borra para siempre, junto con su comprobante.')) budDeleteGasto(x); };
+  if(q('#bdApprove')) q('#bdApprove').onclick=()=>{ if(confirm('¿Aprobar y eliminar este gasto?')) budDeleteGasto(x); };
+  if(q('#bdRej')) q('#bdRej').onclick=()=>budResolveRequest(pend.id,false);
+  if(q('#bdRestore')) q('#bdRestore').onclick=async()=>{ try{ await sb(`${BUD_P}gastos?id=eq.${x.id}`,{method:'PATCH',body:JSON.stringify({anulado:false}),headers:{'Prefer':'return=minimal'},silent:true}); budCloseSheet(); toast('Gasto restaurado'); await budLoad(true); }catch(e){ toast('No se pudo restaurar.'); } };
+  if(q('#bdReq')) q('#bdReq').onclick=async()=>{
+    const motivo=prompt('¿Por qué hay que eliminarlo? (opcional)'); if(motivo===null) return;
+    try{ await sb(`${BUD_P}solicitudes`,{method:'POST',body:JSON.stringify([{gasto_id:x.id,grupo_id:x.grupo_id,solicitado_por:me,solicitado_nombre:budName(me),motivo:(motivo||'').trim()||null,estado:'pendiente',creado_en:Date.now()}]),headers:{'Prefer':'return=minimal'},silent:true}); budCloseSheet(); toast('✓ Solicitud enviada al administrador'); await budLoad(true); }
+    catch(e){ console.error(e); toast('No se pudo enviar la solicitud. ¿Ya ejecutaste de nuevo presupuesto.sql?'); }
+  };
+}
+async function budDeleteGasto(x){
+  try{
+    if(x.comprobante_path){ try{ await veriStorageClient().storage.from(BUD_BUCKET).remove([x.comprobante_path]); }catch(e){} }
+    await sb(`${BUD_P}gastos?id=eq.${x.id}`,{method:'DELETE',headers:{'Prefer':'return=minimal'},silent:true});
+    budCloseSheet(); toast('Gasto eliminado'); await budLoad(true);
+  }catch(e){ console.error(e); toast('No se pudo eliminar el gasto.'); }
+}
+async function budResolveRequest(id,ok){
+  const b=budState(), r=(b.solic||[]).find(y=>String(y.id)===String(id)); if(!r) return;
+  try{
+    if(ok){ const x=b.gastos.find(y=>String(y.id)===String(r.gasto_id)); if(x) await budDeleteGasto(x); }
+    else{ await sb(`${BUD_P}solicitudes?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({estado:'rechazada',resuelto_por:budMe(),resuelto_en:Date.now()}),headers:{'Prefer':'return=minimal'},silent:true}); budCloseSheet(); toast('Solicitud rechazada'); await budLoad(true); }
+  }catch(e){ toast('No se pudo responder la solicitud.'); }
+}
+/* ----- Mi presupuesto (en el perfil de cada persona) ----- */
+function budMineHTML(){
+  const rows=budState().mine||[]; if(!rows.length) return '';
+  return `<div class="settings-group glass bud-mine-card"><div class="settings-group-title">💼 Mi presupuesto</div>${rows.map(r=>{ const left=r.asignado-r.gastado, pct=r.asignado>0?Math.min(100,r.gastado/r.asignado*100):(r.gastado>0?100:0);
+    return `<button type="button" class="bud-mine-row" data-bud-act="goto" data-id="${r.g.id}"><div class="bud-mine-top"><b>${budEsc(r.g.nombre)}</b><span class="bud-go">Ver ›</span></div><div class="bud-bar sm"><i class="${left<0?'neg':''}" style="width:${pct.toFixed(1)}%"></i></div><div class="bud-mine3"><div><small>Presupuesto</small><b>${budMoney(r.asignado)}</b></div><div><small>Has gastado</small><b>${budMoney(r.gastado)}</b></div><div><small>Te queda</small><b class="${left<0?'neg':'pos'}">${budMoney(left)}</b></div></div></button>`; }).join('')}</div>`;
+}
+async function budLoadMyBudgets(){
+  const b=budState(), me=budMe(); if(!me) return;
+  const paint=()=>{ const w=document.getElementById('budMineWrap'); if(w) w.innerHTML=budMineHTML(); };
+  if(b.mineAt && Date.now()-b.mineAt<30000){ paint(); return; }
+  if(b.mineBusy) return; b.mineBusy=true;
+  try{
+    const mem=await sb(`${BUD_P}miembros?codigo_persona=eq.${budEnc(me)}&select=grupo_id`,{silent:true});
+    const ids=(mem||[]).map(m=>m.grupo_id);
+    if(!ids.length){ b.mine=[]; b.mineAt=Date.now(); return; }
+    const [groups,allMem,gastos]=await Promise.all([
+      sb(`${BUD_P}grupos?id=in.(${ids.join(',')})&activo=eq.true&order=creado_en.asc&select=*`,{silent:true}),
+      sb(`${BUD_P}miembros?grupo_id=in.(${ids.join(',')})&select=*`,{silent:true}),
+      sb(`${BUD_P}gastos?grupo_id=in.(${ids.join(',')})&anulado=eq.false&select=*,presupuesto_partes(*)`,{silent:true})
+    ]);
+    b.mine=(groups||[]).map(g=>{ const C=budCalcFor(g,(allMem||[]).filter(m=>String(m.grupo_id)===String(g.id)),(gastos||[]).filter(x=>String(x.grupo_id)===String(g.id))); const p=C.per[me]||{asignado:0,gastado:0}; return {g,asignado:p.asignado,gastado:p.gastado}; });
+    b.mineAt=Date.now(); b.memberOf=Math.max(b.memberOf,b.mine.length);
+  }catch(e){ /* sin tablas o sin red: no se muestra la tarjeta */ }
+  finally{ b.mineBusy=false; paint(); }
+}
+async function budReceiptUrl(path,secs){
+  const b=budState(), key=path+'|'+(secs||3600), c=b.urls[key]; if(c && c.exp>Date.now()) return c.url;
+  const {data,error}=await veriStorageClient().storage.from(BUD_BUCKET).createSignedUrl(path,secs||3600);
+  if(error||!data) throw error||new Error('sin url');
+  b.urls[key]={url:data.signedUrl,exp:Date.now()+((secs||3600)-120)*1000}; return data.signedUrl;
+}
+async function budViewReceipt(path){
+  try{
+    const url=await budReceiptUrl(path), isPdf=/\.pdf(\?|$)/i.test(path);
+    const ov=budOpenSheet('Comprobante',`<div class="bud-view">${isPdf?`<iframe src="${url}" title="Comprobante"></iframe>`:`<img src="${url}" alt="Comprobante">`}</div><button type="button" class="btn block" id="bvDl" style="margin-top:10px">⬇️ Descargar</button>`);
+    ov.querySelector('#bvDl').onclick=async()=>{
+      try{ const r=await fetch(url), bl=await r.blob(), a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=path.split('/').pop(); document.body.appendChild(a); a.click(); setTimeout(()=>{ a.remove(); URL.revokeObjectURL(a.href); },3000); }
+      catch(e){ window.open(url,'_blank'); }
+    };
+  }catch(e){ toast('No se pudo abrir el comprobante.'); }
+}
+/* ----- Comprobante de caja menor (imagen PNG generada en el celular) ----- */
+function budNumWords(n){
+  n=Math.floor(Number(n)||0); if(n<=0) return 'cero';
+  const U=['','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve','diez','once','doce','trece','catorce','quince','dieciséis','diecisiete','dieciocho','diecinueve','veinte','veintiuno','veintidós','veintitrés','veinticuatro','veinticinco','veintiséis','veintisiete','veintiocho','veintinueve'];
+  const D=['','','','treinta','cuarenta','cincuenta','sesenta','setenta','ochenta','noventa'];
+  const C=['','ciento','doscientos','trescientos','cuatrocientos','quinientos','seiscientos','setecientos','ochocientos','novecientos'];
+  const lt=(x)=>{ if(x===100) return 'cien'; let o=''; const c=Math.floor(x/100), r=x%100; if(c) o+=C[c]+(r?' ':''); if(r<30) o+=U[r]; else{ const d=Math.floor(r/10), u=r%10; o+=D[d]+(u?' y '+U[u]:''); } return o; };
+  const pre=(x)=>lt(x).replace(/veintiuno$/,'veintiún').replace(/uno$/,'un');
+  const mm=Math.floor(n/1e6), mil=Math.floor((n%1e6)/1000), un=n%1000, p=[];
+  if(mm) p.push(mm===1?'un millón':pre(mm)+' millones');
+  if(mil) p.push(mil===1?'mil':pre(mil)+' mil');
+  if(un) p.push(lt(un));
+  return p.join(' ');
+}
+function budVoucherBlob(g,gasto,shares,proveedor){
+  return new Promise((resolve,reject)=>{
+    try{
+      const W=1000,H=1400, cv=document.createElement('canvas'); cv.width=W; cv.height=H; const x=cv.getContext('2d');
+      const ink='#111827', sub='#4b5563', line='#d1d5db';
+      x.fillStyle='#ffffff'; x.fillRect(0,0,W,H);
+      x.fillStyle='#0a84ff'; x.fillRect(0,0,W,170);
+      x.fillStyle='#fff'; x.font='700 40px Helvetica, Arial, sans-serif'; x.textBaseline='alphabetic';
+      x.fillText('COMPROBANTE DE CAJA MENOR',50,78);
+      x.font='400 28px Helvetica, Arial, sans-serif'; x.fillText(String(g.nombre||'').slice(0,46),50,126);
+      const no='N° '+String(gasto.consecutivo||0).padStart(4,'0'); x.font='700 44px Helvetica, Arial, sans-serif'; x.textAlign='right'; x.fillText(no,W-50,78); x.textAlign='left';
+      let y=240;
+      const row=(k,v,big)=>{ x.fillStyle=sub; x.font='600 24px Helvetica, Arial, sans-serif'; x.fillText(k.toUpperCase(),50,y); x.fillStyle=ink; x.font=(big?'700 54px':'500 32px')+' Helvetica, Arial, sans-serif';
+        const words=String(v).split(' '); let ln='', yy=y+(big?64:40); const max=W-100;
+        words.forEach(w=>{ const t=ln?ln+' '+w:w; if(x.measureText(t).width>max && ln){ x.fillText(ln,50,yy); ln=w; yy+=40; } else ln=t; }); x.fillText(ln,50,yy);
+        y=yy+34; x.strokeStyle=line; x.lineWidth=2; x.beginPath(); x.moveTo(50,y-12); x.lineTo(W-50,y-12); x.stroke(); y+=24; };
+      row('Fecha',gasto.fecha);
+      row('Pagado a',proveedor&&proveedor.trim()?proveedor.trim():'Sin factura (proveedor no identificado)');
+      row('Concepto',gasto.concepto);
+      row('Valor',budMoney(gasto.monto)+' COP',true);
+      row('Son',budNumWords(gasto.monto)+' pesos m/cte');
+      const cat=BUD_CATS.find(c=>c[0]===gasto.categoria); row('Categoría',cat?cat[2]:'Otros');
+      row('Pagó',budName(gasto.pagado_por));
+      row('Reparto',shares.map(s=>`${budFirst(budName(s.code))} ${budMoney(s.monto)}`).join(' · '));
+      const sy=Math.max(y+60,1150);
+      x.strokeStyle=ink; x.lineWidth=2;
+      x.beginPath(); x.moveTo(70,sy); x.lineTo(450,sy); x.moveTo(550,sy); x.lineTo(930,sy); x.stroke();
+      x.fillStyle=sub; x.font='500 24px Helvetica, Arial, sans-serif'; x.textAlign='center'; x.fillText('Recibí conforme',260,sy+34); x.fillText('Aprobó',740,sy+34);
+      x.font='400 20px Helvetica, Arial, sans-serif'; x.fillText('Generado con Veri · soporte interno de caja menor (no sustituye factura electrónica cuando sea exigible)',W/2,H-40);
+      cv.toBlob(b=>b?resolve(b):reject(new Error('blob')),'image/png');
+    }catch(e){ reject(e); }
+  });
+}
+/* ----- Excel del administrador ----- */
+async function budExportExcel(){
+  if(!isAdmin()) return;
+  const b=budState(), g=budGroup(); if(!g) return;
+  try{ await ensureXLSX(); }catch(e){ toast(t('errorImport')); return; }
+  toast('Preparando Excel…');
+  try{ await budLoadGroup(); }catch(e){}
+  const C=budCalc(), gastos=b.gastos.slice().sort((p,q)=>String(p.fecha).localeCompare(String(q.fecha))||p.creado_en-q.creado_en);
+  const urls={};
+  await Promise.all(gastos.filter(x=>x.comprobante_path).map(async x=>{ try{ urls[x.id]=await budReceiptUrl(x.comprobante_path,60*60*24*90); }catch(e){} }));
+  const MONEY='"$"#,##0', wb=XLSX.utils.book_new(), used=new Set();
+  const sheetName=(n)=>{ let base=String(n||'Hoja').replace(/[\[\]\:\*\?\/\\]/g,' ').trim().slice(0,28)||'Hoja', nm=base, i=2; while(used.has(nm.toLowerCase())){ nm=base.slice(0,26)+' '+i++; } used.add(nm.toLowerCase()); return nm; };
+  const money=(ws,cols,from)=>{ const rg=XLSX.utils.decode_range(ws['!ref']); for(let r=from;r<=rg.e.r;r++) cols.forEach(c=>{ const a=XLSX.utils.encode_cell({r,c}); if(ws[a]&&typeof ws[a].v==='number') ws[a].z=MONEY; }); };
+  const link=(ws,r,c,url,txt)=>{ if(!url) return; ws[XLSX.utils.encode_cell({r,c})]={t:'s',v:txt||'Ver comprobante',l:{Target:url}}; };
+  const modoTxt=budModoTxt;
+  const tipoTxt=(x)=>x.comprobante_tipo==='caja_menor'?`Caja menor N° ${String(x.consecutivo||0).padStart(4,'0')}`:x.comprobante_tipo==='recibo'?'Recibo / factura':'Sin comprobante';
+  // 1) Resumen
+  const res=[['PRESUPUESTO · '+g.nombre],['Generado',new Date().toLocaleString('es-CO')],[],['Presupuesto general',C.budget],['Total gastado',C.spent],['Disponible',C.left],[],['PERSONA','PRESUPUESTO ASIGNADO','GASTO INDIVIDUAL','LE QUEDA','PAGÓ (ADELANTÓ)','% USADO']];
+  C.codes.forEach(c=>{ const p=C.per[c]; res.push([budName(c),Math.round(p.asignado),Math.round(p.gastado),Math.round(p.asignado-p.gastado),Math.round(p.pago),p.asignado>0?+(p.gastado/p.asignado).toFixed(4):0]); });
+  res.push(['TOTAL',Math.round(C.codes.reduce((a,c)=>a+C.per[c].asignado,0)),Math.round(C.codes.reduce((a,c)=>a+C.per[c].gastado,0)),Math.round(C.codes.reduce((a,c)=>a+C.per[c].asignado-C.per[c].gastado,0)),Math.round(C.codes.reduce((a,c)=>a+C.per[c].pago,0)),'']);
+  const w1=XLSX.utils.aoa_to_sheet(res); w1['!cols']=[{wch:32},{wch:22},{wch:20},{wch:18},{wch:20},{wch:10}]; money(w1,[1,2,3,4],3);
+  for(let r=8;r<res.length;r++){ const a=XLSX.utils.encode_cell({r,c:5}); if(w1[a]&&typeof w1[a].v==='number') w1[a].z='0%'; }
+  applyExcelFont(w1,'Calibri',11); XLSX.utils.book_append_sheet(wb,w1,sheetName('Resumen'));
+  // 2) Movimientos
+  const mv=[['FECHA','CONCEPTO','CATEGORÍA','PAGÓ','VALOR','REPARTO','COMPROBANTE','VER COMPROBANTE','ESTADO','NOTAS']];
+  gastos.forEach(x=>{ const cat=BUD_CATS.find(c=>c[0]===x.categoria); mv.push([x.fecha,x.concepto,cat?cat[2]:'Otros',budName(x.pagado_por),Math.round(x.monto),modoTxt(x),tipoTxt(x),'',x.anulado?'ANULADO':'Válido',x.notas||'']); });
+  const w2=XLSX.utils.aoa_to_sheet(mv); w2['!cols']=[{wch:12},{wch:36},{wch:14},{wch:22},{wch:16},{wch:22},{wch:22},{wch:18},{wch:10},{wch:30}]; money(w2,[4],1);
+  gastos.forEach((x,i)=>link(w2,i+1,7,urls[x.id]));
+  applyExcelFont(w2,'Calibri',11); XLSX.utils.book_append_sheet(wb,w2,sheetName('Movimientos'));
+  // 3) Una hoja por persona, con saldo corrido
+  C.codes.forEach(c=>{
+    const p=C.per[c], rows=[[budName(c).toUpperCase()],['Presupuesto asignado',Math.round(p.asignado)],[],['FECHA','CONCEPTO','CATEGORÍA','% DEL GASTO','MI PARTE','SALDO','COMPROBANTE']];
+    let saldo=p.asignado; const lk=[];
+    gastos.filter(x=>!x.anulado).forEach(x=>{ const part=(x.presupuesto_partes||[]).find(q=>q.codigo_persona===c); if(!part) return; saldo-=Number(part.monto)||0; const cat=BUD_CATS.find(k=>k[0]===x.categoria); rows.push([x.fecha,x.concepto,cat?cat[2]:'Otros',+Number(part.porcentaje).toFixed(2)/100,Math.round(part.monto),Math.round(saldo),'']); lk.push([rows.length-1,urls[x.id]]); });
+    rows.push([]); rows.push(['','','','TOTAL GASTADO',Math.round(p.gastado)]); rows.push(['','','','LE QUEDA',Math.round(p.asignado-p.gastado)]);
+    const ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=[{wch:12},{wch:38},{wch:14},{wch:12},{wch:16},{wch:16},{wch:18}];
+    const a=XLSX.utils.encode_cell({r:1,c:1}); if(ws[a]) ws[a].z=MONEY; money(ws,[4,5],4);
+    for(let r=4;r<rows.length;r++){ const q=XLSX.utils.encode_cell({r,c:3}); if(ws[q]&&typeof ws[q].v==='number'&&ws[q].v<=1) ws[q].z='0.##%'; }
+    lk.forEach(([r,u])=>link(ws,r,6,u));
+    applyExcelFont(ws,'Calibri',11); XLSX.utils.book_append_sheet(wb,ws,sheetName(budName(c)));
+  });
+  XLSX.writeFile(wb,`presupuesto_${String(g.nombre).replace(/[^a-zA-Z0-9_-]+/g,'_')}_${todayKey()}.xlsx`);
+  toast('✓ Excel descargado (los enlaces a comprobantes duran 90 días)');
+}
+document.addEventListener('click',(e)=>{
+  const bt=e.target&&e.target.closest&&e.target.closest('[data-bud-act]'); if(!bt) return;
+  const b=budState(), a=bt.dataset.budAct;
+  if(a==='group'){ b.groupId=String(bt.dataset.id); b.loaded=true; budRepaint(); budLoadGroup().then(budRepaint).catch(()=>{}); }
+  else if(a==='group-new') budOpenGroupForm(false);
+  else if(a==='group-edit') budOpenGroupForm(true);
+  else if(a==='add') budOpenExpenseForm();
+  else if(a==='tab'){ b.tab=bt.dataset.tab; budRepaint(); }
+  else if(a==='gasto') budOpenGasto(bt.dataset.id);
+  else if(a==='receipt') budViewReceipt(bt.dataset.path);
+  else if(a==='excel') budExportExcel();
+  else if(a==='reload'){ b.loaded=false; b.error=false; budRepaint(); budLoad(); }
+  else if(a==='req-ok'){ const r=(b.solic||[]).find(y=>String(y.id)===String(bt.dataset.id)); const x=b.gastos.find(y=>String(y.id)===String(bt.dataset.gid)); if(r&&x&&confirm(`¿Eliminar “${x.concepto}” por ${budMoney(x.monto)}?`)) budResolveRequest(r.id,true); }
+  else if(a==='req-no') budResolveRequest(bt.dataset.id,false);
+  else if(a==='goto'){ b.groupId=String(bt.dataset.id); b.loaded=false; b.tab='mov'; state.tab='rep'; state.repView='budget'; render(); }
+  else if(a==='close') budCloseSheet();
 });
 
 /* ===================== Herramientas: nombrador (datos locales, temporales por día) ===================== */
@@ -7442,12 +7972,14 @@ function confirmSwitchBase(newBase){
   return confirm(t('confirmSwitchBase').replace('{base}', newBase));
 }
 function renderRep(){
+  setTimeout(budLoadMine,0);
   const subViews = [
     ['list','rep', ()=>t('repList')],
     ['naming','naming', ()=>t('repSubNaming')],
     ['quality','quality', ()=>t('repSubQuality')],
+    ['budget','budget', ()=>'💼 Presupuesto'],
     ...(hasAdminAccess() ? [['review','review', ()=>`Revisión`]] : []),
-  ].filter(([id,flag])=>id==='review' ? hasAdminAccess() : toolVisible(flag));
+  ].filter(([id,flag])=>id==='review' ? hasAdminAccess() : id==='budget' ? budVisible() : toolVisible(flag));
   if(!subViews.some(([id])=>id===state.repView)){ state.repView = subViews.length ? subViews[0][0] : 'list'; }
   if(!subViews.length){ return `<div class="empty">${t('qualityEmpty')}</div>`; }
   return `
@@ -7459,6 +7991,7 @@ function renderRep(){
     ${state.repView==='list' ? (hasAdminAccess() && state.repShowForm ? `<div class="card glass" style="margin-bottom:12px"><div class="row wrap" style="justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0">${t('repNew')}</h3><button type="button" class="btn ghost sm" id="repCancelAdd">Cancelar</button></div>${renderAdminRepToolsCard()}</div>` : '') + renderRepList() : ''}
     ${state.repView==='naming' ? renderRepNaming() : ''}
     ${state.repView==='quality' ? renderRepQuality() : ''}
+    ${state.repView==='budget' && budVisible() ? renderBudget() : ''}
     ${state.repView==='review' && hasAdminAccess() ? renderRepReview() : ''}
   `;
 }
@@ -8012,10 +8545,11 @@ async function patchPhotoReview(id, payload){
 /* ===================== Render: Settings ===================== */
 const COLOR_PALETTES={vivos:{label:'Vivos',colors:[['#3B82F6','Azul'],['#6D5DFC','Violeta'],['#00A878','Verde'],['#FF7A00','Naranja'],['#E83E8C','Rosa'],['#E53935','Rojo']]},pastel:{label:'Pastel',colors:[['#7AA7FF','Azul cielo'],['#A78BFA','Lavanda'],['#72C9A5','Menta'],['#F6B36A','Durazno'],['#F3A6C8','Rosa'],['#E8B86D','Crema']]},tierra:{label:'Tierra',colors:[['#8B5E3C','Café'],['#A67C52','Arena'],['#6B7D5B','Oliva'],['#B56B45','Terracota'],['#8C6A5D','Arcilla'],['#5F5148','Cacao']]}};
 function renderSettings(){
+  setTimeout(budLoadMyBudgets,0);
   const persona=state.personas.find(p=>p.codigo===normalize(state.session||'')); const name=persona?.nombre||state.session||''; const avatarInner=personAvatarInner(persona, state.session, 52);
   return `<div class="settings-shell"><div class="settings-header"><h2>${t('tabSettings')}</h2><p>${t('settingsSub')}</p></div>
     <div class="profile-card glass"><button type="button" class="profile-avatar avatar-editable${veriPersonPhoto(persona)?' has-photo':''}" id="avatarEditBtn" aria-label="${t('chooseAvatar')}">${avatarInner||'?'}<span class="avatar-edit-badge">✎</span></button><div style="min-width:0;flex:1;"><div class="profile-name">${name||'—'}</div><div class="profile-code">${state.session||'—'} · ${t('personCode')}</div><div class="account-role-chip ${isAdmin()?'role-admin':isCoAdmin()?'role-coadmin':'role-user'}"><span class="account-role-dot"></span>${isAdmin()?(state.prefs.lang==='en'?'Administrator':'Administrador'):isCoAdmin()?(state.prefs.lang==='en'?'Co-administrator':'Coadministrador'):(state.prefs.lang==='en'?'User':'Usuario')}</div><div class="inline-edit"><input id="usernameEdit" type="text" value="${String(name).replace(/"/g,'&quot;')}" placeholder="${t('usernameLabel')}" /><button class="btn sm" id="saveUsernameBtn">${t('saveName')}</button></div><div class="small-note" style="margin-top:6px;">${t('usernameHint')}</div></div></div>
- ${avatarPickerHTML()}<div class="settings-group glass"><div class="settings-group-title">${t('settingsGeneral')}</div>
+ <div id="budMineWrap">${budMineHTML()}</div>${avatarPickerHTML()}<div class="settings-group glass"><div class="settings-group-title">${t('settingsGeneral')}</div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('language')}</div></div><div class="settings-row-control"><div class="pill-toggle"><button data-lang="es" class="${state.prefs.lang==='es'?'active':''}">ES</button><button data-lang="en" class="${state.prefs.lang==='en'?'active':''}">EN</button></div></div></div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('theme')}</div></div><div class="settings-row-control"><div class="pill-toggle"><button data-theme-btn="light" class="${state.prefs.theme==='light'?'active':''}">${t('light')}</button><button data-theme-btn="dark" class="${state.prefs.theme==='dark'?'active':''}">${t('dark')}</button></div></div></div>
       <div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('liteModeLabel')}</div><div class="settings-row-sub">${t('liteModeSub')}</div></div><div class="settings-row-control"><label class="switch"><input type="checkbox" id="liteModeSwitch" ${state.prefs.liteMode?'checked':''}><span class="slider"></span></label></div></div>
@@ -10216,4 +10750,106 @@ body[data-theme="dark"] .scan-result-float[data-cardstyle="solid"] .scan-result-
 .sh-alert.done,.sh-alert.list{background:rgba(52,199,89,.10);border-color:rgba(52,199,89,.5)}
 .sh-alert>div{flex:1;min-width:0}.sh-alert-ico{font-size:20px}.sh-alert-name{font-weight:700;overflow-wrap:anywhere}
 .sh-alert .btn{flex:0 0 auto;align-self:center}
+</style>
+
+<style id="veri-budget">
+html.bud-lock,html.bud-lock body{overflow:hidden}
+.bud-emptycard{text-align:center;padding:26px 18px}
+.bud-head{text-align:center}
+.bud-chips{display:flex;gap:8px;overflow-x:auto;padding:0 0 12px;scrollbar-width:none;justify-content:flex-start}
+.bud-chips::-webkit-scrollbar{display:none}
+.bud-chip{flex:0 0 auto;border:1.5px solid var(--glass-border);background:var(--input-bg);color:var(--text-1);border-radius:99px;padding:7px 14px;font:inherit;font-size:13.5px;font-weight:650;cursor:pointer}
+.bud-chip.on{background:var(--accent);border-color:var(--accent);color:#fff}.bud-chip.add{border-style:dashed;color:var(--accent)}
+.bud-cluster{position:relative;width:264px;height:264px;margin:10px auto 14px;border-radius:50%;background:radial-gradient(circle at 30% 24%,rgba(var(--accent-rgb),.24),rgba(var(--accent-rgb),.06) 62%,transparent 74%),var(--glass-bg);border:1.5px solid var(--glass-border);box-shadow:inset 0 0 40px rgba(var(--accent-rgb),.10),0 14px 34px rgba(0,0,0,.12);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.bud-cluster::before{content:"";position:absolute;inset:-9px;border-radius:50%;border:1.5px dashed rgba(var(--accent-rgb),.38);animation:budSpin 40s linear infinite;pointer-events:none}
+.bud-bub{position:absolute;left:50%;top:50%;width:var(--s);height:var(--s);margin:calc(var(--s)/-2) 0 0 calc(var(--s)/-2);transform:translate(var(--x),var(--y))}
+.bud-bub>.in{width:100%;height:100%;border-radius:50%;animation:budFloat 4.4s ease-in-out var(--d) infinite;box-shadow:0 6px 16px rgba(0,0,0,.24)}
+.bud-bub .veri-avatar{width:100%!important;height:100%!important;margin:0}
+.bud-more{display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-weight:800;font-size:12px}
+.bud-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.bud-center small{font-size:11.5px;color:var(--text-2);font-weight:600}.bud-center b{font-size:22px;letter-spacing:-.02em}
+@keyframes budSpin{to{transform:rotate(360deg)}}@keyframes budFloat{50%{transform:translateY(-5px)}}
+.bud-gname{margin:0;font-size:24px;letter-spacing:-.02em}.bud-meta{color:var(--text-2);font-size:13px;margin:2px 0 12px}
+.bud-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bud-stats>div{background:var(--input-bg);border-radius:14px;padding:10px 6px}.bud-stats small{display:block;font-size:11.5px;color:var(--text-2)}.bud-stats b{font-size:14.5px}
+.pos{color:#34c759}.neg{color:#ff453a}
+.bud-bar{height:9px;border-radius:99px;background:var(--input-bg);overflow:hidden;margin:12px 0 8px}.bud-bar.sm{height:7px;margin:6px 0}
+.bud-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),#34c759);transition:width .5s ease}.bud-bar i.neg{background:#ff453a}
+.bud-mine{font-size:13.5px;color:var(--text-2);margin:2px 0 12px}.bud-mine b{color:var(--text-1)}.bud-mine b.pos{color:#34c759}.bud-mine b.neg{color:#ff453a}
+.bud-actions{display:flex;gap:8px;flex-wrap:wrap}.bud-actions .btn.block{flex:1 1 100%}.bud-actions .btn.secondary{flex:1}
+.bud-day{font-size:12px;font-weight:700;color:var(--text-2);text-transform:capitalize;margin:14px 2px 6px}
+.bud-mov{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:11px 12px;margin-top:6px;border-radius:16px;background:var(--input-bg);border:0;color:var(--text-1);font:inherit;cursor:pointer}
+.bud-mov.void{opacity:.5;text-decoration:line-through}
+.bud-mov-ico{flex:0 0 40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(var(--accent-rgb),.12)}.bud-mov-ico.big{width:48px;height:48px;font-size:24px}
+.bud-mov-main{flex:1;min-width:0}.bud-mov-main b{display:block;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bud-mov-main small{color:var(--text-2);font-size:12px}
+.bud-mov-amt{font-weight:800;font-size:14.5px;font-variant-numeric:tabular-nums}
+.bud-person{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--glass-border)}.bud-person:last-child{border-bottom:0}
+.bud-pav{flex:0 0 44px}.bud-pinfo{flex:1;min-width:0}.bud-pinfo small{color:var(--text-2);font-size:12px}.bud-pleft{font-weight:800;font-size:14px}
+.bud-ov{position:fixed;inset:0;z-index:100010;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,5,9,.6);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);animation:repSendFade .2s ease}
+.bud-sheet{width:100%;max-width:560px;max-height:92vh;display:flex;flex-direction:column;background:var(--bg-1,#fff);color:var(--text-1);border-radius:26px 26px 0 0;border:1px solid var(--glass-border);animation:repSendUp .32s cubic-bezier(.22,1,.36,1)}
+@media(min-width:700px){.bud-ov{align-items:center}.bud-sheet{border-radius:26px;max-height:88vh}}
+.bud-sheet-h{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px}.bud-sheet-h h3{margin:0;font-size:19px}
+.bud-x{width:36px;height:36px;border-radius:50%;border:0;background:var(--input-bg);color:var(--text-1);font-size:15px;cursor:pointer;padding:0}
+.bud-sheet-b{padding:4px 18px calc(18px + env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.bud-l{display:block;font-size:12.5px;font-weight:700;color:var(--text-2);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.03em}
+.bud-sheet input:not([type=checkbox]),.bud-sheet select,.bud-sheet textarea{width:100%;box-sizing:border-box;font-size:16px}
+.bud-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.bud-row2>div:only-child{grid-column:1/-1}
+.bud-cats{display:flex;flex-wrap:wrap;gap:7px}.bud-cat{border:1.5px solid var(--glass-border);background:var(--input-bg);color:var(--text-1);border-radius:99px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}.bud-cat.on{border-color:var(--accent);background:rgba(var(--accent-rgb),.14);font-weight:700}
+.bud-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--input-bg);padding:4px;border-radius:14px}.bud-seg button{border:0;background:transparent;color:var(--text-1);font:inherit;font-size:13px;font-weight:650;padding:10px 4px;border-radius:11px;cursor:pointer}.bud-seg button.on{background:var(--accent);color:#fff}
+.bud-note{margin:10px 0;padding:10px 12px;border-radius:12px;background:var(--input-bg);border:1px solid var(--glass-border);font-size:13.5px;line-height:1.4}
+.bud-chips2{display:flex;flex-wrap:wrap;gap:7px}.bud-pchip{display:inline-flex;align-items:center;gap:7px;padding:4px 12px 4px 4px;border-radius:99px;border:1.5px solid var(--glass-border);background:var(--input-bg);color:var(--text-1);font:inherit;font-size:13px;cursor:pointer;opacity:.55}.bud-pchip.on{opacity:1;border-color:var(--accent);background:rgba(var(--accent-rgb),.12)}
+.bud-pchip-av{display:inline-block;flex:0 0 auto;border-radius:50%;overflow:hidden;line-height:0}.bud-pchip-av .veri-avatar{margin:0}
+.bud-prow{display:flex;align-items:center;gap:8px;margin-top:8px}.bud-prow b{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bud-sheet .bud-pin{width:76px;text-align:right}.bud-pct{color:var(--text-2)}.bud-pamt{min-width:84px;text-align:right;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.bud-pct-total{margin-top:10px;font-weight:800;font-size:13.5px;text-align:right}.bud-pct-total.ok{color:#34c759}.bud-pct-total.bad{color:#ff9f0a}
+.bud-rc-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.bud-rc{display:flex;gap:12px;align-items:center;padding:10px;border-radius:14px;background:var(--input-bg)}
+.bud-rc img{width:72px;height:72px;object-fit:cover;border-radius:12px}.bud-rc small{display:block;color:var(--text-2);font-size:12px;margin:2px 0 6px}
+.bud-check{display:flex;gap:10px;align-items:flex-start;margin:12px 0 8px;font-size:13.5px;line-height:1.35}.bud-check input{margin-top:3px;flex:0 0 auto}
+.bud-people{max-height:280px;overflow-y:auto;border-radius:14px;border:1px solid var(--glass-border)}
+.bud-pp{display:flex;align-items:center;gap:10px;padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--glass-border)}.bud-pp:last-child{border-bottom:0}.bud-pp.on{background:rgba(var(--accent-rgb),.10)}
+.bud-pp-av{flex:0 0 38px}.bud-pp-n{flex:1;min-width:0}.bud-pp-n b{display:block;font-size:14px}.bud-pp-n small{color:var(--text-2);font-size:11.5px}
+.bud-sheet .bud-pp-amt{width:104px;text-align:right}.bud-pp-ck{width:22px;text-align:center;color:var(--accent);font-weight:800}
+.bud-det-top{display:flex;align-items:center;gap:12px}.bud-det-top>div:nth-child(2){flex:1;min-width:0}.bud-det-amt{font-size:20px;font-weight:800}
+.bud-det-row{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--glass-border);font-size:14px}.bud-det-row span{color:var(--text-2)}.bud-det-row b{text-align:right}
+.bud-prt{display:flex;align-items:center;gap:10px;padding:8px 0}.bud-prt b{flex:1;min-width:0;font-size:14px}.bud-prt-amt{font-weight:800;min-width:90px;text-align:right}
+.bud-view img,.bud-view iframe{width:100%;max-height:70vh;object-fit:contain;border-radius:14px;border:0;min-height:260px;background:var(--input-bg)}
+html.lite .bud-cluster{-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}html.lite .bud-cluster::before,html.lite .bud-bub>.in{animation:none}
+</style>
+
+<style id="veri-budget-2">
+.bud-sheet{font-size:15px;line-height:1.4}
+.bud-sheet-h h3{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.bud-l{text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:700;color:var(--text-1);margin:18px 0 7px}
+.bud-sheet-b>.bud-l:first-child{margin-top:6px}
+.bud-sheet input::placeholder,.bud-sheet textarea::placeholder{color:var(--text-2);opacity:.7}
+.bud-big{font-size:26px!important;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;padding-top:12px!important;padding-bottom:12px!important}
+.bud-save{margin-top:20px;min-height:52px;font-size:16.5px;font-weight:750;border-radius:16px}
+.bud-note{font-size:13.5px;line-height:1.45;color:var(--text-1)}
+.bud-gname{font-size:27px;font-weight:800;letter-spacing:-.025em;line-height:1.15;margin-top:2px}
+.bud-meta{font-size:13px;color:var(--text-2);margin:4px 0 14px}
+.bud-stats>div{padding:11px 6px}
+.bud-stats small{font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:2px}
+.bud-stats b{font-size:16px;font-weight:800;letter-spacing:-.015em;font-variant-numeric:tabular-nums}
+.bud-mine3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:2px 0 14px;text-align:center}
+.bud-mine3>div{background:var(--input-bg);border-radius:14px;padding:9px 4px}
+.bud-mine3 small{display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:2px}
+.bud-mine3 b{font-size:14.5px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.bud-mov-main b{font-size:15px;font-weight:700}.bud-mov-main small{font-size:12.5px}
+.bud-mov-amt{font-size:15px;font-weight:800;letter-spacing:-.01em}
+.bud-day{font-size:12.5px;font-weight:700;letter-spacing:.01em}
+.bud-person .bud-pinfo b{font-size:15px;font-weight:700}.bud-pleft{font-size:15px}
+.bud-prow{gap:10px}.bud-prow b{font-size:14.5px;font-weight:650}
+.bud-sheet .bud-vin{width:128px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.bud-valsum{margin:12px 0 8px;padding:10px 12px;border-radius:12px;font-size:13.5px;font-weight:700;background:var(--input-bg);color:var(--text-2)}
+.bud-valsum.ok{background:rgba(52,199,89,.14);color:#34c759}.bud-valsum.warn{background:rgba(255,159,10,.14);color:#ff9f0a}.bud-valsum.bad{background:rgba(255,69,58,.14);color:#ff453a}
+.bud-check{align-items:flex-start;font-size:13.5px}
+.bud-det-title{font-size:18px;font-weight:800;letter-spacing:-.015em;display:block}
+.bud-det-amt{font-size:21px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.bud-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.bud-reqcard{border:1.5px solid rgba(255,159,10,.55)}
+.bud-reqtitle{font-weight:800;font-size:15.5px;margin-bottom:8px}.bud-badge{display:inline-flex;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:#ff9f0a;color:#fff;font-size:12.5px;align-items:center;justify-content:center;margin-left:6px}
+.bud-req{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--glass-border)}.bud-req-main{flex:1;min-width:0}.bud-req-main b{display:block;font-size:14px}.bud-req-main small{color:var(--text-2);font-size:12.5px}.bud-req-btns{display:flex;gap:6px}
+.bud-mine-card{padding-bottom:6px}
+.bud-mine-row{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--text-1);font:inherit;padding:4px 0 12px;cursor:pointer}
+.bud-mine-top{display:flex;justify-content:space-between;align-items:center}.bud-mine-top b{font-size:16px;font-weight:800}.bud-go{color:var(--accent);font-size:13px;font-weight:700}
 </style>
