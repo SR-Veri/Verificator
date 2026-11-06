@@ -1226,6 +1226,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 .rep-review-zoom-label{font-size:12px;min-width:52px;text-align:center;font-variant-numeric:tabular-nums;opacity:.8}
 .rep-review-progress{height:6px;border-radius:99px;overflow:hidden;background:var(--input-bg);margin-top:8px}.rep-review-progress>span{display:block;height:100%;background:var(--accent);transition:width .2s ease}
 .rep-review-action{width:100%;justify-content:center}
+.rep-review-nav{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rep-review-nav .btn[disabled]{opacity:.4;pointer-events:none}
 .naming-split{display:block}
 body.veri-wide .naming-split{display:grid;grid-template-columns:minmax(300px,5fr) minmax(0,7fr);gap:24px;align-items:start}
 body.veri-wide .naming-col-form #namingNombre{min-height:160px;font-size:22px;line-height:1.35;padding:14px 16px;border-radius:16px;touch-action:auto}
@@ -1243,6 +1244,26 @@ body.veri-wide .naming-col-scan .scan-frame{width:100%}
 .rep-ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-variant-numeric:tabular-nums}
 @media (prefers-reduced-motion:reduce){.rep-ring .bar{animation:none}.rep-review-photo img.smooth{transition:none}}
 @media(max-width:760px){.rep-review-shell{grid-template-columns:1fr}.rep-review-photo{min-height:240px}.rep-review-photo img{max-height:48vh}}
+.rep-review-action[disabled]{opacity:.4;pointer-events:none}
+.rep-prod-prog{display:flex;flex-direction:column;gap:2px}.rep-prod-prog-top{display:flex;justify-content:space-between;gap:8px;font-size:13px}.rep-prod-prog-top span{opacity:.8;font-variant-numeric:tabular-nums}
+.rep-sel-box{padding:10px 12px;border-radius:14px;background:var(--input-bg)}
+.rep-review-split{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:12px;align-items:start}
+.rep-thumbs{display:flex;flex-direction:column;gap:8px;max-height:76vh;overflow:auto;padding:2px}
+.rep-thumb{position:relative;width:100%;aspect-ratio:1;flex:0 0 auto;border-radius:12px;overflow:hidden;border:2px solid transparent;padding:0;background:var(--input-bg);cursor:pointer}
+.rep-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.rep-thumb.active{border-color:var(--accent,#0a84ff);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent,#0a84ff) 30%,transparent)}
+.rep-thumb .n{position:absolute;left:5px;top:5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.rep-thumb .st{position:absolute;right:5px;bottom:5px;width:22px;height:22px;border-radius:50%;background:#30d158;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.rep-thumb.st-repetir .st{background:#ff9f0a}
+.rep-thumb.st-aprobada img,.rep-thumb.st-repetir img{opacity:.5}
+.rep-review-shell.wide{grid-template-columns:92px minmax(0,1fr)}
+.rep-review-shell.wide .rep-review-photo{min-height:74vh}
+.rep-review-shell.wide .rep-review-photo img{max-height:80vh}
+.rep-review-shell.wide .rep-thumbs{max-height:82vh}
+.rep-review-mini{align-items:center;padding:14px 8px;gap:10px}
+.rep-review-mini .btn{padding:0;width:46px;min-width:0;height:46px;font-size:20px;justify-content:center}
+@media(max-width:760px){.rep-review-split{grid-template-columns:1fr}.rep-thumbs{flex-direction:row;max-height:none}.rep-thumb{width:84px;flex:0 0 84px}.rep-review-shell.wide{grid-template-columns:1fr}}
+
 
 
 /* ===== Veri • Apple-inspired interface refinement ===== */
@@ -8303,17 +8324,95 @@ function applyInlineReviewTransform(img,scale,rotation,x,y,direct){
   const label=document.querySelector(`[data-review-zoom-label="${CSS.escape(img.dataset.reviewInlineImage||'')}"]`);if(label)label.textContent=`${Math.round(scale*100)}%`;
   img.style.cursor=scale>1?'grab':'zoom-in';
 }
+/* Precarga de fotos de Revisión: URLs firmadas en lote + imágenes ya descargadas y decodificadas en memoria,
+   así al pasar de un producto a otro la foto aparece al instante en vez de quedarse cargando. */
+const revImgCache=new Map();
+function revPreloadImg(url){
+  if(!url||revImgCache.has(url)) return;
+  const im=new Image(); im.decoding='async'; im.src=url;
+  revImgCache.set(url,im);
+  if(im.decode) im.decode().catch(()=>{});
+  if(revImgCache.size>40){ const k=revImgCache.keys().next().value; revImgCache.delete(k); }
+}
+async function revEnsureUrls(paths){
+  const need=[...new Set(paths.filter(p=>p&&!veriPhotoUrlCache.has(p)))];
+  if(!need.length) return;
+  try{
+    const {data,error}=await veriStorageClient().storage.from('veri-repetition-photos').createSignedUrls(need,3600);
+    if(!error&&data) data.forEach(d=>{ if(d&&d.signedUrl&&d.path) veriPhotoUrlCache.set(d.path,d.signedUrl); });
+  }catch(e){ console.warn('Lote de URLs no disponible',e.message||e); }
+}
+let __revPre=0;
+function revWarmQueue(){
+  const P=getReviewProducts();
+  revEnsureUrls(P.flatMap(pr=>pr.photos.map(ph=>ph.path))).then(()=>revPreloadAround());
+}
+async function revPreloadAround(){
+  const tok=++__revPre;
+  const P=getReviewProducts(); if(!P.length) return;
+  const i=Math.min(state.repReviewIndex||0,P.length-1);
+  // producto actual completo, luego siguiente, anterior y los próximos
+  const order=[i,i+1,i-1,i+2,i+3,i-2].filter(n=>n>=0&&n<P.length);
+  const paths=[]; order.forEach(n=>P[n].photos.forEach(ph=>paths.push(ph.path)));
+  const list=paths.slice(0,30);
+  await revEnsureUrls(list);
+  if(tok!==__revPre) return;
+  list.forEach(pt=>revPreloadImg(veriPhotoUrl(pt)));
+}
+/* Fotos de un producto: todas las que subió quien repitió (multifoto) o la única foto antigua. */
+function revProductPhotos(r){
+  const rows=(state.repetitionPhotos||[]).filter(f=>String(f.repeticionId)===String(r.id)&&f.path)
+    .sort((a,b)=>String(a.subidaEn||'').localeCompare(String(b.subidaEn||'')));
+  if(rows.length) return rows.map(f=>({...f,repetition:r,legacy:false,key:'f'+f.id,reviewId:f.id}));
+  if(r.fotoPath){
+    const e=(r.revisionEstado==='aprobada'||r.revisionEstado==='repetir')?r.revisionEstado:'pendiente';
+    return [{id:r.id,repetition:r,legacy:true,key:'r'+r.id,reviewId:r.id,path:r.fotoPath,nombreArchivo:String(r.fotoPath).split('/').pop(),estado:e,motivo:r.revisionMotivo||'',subidoPor:'',subidaEn:r.fotoSubidaEn||null}];
+  }
+  return [];
+}
+/* Cola de revisión agrupada por producto (cada producto con todas sus fotos). */
+function getReviewProducts(){
+  const seen=new Set(), out=[];
+  getPendingPhotoReviewItems().forEach(it=>{
+    const r=it.repetition||it, k=String(r.id); if(seen.has(k)) return; seen.add(k);
+    const photos=revProductPhotos(r); if(photos.length) out.push({rep:r,photos});
+  });
+  return out;
+}
 function renderRepReview(){
-  const queue=getPendingPhotoReviewItems();
-  const idx=Math.max(0,Math.min(state.repReviewIndex||0,queue.length-1)); state.repReviewIndex=idx;
-  if(!queue.length) return `<div class="card glass" style="padding:28px;text-align:center"><div style="font-size:28px;margin-bottom:8px">✓</div><h3 style="margin:0 0 6px">Todo revisado por ahora</h3><p class="small-note">No hay fotografías pendientes de revisión.</p></div>`;
-  const item=queue[idx], r=item.repetition||item, photoPath=item.path||r.fotoPath, url=veriPhotoUrl(photoPath), pct=Math.round((idx/queue.length)*100);
-  const reviewId=item.legacy?r.id:item.id;
-  const reason=item.motivo||r.revisionMotivo||'';
-  const _ph=state.repetitionPhotos.filter(f=>String(f.repeticionId)===String(r.id)), _ap=_ph.filter(f=>f.estado==='aprobada').length;
-  const ring=`<div class="rep-review-head"><div class="rep-ring" role="img" aria-label="Foto ${idx+1} de ${queue.length}"><svg viewBox="0 0 48 48"><circle class="trk" cx="24" cy="24" r="19"/><circle class="bar" cx="24" cy="24" r="19" style="--off:${(119.38*(1-(idx+1)/queue.length)).toFixed(2)}"/></svg><b>${queue.length}</b></div><div><strong>Revisión de repeticiones</strong><div class="small-note" style="margin-top:2px">Foto ${idx+1} de ${queue.length} · ${_ph.length?`${_ap} de ${_ph.length} aprobadas`:'foto individual'}</div></div></div>`;
-  return `
-  <div class="rep-review-shell"><section class="card glass rep-review-info">${ring}<div><div class="small-note">PRODUCTO</div><h2 style="font-size:22px;margin:4px 0 10px">${escapeHtml(r.nombreProducto||'Producto sin nombre')}</h2><div class="rep-detail"><strong>Código:</strong> ${escapeHtml(r.codigoProducto||'—')}</div><div class="rep-detail"><strong>Código de barras:</strong> ${escapeHtml(r.codigoBarras||'—')}</div><div class="rep-detail"><strong>Fotógrafo:</strong> ${escapeHtml(r.fotografo||'—')}</div><div class="rep-detail"><strong>Archivo:</strong> ${escapeHtml(item.nombreArchivo||String(photoPath||'').split('/').pop())}</div></div><div class="warning-banner"><span><strong>Motivo de repetición</strong><br>${escapeHtml(r.motivo||'No se indicó un motivo.')}</span></div>${reason?`<div class="warning-banner"><span><strong>Motivo de devolución</strong><br>${escapeHtml(reason)}</span></div>`:''}<div class="row wrap" style="gap:8px"><button class="btn rep-review-action" data-review-approve="${reviewId}" data-review-photo-mode="${item.legacy?'legacy':'multi'}">✓ Aprobar foto</button><button class="btn secondary rep-review-action" data-review-retake="${reviewId}" data-review-photo-mode="${item.legacy?'legacy':'multi'}">↻ Devolver para repetir</button></div><button class="btn ghost rep-review-action" data-review-next="${reviewId}">Siguiente foto →</button><div class="small-note">El producto se archiva automáticamente cuando todas sus fotos están aprobadas. La descarga usa el código del producto.</div></section><section class="card glass" style="padding:12px"><div class="rep-review-photo" data-review-stage="${reviewId}">${url?`<img src="${url}" alt="Foto de ${escapeHtml(r.nombreProducto||r.codigoProducto||'producto')}" data-review-inline-image="${reviewId}" draggable="false">`:'<p class="small-note">No hay imagen disponible.</p>'}</div>${url?`<div class="rep-review-inline-controls"><button type="button" class="btn secondary sm" data-review-zoom="out" aria-label="Alejar">−</button><span class="rep-review-zoom-label" data-review-zoom-label="${reviewId}">100%</span><button type="button" class="btn secondary sm" data-review-zoom="in" aria-label="Acercar">＋</button><button type="button" class="btn secondary sm" data-review-reset="${reviewId}">Ajustar</button><button type="button" class="btn secondary sm" data-review-rotate="${reviewId}">↻ Girar</button><a class="btn secondary sm" href="${url}" target="_blank" rel="noopener">Abrir original ↗</a></div>`:''}</section></div>`;
+  const prods=getReviewProducts();
+  const totalPending=getPendingPhotoReviewCount();
+  if(!prods.length) return `<div class="card glass" style="padding:28px;text-align:center"><div style="font-size:28px;margin-bottom:8px">✓</div><h3 style="margin:0 0 6px">Todo revisado por ahora</h3><p class="small-note">No hay fotografías pendientes de revisión.</p></div>`;
+  const idx=Math.max(0,Math.min(state.repReviewIndex||0,prods.length-1)); state.repReviewIndex=idx;
+  const prod=prods[idx], r=prod.rep, photos=prod.photos;
+  const sel=photos.find(p=>p.key===state.repReviewPhoto)||photos.find(p=>p.estado==='pendiente')||photos[0];
+  state.repReviewPhoto=sel.key;
+  const url=veriPhotoUrl(sel.path);
+  const mode=sel.legacy?'legacy':'multi';
+  const nTotal=photos.length, nOk=photos.filter(p=>p.estado==='aprobada').length, nRet=photos.filter(p=>p.estado==='repetir').length;
+  const pct=Math.round((nOk/nTotal)*100);
+  const canAct=sel.estado==='pendiente';
+  const wide=!!state.repReviewWide;
+  const pos=photos.indexOf(sel)+1;
+  const who=sel.subidoPor||(sel.legacy?(r.fotografo||''):'')||'—';
+  const reason=sel.motivo||(sel.legacy?r.revisionMotivo:'')||'';
+  const stLabel=sel.estado==='aprobada'?'Aprobada':sel.estado==='repetir'?'Devuelta al fotógrafo (esperando nueva foto)':'Pendiente de revisión';
+  const pName=escapeHtml(r.nombreProducto||'Producto sin nombre');
+  const ring=`<div class="rep-ring" role="img" title="${pName} · ${escapeHtml(r.codigoProducto||'')}" aria-label="Producto ${idx+1} de ${prods.length}"><svg viewBox="0 0 48 48"><circle class="trk" cx="24" cy="24" r="19"/><circle class="bar" cx="24" cy="24" r="19" style="--off:${(119.38*(1-(idx+1)/prods.length)).toFixed(2)}"/></svg><b>${totalPending}</b></div>`;
+  const navBtns=`<div class="rep-review-nav"><button class="btn secondary rep-review-action" data-review-prev="${sel.key}" ${idx===0?'disabled':''} aria-label="Producto anterior">← Anterior</button><button class="btn secondary rep-review-action" data-review-next="${sel.key}" ${idx>=prods.length-1?'disabled':''} aria-label="Producto siguiente">Siguiente →</button></div>`;
+  const actBtns=`<button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'}>✓ Aprobar foto</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'}>↻ Devolver para repetir</button>`;
+  const info = wide
+  ? `<section class="card glass rep-review-info rep-review-mini">${ring}<div class="small-note" title="Fotos aprobadas de este producto">${nOk}/${nTotal}</div><button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Aprobar foto" aria-label="Aprobar foto">✓</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Devolver para repetir" aria-label="Devolver para repetir">↻</button><button class="btn secondary rep-review-action" data-review-prev="${sel.key}" ${idx===0?'disabled':''} title="Producto anterior" aria-label="Producto anterior">←</button><button class="btn secondary rep-review-action" data-review-next="${sel.key}" ${idx>=prods.length-1?'disabled':''} title="Producto siguiente" aria-label="Producto siguiente">→</button></section>`
+  : `<section class="card glass rep-review-info"><div class="rep-review-head">${ring}<div><strong>Revisión de repeticiones</strong><div class="small-note" style="margin-top:2px">Producto ${idx+1} de ${prods.length} · ${totalPending} foto${totalPending===1?'':'s'} pendiente${totalPending===1?'':'s'} en total</div></div></div>
+    <div><div class="small-note">PRODUCTO</div><h2 style="font-size:22px;margin:4px 0 10px">${pName}</h2><div class="rep-detail"><strong>Código:</strong> ${escapeHtml(r.codigoProducto||'—')}</div><div class="rep-detail"><strong>Código de barras:</strong> ${escapeHtml(r.codigoBarras||'—')}</div><div class="rep-detail"><strong>Fotógrafo original:</strong> ${escapeHtml(r.fotografo||'—')}</div></div>
+    <div class="rep-prod-prog"><div class="rep-prod-prog-top"><strong>Fotos de este producto</strong><span>${nOk} de ${nTotal} aprobadas${nRet?` · ${nRet} por repetir`:''}</span></div><div class="rep-review-progress"><span style="width:${pct}%"></span></div></div>
+    <div class="rep-sel-box"><div class="small-note">FOTO ${pos} DE ${nTotal} · ${stLabel}</div><div class="rep-detail"><strong>Foto de repetición tomada por:</strong> ${escapeHtml(who)}</div><div class="rep-detail"><strong>Archivo:</strong> ${escapeHtml(sel.nombreArchivo||String(sel.path||'').split('/').pop())}</div></div>
+    <div class="warning-banner"><span><strong>Motivo de repetición</strong><br>${escapeHtml(r.motivo||'No se indicó un motivo.')}</span></div>${reason?`<div class="warning-banner"><span><strong>Motivo de devolución</strong><br>${escapeHtml(reason)}</span></div>`:''}
+    <div class="row wrap" style="gap:8px">${actBtns}</div>${navBtns}<div class="small-note">El producto se archiva automáticamente cuando todas sus fotos están aprobadas. La descarga usa el código del producto.</div></section>`;
+  const thumbs=photos.map((p,i)=>{const u=veriPhotoUrl(p.path);const mark=p.estado==='aprobada'?'✓':p.estado==='repetir'?'↻':'';
+    return `<button type="button" class="rep-thumb st-${p.estado} ${p.key===sel.key?'active':''}" data-review-thumb="${p.key}" title="Foto ${i+1} · ${p.estado==='aprobada'?'aprobada':p.estado==='repetir'?'devuelta':'pendiente'}" aria-label="Ver foto ${i+1} de ${nTotal}">${u?`<img src="${u}" alt="Foto ${i+1}" loading="eager" decoding="async" onerror="this.style.display='none'">`:''}<span class="n">${i+1}</span>${mark?`<span class="st">${mark}</span>`:''}</button>`;}).join('');
+  const stage=`<div class="rep-review-photo" data-review-stage="${sel.key}">${url?`<img src="${url}" alt="Foto de ${pName}" data-review-inline-image="${sel.key}" draggable="false" decoding="async" fetchpriority="high">`:'<p class="small-note">No hay imagen disponible.</p>'}</div><div class="rep-review-inline-controls">${url?`<button type="button" class="btn secondary sm" data-review-zoom="out" aria-label="Alejar">−</button><span class="rep-review-zoom-label" data-review-zoom-label="${sel.key}">100%</span><button type="button" class="btn secondary sm" data-review-zoom="in" aria-label="Acercar">＋</button><button type="button" class="btn secondary sm" data-review-reset="${sel.key}">Ajustar</button><button type="button" class="btn secondary sm" data-review-rotate="${sel.key}">↻ Girar</button><a class="btn secondary sm" href="${url}" target="_blank" rel="noopener">Abrir original ↗</a>`:''}<button type="button" class="btn secondary sm" data-review-wide="1" title="${wide?'Volver a la vista normal (Esc)':'Ampliar la zona de la foto'}">${wide?'⤡ Reducir':'⤢ Ampliar'}</button></div>`;
+  return `<div class="rep-review-shell${wide?' wide':''}">${info}<section class="card glass" style="padding:12px"><div class="rep-review-split"><div class="rep-review-main">${stage}</div>${nTotal>1||true?`<div class="rep-thumbs" role="list" aria-label="Fotos de este producto">${thumbs}</div>`:''}</div></section></div>`;
 }
 function repParseId(code){
   const m=String(code||'').trim().match(/^(\d{8})[_\-]([^_\-\s]+)[_\-](\d+)/);
@@ -9328,7 +9427,7 @@ function bindTabEvents(){
     doSearch();
   }
   if(state.tab==='rep'){
-    document.querySelectorAll('[data-repview]').forEach(b=> b.onclick=()=>{ stopCamera(); state.repView=b.dataset.repview; render(); });
+    document.querySelectorAll('[data-repview]').forEach(b=> b.onclick=()=>{ stopCamera(); state.repView=b.dataset.repview; if(state.repView==='review'&&typeof revWarmQueue==='function')revWarmQueue(); render(); });
     if(state.repView==='list'){
       const quickAdd=document.getElementById('repQuickAdd');if(quickAdd)quickAdd.onclick=()=>{if(!hasAdminAccess())return;state.repShowForm=true;render();document.getElementById('repCodProd')?.focus();};
       const repCancelAdd=document.getElementById('repCancelAdd');if(repCancelAdd)repCancelAdd.onclick=()=>{state.repShowForm=false;render();};
@@ -9797,7 +9896,22 @@ function bindTabEvents(){
     }
   }
   if(state.tab==='rep' && state.repView==='review' && hasAdminAccess()){
-    document.querySelectorAll('[data-review-next]').forEach(b=>b.onclick=()=>{state.repReviewIndex=(state.repReviewIndex||0)+1;render();});
+    document.querySelectorAll('[data-review-next]').forEach(b=>b.onclick=()=>{state.repReviewIndex=(state.repReviewIndex||0)+1;state.repReviewPhoto=null;render();});
+    document.querySelectorAll('[data-review-prev]').forEach(b=>b.onclick=()=>{state.repReviewIndex=Math.max(0,(state.repReviewIndex||0)-1);state.repReviewPhoto=null;render();});
+    document.querySelectorAll('[data-review-thumb]').forEach(b=>b.onclick=()=>{state.repReviewPhoto=b.dataset.reviewThumb;render();});
+    document.querySelectorAll('[data-review-wide]').forEach(b=>b.onclick=()=>{state.repReviewWide=!state.repReviewWide;render();});
+    try{document.querySelector('.rep-thumb.active')?.scrollIntoView({block:'nearest'});}catch(_){}
+    if(!window.__revKeys){window.__revKeys=true;document.addEventListener('keydown',e=>{
+      if(state.tab!=='rep'||state.repView!=='review')return;
+      if(/INPUT|TEXTAREA|SELECT/.test((e.target&&e.target.tagName)||''))return;
+      if(e.key==='Escape'&&state.repReviewWide){state.repReviewWide=false;render();return;}
+      let b=null;
+      if(e.key==='ArrowRight')b=document.querySelector('[data-review-next]');
+      else if(e.key==='ArrowLeft')b=document.querySelector('[data-review-prev]');
+      else if(e.key==='ArrowDown'||e.key==='ArrowUp'){const th=[...document.querySelectorAll('[data-review-thumb]')];const i=th.findIndex(x=>x.classList.contains('active'));b=th[i+(e.key==='ArrowDown'?1:-1)];if(b)e.preventDefault();}
+      if(b&&!b.disabled)b.click();
+    });}
+    revPreloadAround();
     const revImg=()=>document.querySelector('[data-review-inline-image]');
     document.querySelectorAll('[data-review-zoom]').forEach(b=>b.onclick=()=>{const img=revImg();if(!img)return;const z=Number(img.dataset.zoom||1);veriZoomTo(img,b.dataset.reviewZoom==='in'?z*1.35:z/1.35,0,0,260);});
     document.querySelectorAll('[data-review-reset]').forEach(b=>b.onclick=()=>{const img=revImg();if(img)veriZoomTo(img,1,0,0,420,0);});
@@ -9814,7 +9928,7 @@ function bindTabEvents(){
       stage?.addEventListener('pointermove',e=>{if(!drag)return;applyInlineReviewTransform(img,Number(img.dataset.zoom||1),Number(img.dataset.rotation||0),drag.ox+e.clientX-drag.x,drag.oy+e.clientY-drag.y);});
       const end=()=>{drag=null;};stage?.addEventListener('pointerup',end);stage?.addEventListener('pointercancel',end);
     });
-    document.querySelectorAll('[data-review-approve]').forEach(b=>b.onclick=async()=>{const id=b.dataset.reviewApprove;const mode=b.dataset.reviewPhotoMode;const item=mode==='multi'?state.repetitionPhotos.find(x=>String(x.id)===String(id)):null;const r=item?state.repeticiones.find(x=>String(x.id)===String(item.repeticionId)):state.repeticiones.find(x=>String(x.id)===String(id));const path=item?.path||r?.fotoPath;const url=path?veriPhotoUrl(path):'';if(url) downloadApprovedPhoto(url,safePhotoFilename({...r,path}));try{const now=new Date().toISOString();if(item){await patchRepPhoto(item.id,{estado:'aprobada',estado_revision:'aprobada',motivo_devolucion:'',revisada_en:now,fecha_revision:now,revisada_por:normalize(state.session||''),revisado_por:normalize(state.session||''),aprobada_en:now,eliminar_despues_de:new Date(Date.now()+3*86400000).toISOString()});await syncRepetitionCompletion(item.repeticionId);}else{await patchPhotoReview(id,{revision_estado:'aprobada',revision_motivo:'',revision_por:normalize(state.session||''),revision_fecha:now});if(r)r.estado='sent';}await refreshRepPhotos();state.repReviewIndex=0;toast('Foto aprobada; descarga iniciada');render();}catch(e){console.error(e);toast('No se pudo aprobar la foto.');}});
+    document.querySelectorAll('[data-review-approve]').forEach(b=>b.onclick=async()=>{const id=b.dataset.reviewApprove;const mode=b.dataset.reviewPhotoMode;const item=mode==='multi'?state.repetitionPhotos.find(x=>String(x.id)===String(id)):null;const r=item?state.repeticiones.find(x=>String(x.id)===String(item.repeticionId)):state.repeticiones.find(x=>String(x.id)===String(id));const path=item?.path||r?.fotoPath;const url=path?veriPhotoUrl(path):'';if(url) downloadApprovedPhoto(url,safePhotoFilename({...r,path}));try{const now=new Date().toISOString();if(item){await patchRepPhoto(item.id,{estado:'aprobada',estado_revision:'aprobada',motivo_devolucion:'',revisada_en:now,fecha_revision:now,revisada_por:normalize(state.session||''),revisado_por:normalize(state.session||''),aprobada_en:now,eliminar_despues_de:new Date(Date.now()+3*86400000).toISOString()});await syncRepetitionCompletion(item.repeticionId);}else{await patchPhotoReview(id,{revision_estado:'aprobada',revision_motivo:'',revision_por:normalize(state.session||''),revision_fecha:now});if(r)r.estado='sent';}await refreshRepPhotos();state.repReviewPhoto=null;state.repReviewWide=false;toast('Foto aprobada; descarga iniciada');render();}catch(e){console.error(e);toast('No se pudo aprobar la foto.');}});
     document.querySelectorAll('[data-review-retake]').forEach(b=>b.onclick=async()=>{
       if(b.dataset.busy==='1') return;
       const motivo=prompt('¿Qué debe corregir el fotógrafo?');
@@ -9838,7 +9952,7 @@ function bindTabEvents(){
           await patchPhotoReview(b.dataset.reviewRetake,{revision_estado:'repetir',revision_motivo:m,revision_por:who,revision_fecha:now});
         }
         try{ await refreshRepPhotos(); }catch(e2){ console.warn(e2); }
-        toast('Foto devuelta con motivo'); render(); // la foto devuelta sale de la cola y aparece la siguiente
+        toast('Foto devuelta con motivo'); state.repReviewPhoto=null; state.repReviewWide=false; render(); // la foto devuelta sale de la cola y aparece la siguiente
       }catch(e){ console.error(e); toast('No se pudo devolver la foto'+(e&&e.message?': '+String(e.message).slice(0,100):'.')); }
       finally{ delete b.dataset.busy; }
     });
