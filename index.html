@@ -1243,6 +1243,11 @@ body.veri-wide .naming-col-form #namingAddBtn{min-height:52px;font-size:16px;mar
 body.veri-wide .naming-col-scan .scan-frame{width:100%}
 .rep-review-photo img.smooth,#veriPhotoLarge.smooth{transition:transform var(--zdur,400ms) cubic-bezier(.22,1,.36,1)}
 .rep-review-photo{user-select:none;-webkit-user-select:none}
+.rep-photo-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:4;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);touch-action:manipulation;padding:0}
+.rep-photo-arrow:hover{background:rgba(0,0,0,.7)}.rep-photo-arrow.l{left:10px}.rep-photo-arrow.r{right:10px}
+.rep-review-photo.is-approved img{opacity:.55;transition:opacity .25s}
+.rep-approved-badge{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;background:#30d158;color:#fff;font-size:13px;font-weight:800;pointer-events:none;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.rep-photo-count{position:absolute;left:10px;top:10px;z-index:4;padding:5px 10px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:700;pointer-events:none;font-variant-numeric:tabular-nums}
 .rep-review-head{display:flex;align-items:center;gap:12px}
 .rep-ring{position:relative;width:48px;height:48px;flex:0 0 48px}
 .rep-ring svg{width:48px;height:48px;transform:rotate(-90deg)}
@@ -1276,7 +1281,10 @@ body.veri-wide .naming-col-scan .scan-frame{width:100%}
 .rep-review-mini .btn{padding:0;width:46px;min-width:0;height:46px;font-size:20px;justify-content:center}
 .rep-review-shell.wide .rep-review-mini{flex-direction:row;flex-wrap:wrap;padding:8px 14px;gap:10px;justify-content:flex-start}
 .rep-review-shell.wide .rep-review-mini .rep-mini-count{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
-.rep-review-shell.wide .rep-review-mini .rep-mini-title{flex:1 1 120px;min-width:0;font-size:13px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rep-review-shell.wide .rep-review-mini .rep-mini-title{flex:1 1 120px;min-width:0;display:flex;flex-direction:column;gap:1px;line-height:1.25}
+.rep-review-mini .rep-mini-title>*{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rep-review-mini .rep-mini-id,.rep-review-mini .rep-mini-bc{font-size:11px;opacity:.65;font-variant-numeric:tabular-nums}
+.rep-review-mini .rep-mini-name{font-size:13px;font-weight:700}
 .rep-review-shell.wide .rep-review-mini .rep-mini-sep{width:1px;height:28px;background:currentColor;opacity:.15}
 /* Carga progresiva de la foto */
 .rep-review-photo img{width:100%}
@@ -1287,7 +1295,7 @@ body.veri-wide .naming-col-scan .scan-frame{width:100%}
 .rev-q[data-s="hd"] i{animation:none}
 @keyframes revSpin{to{transform:rotate(360deg)}}
 .rep-thumb img:not([src]){opacity:0}
-@media(max-width:760px){.rep-review-split{grid-template-columns:1fr}.rep-thumbs{flex-direction:row;max-height:none}.rep-thumb{width:84px;flex:0 0 84px}.rep-review-shell.wide{grid-template-columns:1fr}.rep-review-shell.wide .rep-review-mini .rep-mini-title{display:none}.rep-review-shell.wide .rep-thumbs{justify-content:flex-start}.rep-review-shell.wide .rep-review-photo{min-height:40vh}.rep-review-shell.wide .rep-review-photo img{max-height:52vh}}
+@media(max-width:760px){.rep-review-split{grid-template-columns:1fr}.rep-thumbs{flex-direction:row;max-height:none}.rep-thumb{width:84px;flex:0 0 84px}.rep-review-shell.wide{grid-template-columns:1fr}.rep-review-shell.wide .rep-review-mini .rep-mini-title{flex:1 1 100%}.rep-review-shell.wide .rep-thumbs{justify-content:flex-start}.rep-review-shell.wide .rep-review-photo{min-height:40vh}.rep-review-shell.wide .rep-review-photo img{max-height:52vh}}
 
 
 
@@ -2887,7 +2895,7 @@ const state = {
   booted:false, connError:false,
   session: localStorage.getItem('vp_session') || null,
   loginError:'', loginStep:'code', loginCandidate:null, avatarPickerOpen:false,
-  tab:'home', repView:'list', repReviewIndex:0, repReviewCat:'', namingEditMode:false, namingSelected:[], namingListMode:'today',
+  tab:'home', repView:'list', repReviewIndex:0, rvSearch:'', rvFilterCode:'', rvFilterDate:'', rvFilterStore:'', rvFilterCat:'', rvFiltersOpen:false, repRevLoop:null, namingEditMode:false, namingSelected:[], namingListMode:'today',
   namingSubMode:'1x1', namingFast:{items:[]},
   prefs: JSON.parse(localStorage.getItem('vp_prefs')||'null') || { lang:'es', theme:(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light', defaultBase:'2026', accent:'#0A84FF', vibration:true, sound:true, soundStyle:'modern' },
   bases:{ '2025':[], '2026':[] },
@@ -8715,7 +8723,7 @@ function veriZoomTo(img,newScale,px,py,ms,rotation){
   const stage=img.closest('[data-review-stage]'); if(!stage) return;
   const s0=Number(img.dataset.zoom||1), x0=Number(img.dataset.x||0), y0=Number(img.dataset.y||0);
   const r=rotation===undefined?Number(img.dataset.rotation||0):rotation;
-  newScale=Math.max(.5,Math.min(6,newScale));
+  newScale=Math.max(1,Math.min(6,newScale));
   const k=newScale/s0; let x=px-(px-x0)*k, y=py-(py-y0)*k;
   if(newScale<=1){ x=0; y=0; }
   [x,y]=veriClampPanStatic(img,stage,newScale,r,x,y);
@@ -8895,28 +8903,66 @@ function revProductPhotos(r){
   return [];
 }
 /* Cola de revisión agrupada por producto (cada producto con todas sus fotos). */
-function getReviewProducts(ignoreCat){
+function revFilterOn(){ return !!(state.rvSearch||state.rvFilterCode||state.rvFilterDate||state.rvFilterStore||state.rvFilterCat); }
+function revClearFilters(){ state.rvSearch=''; state.rvFilterCode=''; state.rvFilterDate=''; state.rvFilterStore=''; state.rvFilterCat=''; }
+/* Mismos filtros que Repeticiones (persona, fecha, almacén, categoría) + búsqueda por ID, código de barras o nombre. */
+function revProdMatch(pr){
+  const r=pr.rep, q=normalize(state.rvSearch||'');
+  if(q && !normalize([r.codigoProducto,r.nombreProducto,r.codigoBarras].join(' ')).includes(q)) return false;
+  if(state.rvFilterCode && !(r.fotografo===state.rvFilterCode || pr.photos.some(p=>p.subidoPor===state.rvFilterCode))) return false;
+  if(state.rvFilterDate && repDateKey(r)!==state.rvFilterDate) return false;
+  if(state.rvFilterStore && repStoreKey(r)!==state.rvFilterStore) return false;
+  if(state.rvFilterCat && (state.rvFilterCat==='__none' ? repCatOf(r) : repCatOf(r)!==state.rvFilterCat)) return false;
+  return true;
+}
+function getReviewProducts(ignoreFilters){
   const seen=new Set(), out=[];
-  const cat=ignoreCat?'':(state.repReviewCat||'');
   getPendingPhotoReviewItems().forEach(it=>{
     const r=it.repetition||it, k=String(r.id); if(seen.has(k)) return; seen.add(k);
-    if(cat && (cat==='__none' ? repCatOf(r) : repCatOf(r)!==cat)) return;
     const photos=revProductPhotos(r); if(photos.length) out.push({rep:r,photos});
   });
-  return out;
+  return ignoreFilters?out:out.filter(revProdMatch);
 }
-/* Barra de filtro por categoría para Revisión (con conteo de productos pendientes por categoría). */
-function renderRevCatFilter(){
-  const all=getReviewProducts(true), cnt={}; let none=0;
-  all.forEach(pr=>{ const c=repCatOf(pr.rep); if(c) cnt[c]=(cnt[c]||0)+1; else none++; });
-  const cur=state.repReviewCat||'';
-  const opt=(v,l,n)=>`<option value="${escapeHtml(v)}" ${cur===v?'selected':''}>${escapeHtml(l)} (${n})</option>`;
-  return `<div class="card glass" style="padding:10px 12px;margin-bottom:10px"><div class="row" style="gap:8px;align-items:center"><label for="repReviewCatFilter" class="small-note" style="white-space:nowrap">Categoría</label><select id="repReviewCatFilter" style="flex:1;min-width:0">${opt('','Todas',all.length)}${REP_CATEGORIES.filter(c=>cnt[c]).map(c=>opt(c,c,cnt[c])).join('')}${none?opt('__none',t('uncategorized'),none):''}</select>${cur?`<button type="button" class="btn ghost sm" id="repReviewCatClear">✕</button>`:''}</div></div>`;
+/* Firma de la cola visible: sirve para repintar la revisión solo cuando algo cambió de verdad. */
+function revQueueSig(){ return getReviewProducts().map(pr=>pr.rep.id+':'+pr.photos.map(p=>p.key+p.estado+(p.motivo||'')).join(',')).join('|')+'#'+getReviewProducts(true).length; }
+function renderRevFilters(){
+  const all=getReviewProducts(true), shown=getReviewProducts().length;
+  const codes=[...new Set(all.flatMap(pr=>[pr.rep.fotografo].concat(pr.photos.map(p=>p.subidoPor))).filter(Boolean))].sort();
+  const dates=[...new Set(all.map(pr=>repDateKey(pr.rep)).filter(Boolean))].sort().reverse();
+  const stores=[...new Set(all.map(pr=>repStoreKey(pr.rep)).filter(Boolean))].sort();
+  const nActive=[state.rvFilterCode,state.rvFilterDate,state.rvFilterStore,state.rvFilterCat].filter(Boolean).length;
+  const o=(v,l,cur)=>`<option value="${escapeHtml(v)}" ${cur===v?'selected':''}>${escapeHtml(l)}</option>`;
+  return `<div class="card glass" style="padding:10px 12px;margin-bottom:10px">
+    <input type="search" id="rvSearchInput" placeholder="Buscar por ID, código de barras o nombre" value="${escapeHtml(state.rvSearch||'')}" style="width:100%;margin-bottom:8px" autocomplete="off">
+    <div class="row" style="gap:8px;align-items:center">
+      <button class="btn secondary sm rep-filter-toggle ${state.rvFiltersOpen?'open':''}" type="button" id="rvFiltersToggle" aria-expanded="${state.rvFiltersOpen?'true':'false'}">${ICONS.sort||''} Filtros${nActive?` <span class="rep-filter-badge">${nActive}</span>`:''} <span class="rep-filter-caret">▾</span></button>
+      ${revFilterOn()?`<button class="btn ghost sm" type="button" id="rvClearFilters">✕ Limpiar</button>`:''}
+      <span class="small-note">${shown} de ${all.length} producto${all.length===1?'':'s'} por revisar</span>
+    </div>
+    <div class="rep-filter-panel ${state.rvFiltersOpen?'open':''}" id="rvFilterPanel"><div class="rep-filter-inner"><div class="rep-filter-grid">
+      <label class="rep-filter-field"><span>Persona</span><select id="rvCodeFilter"><option value="">Todas</option>${codes.map(c=>o(c,c,state.rvFilterCode)).join('')}</select></label>
+      <label class="rep-filter-field"><span>Fecha de la foto</span><select id="rvDateFilter"><option value="">Todas</option>${dates.map(d=>o(d,repFmtDate(d),state.rvFilterDate)).join('')}</select></label>
+      <label class="rep-filter-field"><span>Almacén</span><select id="rvStoreFilter"><option value="">Todos</option>${stores.map(c=>o(c,c,state.rvFilterStore)).join('')}</select></label>
+      <label class="rep-filter-field"><span>Categoría</span><select id="rvCatFilter"><option value="">Todas</option>${REP_CATEGORIES.map(c=>o(c,c,state.rvFilterCat)).join('')}${o('__none',t('uncategorized'),state.rvFilterCat)}</select></label>
+    </div></div></div>
+  </div>`;
+}
+/* Se llama tras cada sondeo: repinta la revisión solo si cambió la cola, y se queda en el mismo producto. */
+function revAfterPoll(){
+  if(state.tab!=='rep') return;
+  if(state.repView==='list'){ render(); return; }
+  if(state.repView!=='review') return;
+  const el=document.activeElement; if(el&&/INPUT|TEXTAREA|SELECT/.test(el.tagName||'')) return;
+  if(revQueueSig()===state.__revSig) return;
+  const P=getReviewProducts(), cur=state.__revCurId, i=cur?P.findIndex(pr=>String(pr.rep.id)===cur):-1;
+  if(i>=0) state.repReviewIndex=i;
+  render();
 }
 function renderRepReview(){
   const prods=getReviewProducts();
   const totalPending=getPendingPhotoReviewCount();
-  if(!prods.length && state.repReviewCat && getReviewProducts(true).length) return renderRevCatFilter()+`<div class="card glass" style="padding:28px;text-align:center"><h3 style="margin:0 0 6px">Nada pendiente en esta categoría</h3><p class="small-note">Cambia el filtro para ver otras categorías.</p></div>`;
+  state.__revSig=revQueueSig();
+  if(!prods.length && revFilterOn() && getReviewProducts(true).length) return renderRevFilters()+`<div class="card glass" style="padding:28px;text-align:center"><h3 style="margin:0 0 6px">Ningún producto pendiente coincide</h3><p class="small-note">Cambia la búsqueda o los filtros.</p></div>`;
   if(!prods.length) return `<div class="card glass" style="padding:28px;text-align:center"><div style="font-size:28px;margin-bottom:8px">✓</div><h3 style="margin:0 0 6px">Todo revisado por ahora</h3><p class="small-note">No hay fotografías pendientes de revisión.</p>${revUndoBtns(false,true)?`<div class="rep-review-nav" style="margin-top:14px;justify-content:center">${revUndoBtns(false,true)}</div>`:''}</div>`;
   const idx=Math.max(0,Math.min(state.repReviewIndex||0,prods.length-1)); state.repReviewIndex=idx;
   const prod=prods[idx], r=prod.rep, photos=prod.photos;
@@ -8933,21 +8979,28 @@ function renderRepReview(){
   const reason=sel.motivo||(sel.legacy?r.revisionMotivo:'')||'';
   const stLabel=sel.estado==='aprobada'?'Aprobada':sel.estado==='repetir'?'Devuelta al fotógrafo (esperando nueva foto)':'Pendiente de revisión';
   const pName=escapeHtml(r.nombreProducto||'Producto sin nombre');
+  state.__revCurId=String(r.id);
+  const retReasons=[]; photos.forEach((p,i)=>{ const parts=String(p.motivo||'').split(' | ').map(x=>x.trim()).filter(Boolean); parts.forEach((m,k)=>retReasons.push({n:i+1,k:k+1,of:parts.length,m})); });
+  if(!retReasons.length && photos.some(p=>p.legacy) && r.revisionMotivo) retReasons.push({n:0,m:r.revisionMotivo});
+  const reasonBanners=`<div class="warning-banner"><span><strong>Motivo original de la repetición</strong><br>${escapeHtml(r.motivo||'No se indicó un motivo.')}</span></div>`+retReasons.map(x=>`<div class="warning-banner"><span><strong>${x.of>1?`Devolución ${x.k} de ${x.of}`:'Motivo de devolución'}${x.n?` · foto ${x.n}`:''}</strong><br>${escapeHtml(x.m)}</span></div>`).join('');
+  const wideReasons=(wide&&retReasons.length)?`<div class="card glass" style="padding:10px 12px;margin-bottom:10px">${reasonBanners}</div>`:'';
+  const loopNote=(state.repRevLoop&&String(state.repRevLoop.repId)===String(r.id))?`<div class="warning-banner" style="margin-bottom:10px"><span>↻ <strong>${escapeHtml(state.repRevLoop.text)}</strong></span></div>`:'';
   const ring=`<div class="rep-ring" role="img" title="${pName} · ${escapeHtml(r.codigoProducto||'')}" aria-label="Producto ${idx+1} de ${prods.length}"><svg viewBox="0 0 48 48"><circle class="trk" cx="24" cy="24" r="19"/><circle class="bar" cx="24" cy="24" r="19" style="--off:${(119.38*(1-(idx+1)/prods.length)).toFixed(2)}"/></svg><b>${totalPending}</b></div>`;
-  const navBtns=`<div class="rep-review-nav"><button class="btn secondary rep-review-action" data-review-prev="${sel.key}" ${idx===0?'disabled':''} aria-label="Producto anterior">← Anterior</button><button class="btn secondary rep-review-action" data-review-next="${sel.key}" ${idx>=prods.length-1?'disabled':''} aria-label="Producto siguiente">Siguiente →</button></div>`;
+  const navBtns=`<div class="rep-review-nav"><button class="btn secondary rep-review-action" data-review-prev="${sel.key}" ${prods.length<2?'disabled':''} aria-label="Producto anterior">${idx===0&&prods.length>1?'↻ Ir al último':'← Anterior'}</button><button class="btn secondary rep-review-action" data-review-next="${sel.key}" ${prods.length<2?'disabled':''} aria-label="Producto siguiente">${idx>=prods.length-1&&prods.length>1?'↻ Volver al primero':'Siguiente →'}</button></div>`;
   const actBtns=`<button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'}>✓ Aprobar foto</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'}>↻ Devolver para repetir</button>${revUndoBtns(false)}`;
   const info = wide
-  ? `<section class="card glass rep-review-info rep-review-mini">${ring}<div class="rep-mini-count" title="Fotos aprobadas de este producto">${nOk}/${nTotal}</div><div class="rep-mini-title" title="${pName} · ${escapeHtml(r.codigoProducto||'')}">${pName}</div><span class="rep-mini-sep"></span><button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Aprobar foto" aria-label="Aprobar foto">✓</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Devolver para repetir" aria-label="Devolver para repetir">↻</button>${revUndoBtns(true)}<button class="btn secondary rep-review-action" data-review-prev="${sel.key}" ${idx===0?'disabled':''} title="Producto anterior" aria-label="Producto anterior">←</button><button class="btn secondary rep-review-action" data-review-next="${sel.key}" ${idx>=prods.length-1?'disabled':''} title="Producto siguiente" aria-label="Producto siguiente">→</button></section>`
+  ? `<section class="card glass rep-review-info rep-review-mini">${ring}<div class="rep-mini-count" title="Fotos aprobadas de este producto">${nOk}/${nTotal}</div><div class="rep-mini-title" title="${pName} · ${escapeHtml(r.codigoProducto||'')} · ${escapeHtml(r.codigoBarras||'')}"><span class="rep-mini-id">${escapeHtml(r.codigoProducto||'—')}</span><span class="rep-mini-name">${pName}</span><span class="rep-mini-bc">${escapeHtml(r.codigoBarras||'—')}</span></div><span class="rep-mini-sep"></span><button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Aprobar foto" aria-label="Aprobar foto">✓</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Devolver para repetir" aria-label="Devolver para repetir">↻</button>${revUndoBtns(true)}<button class="btn secondary rep-review-action" data-review-prev="${sel.key}" ${prods.length<2?'disabled':''} title="Producto anterior" aria-label="Producto anterior">←</button><button class="btn secondary rep-review-action" data-review-next="${sel.key}" ${prods.length<2?'disabled':''} title="Producto siguiente" aria-label="Producto siguiente">→</button></section>`
   : `<section class="card glass rep-review-info"><div class="rep-review-head">${ring}<div><strong>Revisión de repeticiones</strong><div class="small-note" style="margin-top:2px">Producto ${idx+1} de ${prods.length} · ${totalPending} foto${totalPending===1?'':'s'} pendiente${totalPending===1?'':'s'} en total</div></div></div>
-    <div><div class="small-note">PRODUCTO</div><h2 style="font-size:22px;margin:4px 0 10px">${pName}</h2><div class="rep-detail"><strong>Código:</strong> ${escapeHtml(r.codigoProducto||'—')}</div><div class="rep-detail"><strong>Categoría:</strong> ${escapeHtml(repCatOf(r)||t('uncategorized'))}</div><div class="rep-detail"><strong>Código de barras:</strong> ${escapeHtml(r.codigoBarras||'—')}</div><div class="rep-detail"><strong>Fotógrafo original:</strong> ${escapeHtml(r.fotografo||'—')}</div></div>
+    <div><div class="small-note">PRODUCTO</div><h2 style="font-size:22px;margin:4px 0 10px">${pName}</h2><div class="rep-detail"><strong>Código:</strong> ${escapeHtml(r.codigoProducto||'—')}</div><div class="rep-detail"><strong>Código de barras:</strong> ${escapeHtml(r.codigoBarras||'—')}</div><div class="rep-detail"><strong>Fotógrafo original:</strong> ${escapeHtml(r.fotografo||'—')}</div></div>
     <div class="rep-prod-prog"><div class="rep-prod-prog-top"><strong>Fotos de este producto</strong><span>${nOk} de ${nTotal} aprobadas${nRet?` · ${nRet} por repetir`:''}</span></div><div class="rep-review-progress"><span style="width:${pct}%"></span></div></div>
     <div class="rep-sel-box"><div class="small-note">FOTO ${pos} DE ${nTotal} · ${stLabel}</div><div class="rep-detail"><strong>Foto de repetición tomada por:</strong> ${escapeHtml(who)}</div><div class="rep-detail"><strong>Archivo:</strong> ${escapeHtml(sel.nombreArchivo||String(sel.path||'').split('/').pop())}</div></div>
-    <div class="warning-banner"><span><strong>Motivo de repetición</strong><br>${escapeHtml(r.motivo||'No se indicó un motivo.')}</span></div>${reason?`<div class="warning-banner"><span><strong>Motivo de devolución</strong><br>${escapeHtml(reason)}</span></div>`:''}
+    ${reasonBanners}
     <div class="row wrap" style="gap:8px">${actBtns}</div>${navBtns}<div class="small-note">El producto se archiva automáticamente cuando todas sus fotos están aprobadas. La descarga usa el código del producto.</div></section>`;
   const thumbs=photos.map((p,i)=>{const u=veriPhotoUrl(p.path);const mark=p.estado==='aprobada'?'✓':p.estado==='repetir'?'↻':'';
     return `<button type="button" class="rep-thumb st-${p.estado} ${p.key===sel.key?'active':''}" data-review-thumb="${p.key}" title="Foto ${i+1} · ${p.estado==='aprobada'?'aprobada':p.estado==='repetir'?'devuelta':'pendiente'}" aria-label="Ver foto ${i+1} de ${nTotal}">${u?`<img ${revThumbCache.get(p.path)?`src="${revThumbCache.get(p.path)}" `:''}data-rev-path="${escapeHtml(p.path)}" alt="Foto ${i+1}" loading="lazy" decoding="async" fetchpriority="low">`:''}<span class="n">${i+1}</span>${mark?`<span class="st">${mark}</span>`:''}</button>`;}).join('');
-  const stage=`<div class="rep-review-photo" data-review-stage="${sel.key}">${url?`<img ${revBlobCache.get(sel.path)?`src="${revBlobCache.get(sel.path)}" `:''}alt="Foto de ${pName}" data-review-inline-image="${sel.key}" data-rev-path="${escapeHtml(sel.path)}" draggable="false" decoding="async" fetchpriority="high"><span class="rev-q" data-s="${revBlobCache.get(sel.path)?'hd':'lo'}"><i></i><span>Cargando…</span></span>`:'<p class="small-note">No hay imagen disponible.</p>'}</div><div class="rep-review-inline-controls">${url?`<button type="button" class="btn secondary sm" data-review-zoom="out" aria-label="Alejar">−</button><span class="rep-review-zoom-label" data-review-zoom-label="${sel.key}">100%</span><button type="button" class="btn secondary sm" data-review-zoom="in" aria-label="Acercar">＋</button><button type="button" class="btn secondary sm" data-review-reset="${sel.key}">Ajustar</button><button type="button" class="btn secondary sm" data-review-rotate="${sel.key}">↻ Girar</button><a class="btn secondary sm" href="${url}" target="_blank" rel="noopener">Abrir original ↗</a>`:''}<button type="button" class="btn secondary sm" data-review-wide="1" title="${wide?'Volver a la vista normal (Esc)':'Ampliar la zona de la foto'}">${wide?'⤡ Reducir':'⤢ Ampliar'}</button></div>`;
-  return renderRevCatFilter()+`<div class="rep-review-shell${wide?' wide':''}">${info}<section class="card glass" style="padding:12px"><div class="rep-review-split"><div class="rep-review-main">${stage}</div>${nTotal>1||true?`<div class="rep-thumbs" role="list" aria-label="Fotos de este producto">${thumbs}</div>`:''}</div></section></div>`;
+  const photoArrows=nTotal>1?`<span class="rep-photo-count">${pos} / ${nTotal}</span><button type="button" class="rep-photo-arrow l" data-review-photo-arrow="-1" aria-label="Foto anterior" title="${pos===1?'Ir a la última foto':'Foto anterior'}">‹</button><button type="button" class="rep-photo-arrow r" data-review-photo-arrow="1" aria-label="Foto siguiente" title="${pos===nTotal?'Volver a la primera foto':'Foto siguiente'}">›</button>`:'';
+  const stage=`<div class="rep-review-photo${sel.estado==='aprobada'?' is-approved':''}" data-review-stage="${sel.key}">${url?`<img ${revBlobCache.get(sel.path)?`src="${revBlobCache.get(sel.path)}" `:''}alt="Foto de ${pName}" data-review-inline-image="${sel.key}" data-rev-path="${escapeHtml(sel.path)}" draggable="false" decoding="async" fetchpriority="high"><span class="rev-q" data-s="${revBlobCache.get(sel.path)?'hd':'lo'}"><i></i><span>Cargando…</span></span>`:'<p class="small-note">No hay imagen disponible.</p>'}${photoArrows}${sel.estado==='aprobada'?'<span class="rep-approved-badge">✓ Aprobada</span>':''}</div><div class="rep-review-inline-controls">${url?`<button type="button" class="btn secondary sm" data-review-zoom="out" aria-label="Alejar">−</button><span class="rep-review-zoom-label" data-review-zoom-label="${sel.key}">100%</span><button type="button" class="btn secondary sm" data-review-zoom="in" aria-label="Acercar">＋</button><button type="button" class="btn secondary sm" data-review-reset="${sel.key}">Ajustar</button><button type="button" class="btn secondary sm" data-review-rotate="${sel.key}">↻ Girar</button><a class="btn secondary sm" href="${url}" target="_blank" rel="noopener">Abrir original ↗</a>`:''}<button type="button" class="btn secondary sm" data-review-wide="1" title="${wide?'Volver a la vista normal (Esc)':'Ampliar la zona de la foto'}">${wide?'⤡ Reducir':'⤢ Ampliar'}</button></div>`;
+  return renderRevFilters()+loopNote+wideReasons+`<div class="rep-review-shell${wide?' wide':''}">${info}<section class="card glass" style="padding:12px"><div class="rep-review-split"><div class="rep-review-main">${stage}</div>${nTotal>1||true?`<div class="rep-thumbs" role="list" aria-label="Fotos de este producto">${thumbs}</div>`:''}</div></section></div>`;
 }
 function repParseId(code){
   const m=String(code||'').trim().match(/^(\d{8})[_\-]([^_\-\s]+)[_\-](\d+)/);
@@ -9167,10 +9220,10 @@ async function revApply(entry,dir){
       ]);
     } else if(entry.kind==='approve'){
       await veriTryPatchRepPhoto(item.id,[
-        {estado:'aprobada',estado_revision:'aprobada',motivo_devolucion:'',revisada_en:now,fecha_revision:now,revisada_por:who,revisado_por:who,aprobada_en:now,eliminar_despues_de:new Date(Date.now()+86400000).toISOString()},
-        {estado:'aprobada',estado_revision:'aprobada',motivo_devolucion:''},
-        {estado:'aprobada',motivo_devolucion:''},
-        {estado_revision:'aprobada',motivo_devolucion:''}
+        {estado:'aprobada',estado_revision:'aprobada',revisada_en:now,fecha_revision:now,revisada_por:who,revisado_por:who,aprobada_en:now,eliminar_despues_de:new Date(Date.now()+86400000).toISOString()},
+        {estado:'aprobada',estado_revision:'aprobada'},
+        {estado:'aprobada'},
+        {estado_revision:'aprobada'}
       ]);
     } else {
       const m=entry.motivo||'';
@@ -9196,7 +9249,7 @@ async function revApply(entry,dir){
   }
   try{ await refreshRepPhotos(); }catch(e2){ console.warn(e2); }
   let P=getReviewProducts(), i=P.findIndex(pr=>String(pr.rep.id)===String(entry.repId));
-  if(i<0 && state.repReviewCat){ state.repReviewCat=''; P=getReviewProducts(); i=P.findIndex(pr=>String(pr.rep.id)===String(entry.repId)); }
+  if(i<0 && revFilterOn()){ revClearFilters(); P=getReviewProducts(); i=P.findIndex(pr=>String(pr.rep.id)===String(entry.repId)); }
   if(i>=0) state.repReviewIndex=i;
   state.repReviewPhoto=(dir==='undo'&&i>=0)?((entry.mode==='multi'?'f':'r')+entry.id):null;
 }
@@ -9225,7 +9278,7 @@ async function syncRepetitionCompletion(repId){
   let patch;
   if(allApproved) patch={estado:'sent',archivado:true};                      // Aprobados y completados
   else if(needsRetake){                                                     // Rechazada: vuelve a Pendientes con el nuevo motivo
-    const motivos=photos.filter(f=>f.estado==='repetir').map(f=>String(f.motivo||'').trim()).filter(Boolean);
+    const motivos=photos.filter(f=>f.estado==='repetir').map(f=>String(f.motivo||'').split(' | ').pop().trim()).filter(Boolean);
     patch={estado:'pending',archivado:false,revision_estado:'repetir',revision_motivo:motivos.join(' · ')};
   } else patch={estado:'sent',archivado:false,revision_estado:'pendiente',revision_motivo:''};   // Enviado, en revisión
   try{
@@ -10161,7 +10214,7 @@ function bindTabEvents(){
         if(!hasAdminAccess()) return; const motivo=prompt('Indica el motivo por el que debe tomarse nuevamente la fotografía:'); if(!motivo||!motivo.trim()){toast('Debes indicar el motivo.');return;}
         try{await patchPhotoReview(b.dataset.requestRetake,{revision_estado:'repetir',revision_motivo:motivo.trim(),revision_por:normalize(state.session||''),revision_fecha:new Date().toISOString()}); toast('Solicitud enviada al fotógrafo en Veri'); render();}catch(e){toast('No se pudo enviar la solicitud. Revisa las columnas de Supabase.');}
       });
-      document.querySelectorAll('[data-retake-photo]').forEach(inp=>inp.onchange=async()=>{const file=inp.files?.[0];if(!file)return;const photo=state.repetitionPhotos.find(x=>String(x.id)===String(inp.dataset.retakePhoto));if(!photo)return;const rep=state.repeticiones.find(x=>String(x.id)===String(photo.repeticionId));if(!rep||normalize(rep.fotografo||'')!==normalize(state.session||''))return;try{const newPath=await uploadVeriPhoto(file,rep.id);const now=new Date().toISOString();await patchRepPhoto(photo.id,{foto_path:newPath,ruta_archivo:newPath,nombre_archivo:file.name,estado:'pendiente',estado_revision:'pendiente',motivo_devolucion:'',subida_en:now,fecha_subida:now,revisada_en:null,fecha_revision:null,revisada_por:null,revisado_por:null,aprobada_en:null,eliminar_despues_de:null});photo.path=newPath;photo.nombreArchivo=file.name;photo.estado='pendiente';photo.motivo='';photo.subidaEn=now;await refreshRepPhotos();await sb(`repeticiones?id=eq.${encodeURIComponent(rep.id)}`,{method:'PATCH',body:JSON.stringify({estado:'sent',archivado:false,foto_path:newPath,foto_subida_en:now,revision_estado:'pendiente',revision_motivo:''}),headers:{'Prefer':'return=minimal'}});rep.estado='sent';rep.archivado=false;rep.fotoPath=newPath;rep.revisionEstado='pendiente';toast('Foto reemplazada y enviada nuevamente a revisión');render();}catch(e){console.error(e);toast('No se pudo reemplazar la foto.');}});
+      document.querySelectorAll('[data-retake-photo]').forEach(inp=>inp.onchange=async()=>{const file=inp.files?.[0];if(!file)return;const photo=state.repetitionPhotos.find(x=>String(x.id)===String(inp.dataset.retakePhoto));if(!photo)return;const rep=state.repeticiones.find(x=>String(x.id)===String(photo.repeticionId));if(!rep||normalize(rep.fotografo||'')!==normalize(state.session||''))return;try{const newPath=await uploadVeriPhoto(file,rep.id);const now=new Date().toISOString();await patchRepPhoto(photo.id,{foto_path:newPath,ruta_archivo:newPath,nombre_archivo:file.name,estado:'pendiente',estado_revision:'pendiente',subida_en:now,fecha_subida:now,revisada_en:null,fecha_revision:null,revisada_por:null,revisado_por:null,aprobada_en:null,eliminar_despues_de:null});photo.path=newPath;photo.nombreArchivo=file.name;photo.estado='pendiente';photo.motivo='';photo.subidaEn=now;await refreshRepPhotos();await sb(`repeticiones?id=eq.${encodeURIComponent(rep.id)}`,{method:'PATCH',body:JSON.stringify({estado:'sent',archivado:false,foto_path:newPath,foto_subida_en:now,revision_estado:'pendiente',revision_motivo:''}),headers:{'Prefer':'return=minimal'}});rep.estado='sent';rep.archivado=false;rep.fotoPath=newPath;rep.revisionEstado='pendiente';toast('Foto reemplazada y enviada nuevamente a revisión');render();}catch(e){console.error(e);toast('No se pudo reemplazar la foto.');}});
       document.querySelectorAll('[data-retake]').forEach(inp=>inp.onchange=async()=>{
         const file=inp.files&&inp.files[0]; if(!file)return; const row=state.repeticiones.find(x=>String(x.id)===String(inp.dataset.retake)); if(!row||normalize(row.fotografo||'')!==normalize(state.session||''))return;
         try{const path=await uploadVeriPhoto(file,row.id); await insertRepPhoto(row.id,path,file.name); await patchPhotoReview(row.id,{foto_path:path,foto_subida_en:new Date().toISOString(),revision_estado:'pendiente',revision_motivo:'',revision_por:'',revision_fecha:null,estado:'sent',archivado:false}); await refreshRepPhotos(); toast('Nueva fotografía enviada para revisión'); render();}catch(e){console.error(e);toast('No se pudo subir la foto. Verifica el bucket y sus permisos en Supabase.');}
@@ -10582,11 +10635,34 @@ function bindTabEvents(){
   if(state.tab==='rep' && state.repView==='review' && hasAdminAccess()){
     document.querySelectorAll('[data-review-undo]').forEach(b=>b.onclick=()=>revRunHistory('undo'));
     document.querySelectorAll('[data-review-redo]').forEach(b=>b.onclick=()=>revRunHistory('redo'));
-    const rcf=document.getElementById('repReviewCatFilter'); if(rcf) rcf.onchange=e=>{state.repReviewCat=e.target.value;state.repReviewIndex=0;state.repReviewPhoto=null;render();};
-    const rcc=document.getElementById('repReviewCatClear'); if(rcc) rcc.onclick=()=>{state.repReviewCat='';state.repReviewIndex=0;state.repReviewPhoto=null;render();};
-    document.querySelectorAll('[data-review-next]').forEach(b=>b.onclick=()=>{state.repReviewIndex=(state.repReviewIndex||0)+1;state.repReviewPhoto=null;render();});
-    document.querySelectorAll('[data-review-prev]').forEach(b=>b.onclick=()=>{state.repReviewIndex=Math.max(0,(state.repReviewIndex||0)-1);state.repReviewPhoto=null;render();});
+    const rvNav=(dir)=>{
+      const P=getReviewProducts(), n=P.length; if(!n) return;
+      let i=Math.min(state.repReviewIndex||0,n-1); state.repRevLoop=null;
+      if(dir>0){ if(i>=n-1){ if(n>1){ i=0; state.repRevLoop={repId:P[0].rep.id,text:'Terminaste la lista y empezaste de nuevo desde el primero.'}; toast('↻ Empezaste de nuevo desde el primer producto'); } } else i++; }
+      else { if(i<=0){ if(n>1){ i=n-1; state.repRevLoop={repId:P[i].rep.id,text:'Volviste al último producto de la lista.'}; toast('↻ Volviste al último producto'); } } else i--; }
+      state.repReviewIndex=i; state.repReviewPhoto=null; render();
+    };
+    document.querySelectorAll('[data-review-next]').forEach(b=>b.onclick=()=>rvNav(1));
+    document.querySelectorAll('[data-review-prev]').forEach(b=>b.onclick=()=>rvNav(-1));
+    const rvReset=()=>{ state.repReviewIndex=0; state.repReviewPhoto=null; state.repRevLoop=null; };
+    const rvS=document.getElementById('rvSearchInput');
+    if(rvS){ let tmr=null; rvS.oninput=()=>{ clearTimeout(tmr); tmr=setTimeout(()=>{ state.rvSearch=rvS.value; rvReset(); render(); const n=document.getElementById('rvSearchInput'); if(n){ n.focus(); const l=n.value.length; try{n.setSelectionRange(l,l);}catch(e){} } },300); }; }
+    [['rvCodeFilter','rvFilterCode'],['rvDateFilter','rvFilterDate'],['rvStoreFilter','rvFilterStore'],['rvCatFilter','rvFilterCat']].forEach(([id,k])=>{ const el=document.getElementById(id); if(el) el.onchange=e=>{ state[k]=e.target.value; rvReset(); render(); }; });
+    const rvT=document.getElementById('rvFiltersToggle'); if(rvT) rvT.onclick=()=>{ state.rvFiltersOpen=!state.rvFiltersOpen; rvT.classList.toggle('open',state.rvFiltersOpen); rvT.setAttribute('aria-expanded',state.rvFiltersOpen); const pn=document.getElementById('rvFilterPanel'); if(pn) pn.classList.toggle('open',state.rvFiltersOpen); };
+    const rvC=document.getElementById('rvClearFilters'); if(rvC) rvC.onclick=()=>{ revClearFilters(); rvReset(); render(); };
     document.querySelectorAll('[data-review-thumb]').forEach(b=>b.onclick=()=>{state.repReviewPhoto=b.dataset.reviewThumb;render();});
+    document.querySelectorAll('[data-review-photo-arrow]').forEach(b=>{
+      b.addEventListener('pointerdown',e=>e.stopPropagation()); b.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();});
+      b.onclick=(e)=>{
+        e.stopPropagation(); const dir=Number(b.dataset.reviewPhotoArrow)||1;
+        const P=getReviewProducts(), pr=P.find(x=>String(x.rep.id)===String(state.__revCurId))||P[Math.min(state.repReviewIndex||0,P.length-1)]; if(!pr) return;
+        const ph=pr.photos, n=ph.length; if(n<2) return;
+        let i=ph.findIndex(p=>p.key===state.repReviewPhoto); if(i<0) i=0;
+        const j=(i+dir+n)%n;
+        if(dir>0&&i===n-1) toast(`↻ Volviste a la foto 1 de ${n}`); else if(dir<0&&i===0) toast(`↻ Pasaste a la última foto (${n} de ${n})`);
+        state.repReviewPhoto=ph[j].key; render();
+      };
+    });
     document.querySelectorAll('[data-review-wide]').forEach(b=>b.onclick=()=>{state.repReviewWide=!state.repReviewWide;render();});
     try{document.querySelector('.rep-thumb.active')?.scrollIntoView({block:'nearest',inline:'center'});}catch(_){}
     if(!window.__revKeys){window.__revKeys=true;document.addEventListener('keydown',e=>{
@@ -10609,15 +10685,15 @@ function bindTabEvents(){
       const stage=img.closest('[data-review-stage]'); let drag=null;
       const rel=e=>{const sr=stage.getBoundingClientRect();return [e.clientX-(sr.left+sr.width/2), e.clientY-(sr.top+sr.height/2)];};
       stage?.addEventListener('wheel',e=>{e.preventDefault();const z=Number(img.dataset.zoom||1);const f=Math.exp(-Math.max(-120,Math.min(120,e.deltaY))*.002);const [px,py]=rel(e);veriZoomTo(img,z*f,px,py,140);},{passive:false});
-      stage?.addEventListener('dblclick',e=>{e.preventDefault();const z=Number(img.dataset.zoom||1), moved=Math.abs(Number(img.dataset.x||0))>1||Math.abs(Number(img.dataset.y||0))>1;const [px,py]=rel(e);
+      stage?.addEventListener('dblclick',e=>{ if(e.target.closest('[data-review-photo-arrow]')) return; e.preventDefault();const z=Number(img.dataset.zoom||1), moved=Math.abs(Number(img.dataset.x||0))>1||Math.abs(Number(img.dataset.y||0))>1;const [px,py]=rel(e);
         if(z>1.02||moved||z<.98) veriZoomTo(img,1,0,0,460);       // ya tenía zoom → vuelve a ajustarse
         else veriZoomTo(img,2.6,px,py,460);                        // sin zoom → acerca a la zona tocada
       });
-      stage?.addEventListener('pointerdown',e=>{ if(e.detail>1) return; img.classList.remove('smooth'); clearTimeout(img._smT); drag={x:e.clientX,y:e.clientY,ox:Number(img.dataset.x||0),oy:Number(img.dataset.y||0)};img.setPointerCapture?.(e.pointerId);});
+      stage?.addEventListener('pointerdown',e=>{ if(e.detail>1||e.target.closest('[data-review-photo-arrow]')) return; img.classList.remove('smooth'); clearTimeout(img._smT); drag={x:e.clientX,y:e.clientY,ox:Number(img.dataset.x||0),oy:Number(img.dataset.y||0)};img.setPointerCapture?.(e.pointerId);});
       stage?.addEventListener('pointermove',e=>{if(!drag)return;applyInlineReviewTransform(img,Number(img.dataset.zoom||1),Number(img.dataset.rotation||0),drag.ox+e.clientX-drag.x,drag.oy+e.clientY-drag.y);});
       const end=()=>{drag=null;};stage?.addEventListener('pointerup',end);stage?.addEventListener('pointercancel',end);
     });
-    document.querySelectorAll('[data-review-approve]').forEach(b=>b.onclick=async()=>{const id=b.dataset.reviewApprove;const mode=b.dataset.reviewPhotoMode;const item=mode==='multi'?state.repetitionPhotos.find(x=>String(x.id)===String(id)):null;const r=item?state.repeticiones.find(x=>String(x.id)===String(item.repeticionId)):state.repeticiones.find(x=>String(x.id)===String(id));const path=item?.path||r?.fotoPath;const __prev=item?{kind:'approve',mode:'multi',id:item.id,repId:item.repeticionId,prev:{estado:item.estado,motivo:item.motivo||''}}:{kind:'approve',mode:'legacy',id,repId:id,prevRepEstado:r?r.estado:undefined};const url=path?veriPhotoUrl(path):'';if(url) downloadApprovedPhoto(url,safePhotoFilename({...r,path}));try{const now=new Date().toISOString();if(item){await patchRepPhoto(item.id,{estado:'aprobada',estado_revision:'aprobada',motivo_devolucion:'',revisada_en:now,fecha_revision:now,revisada_por:normalize(state.session||''),revisado_por:normalize(state.session||''),aprobada_en:now,eliminar_despues_de:new Date(Date.now()+86400000).toISOString()});await syncRepetitionCompletion(item.repeticionId);}else{await patchPhotoReview(id,{revision_estado:'aprobada',revision_motivo:'',revision_por:normalize(state.session||''),revision_fecha:now});if(r)r.estado='sent';}await refreshRepPhotos();revPush(__prev);state.repReviewPhoto=null;state.repReviewWide=false;toast('Foto aprobada; descarga iniciada · puedes deshacer');render();}catch(e){console.error(e);toast('No se pudo aprobar la foto.');}});
+    document.querySelectorAll('[data-review-approve]').forEach(b=>b.onclick=async()=>{const id=b.dataset.reviewApprove;const mode=b.dataset.reviewPhotoMode;const item=mode==='multi'?state.repetitionPhotos.find(x=>String(x.id)===String(id)):null;const r=item?state.repeticiones.find(x=>String(x.id)===String(item.repeticionId)):state.repeticiones.find(x=>String(x.id)===String(id));const path=item?.path||r?.fotoPath;const __prev=item?{kind:'approve',mode:'multi',id:item.id,repId:item.repeticionId,prev:{estado:item.estado,motivo:item.motivo||''}}:{kind:'approve',mode:'legacy',id,repId:id,prevRepEstado:r?r.estado:undefined};const url=path?veriPhotoUrl(path):'';if(url) downloadApprovedPhoto(url,safePhotoFilename({...r,path}));try{const now=new Date().toISOString();if(item){await patchRepPhoto(item.id,{estado:'aprobada',estado_revision:'aprobada',revisada_en:now,fecha_revision:now,revisada_por:normalize(state.session||''),revisado_por:normalize(state.session||''),aprobada_en:now,eliminar_despues_de:new Date(Date.now()+86400000).toISOString()});await syncRepetitionCompletion(item.repeticionId);}else{await patchPhotoReview(id,{revision_estado:'aprobada',revision_motivo:'',revision_por:normalize(state.session||''),revision_fecha:now});if(r)r.estado='sent';}await refreshRepPhotos();revPush(__prev);state.repReviewPhoto=null;state.repReviewWide=false;toast('Foto aprobada; descarga iniciada · puedes deshacer');render();}catch(e){console.error(e);toast('No se pudo aprobar la foto.');}});
     document.querySelectorAll('[data-review-retake]').forEach(b=>b.onclick=async()=>{
       if(b.dataset.busy==='1') return;
       const motivo=prompt('¿Qué debe corregir el fotógrafo?');
@@ -10629,15 +10705,16 @@ function bindTabEvents(){
         if(b.dataset.reviewPhotoMode==='multi'){
           const item=state.repetitionPhotos.find(x=>String(x.id)===String(b.dataset.reviewRetake));
           if(!item) throw new Error('Foto no encontrada');
-          entry={kind:'retake',mode:'multi',id:item.id,repId:item.repeticionId,prev:{estado:item.estado,motivo:item.motivo||''},motivo:m};
+          const mS=item.motivo?(item.motivo+' | '+m):m;   // historial: devoluciones anteriores | esta
+          entry={kind:'retake',mode:'multi',id:item.id,repId:item.repeticionId,prev:{estado:item.estado,motivo:item.motivo||''},motivo:mS};
           // Si la tabla no tiene alguna de las columnas opcionales, se reintenta con menos campos.
           await veriTryPatchRepPhoto(item.id,[
-            {estado:'repetir',estado_revision:'repetir',motivo_devolucion:m,revisada_en:now,fecha_revision:now,revisada_por:who,revisado_por:who},
-            {estado:'repetir',estado_revision:'repetir',motivo_devolucion:m},
-            {estado:'repetir',motivo_devolucion:m},
-            {estado_revision:'repetir',motivo_devolucion:m}
+            {estado:'repetir',estado_revision:'repetir',motivo_devolucion:mS,revisada_en:now,fecha_revision:now,revisada_por:who,revisado_por:who},
+            {estado:'repetir',estado_revision:'repetir',motivo_devolucion:mS},
+            {estado:'repetir',motivo_devolucion:mS},
+            {estado_revision:'repetir',motivo_devolucion:mS}
           ]);
-          item.estado='repetir'; item.motivo=m;
+          item.estado='repetir'; item.motivo=mS;
           try{ await syncRepetitionCompletion(item.repeticionId); }catch(_){}
         } else {
           { const rr=state.repeticiones.find(x=>String(x.id)===String(b.dataset.reviewRetake)); entry={kind:'retake',mode:'legacy',id:b.dataset.reviewRetake,repId:b.dataset.reviewRetake,prevRepEstado:rr?rr.estado:undefined,motivo:m}; }
@@ -10965,7 +11042,7 @@ async function repUploadRun(job){
         const oldId=job.replace[i];
         if(oldId!==undefined){
           const now=new Date().toISOString();
-          await patchRepPhoto(oldId,{foto_path:it.path,ruta_archivo:it.path,nombre_archivo:it.file.name,estado:'pendiente',estado_revision:'pendiente',motivo_devolucion:'',subida_en:now,fecha_subida:now,revisada_en:null,fecha_revision:null,revisada_por:null,revisado_por:null,aprobada_en:null,eliminar_despues_de:null});
+          await patchRepPhoto(oldId,{foto_path:it.path,ruta_archivo:it.path,nombre_archivo:it.file.name,estado:'pendiente',estado_revision:'pendiente',subida_en:now,fecha_subida:now,revisada_en:null,fecha_revision:null,revisada_por:null,revisado_por:null,aprobada_en:null,eliminar_despues_de:null});
         } else await insertRepPhoto(r.id, it.path, it.file.name);
         it.saved=true;
       }
@@ -11054,13 +11131,32 @@ async function pollRepeticiones(force){
     if(force || repSig(mapped)!==repSig(state.repeticiones)){
       state.repeticiones=mapped;
       await refreshRepPhotos();
-      if(state.tab==='rep' && state.repView==='list') render();
+      revAfterPoll();
       refreshVeriPhotoUrls();
     }
   }catch(e){ /* sin red: se reintenta en el siguiente ciclo */ }
   finally{ __repPolling=false; }
 }
 setInterval(()=>{ if(document.hidden || !state.session || veriLiteSkip('rep')) return; if(state.tab==='rep' && state.repView==='list') pollRepeticiones(); }, REP_POLL_MS);
+/* Revisión: sondeo más frecuente (3 s). Detecta fotos nuevas, devueltas o aprobadas por otra persona y actualiza la cola sin perder tu lugar. */
+let __revPoll2=false;
+async function pollReview(){
+  if(__revPoll2) return; __revPoll2=true;
+  try{
+    const rows=await sb('repeticion_fotos?select=*&order=fecha_subida.asc',{silent:true});
+    if(Array.isArray(rows)){
+      const a=rows.map(f=>[f.id,f.estado||f.estado_revision||'pendiente',f.motivo_devolucion||'',f.foto_path||f.ruta_archivo||''].join('~')).join('|');
+      const b=(state.repetitionPhotos||[]).map(f=>[f.id,f.estado,f.motivo||'',f.path||''].join('~')).join('|');
+      if(a!==b){ await pollRepeticiones(true); return; }
+    }
+    await pollRepeticiones(false);
+  }catch(e){}
+  finally{ __revPoll2=false; }
+}
+setInterval(()=>{ if(document.hidden || !state.session || veriLiteSkip('rep')) return; if(state.tab==='rep' && state.repView==='review' && !window.__revBusy) pollReview(); }, 3000);
+let __wasInRev=false;
+setInterval(()=>{ const inRev=!!(state.session && state.tab==='rep' && state.repView==='review' && !document.hidden); if(inRev && !__wasInRev) pollReview(); __wasInRev=inRev; }, 1000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden && state.session && state.tab==='rep' && state.repView==='review') pollReview(); });
 // Al entrar a Repeticiones se actualiza al instante (sin esperar el primer ciclo); fuera de Repeticiones no hay consultas.
 let __wasInRep=false;
 setInterval(()=>{ const inRep=!!(state.session && state.tab==='rep' && state.repView==='list' && !document.hidden); if(inRep && !__wasInRep) pollRepeticiones(); __wasInRep=inRep; }, 1000);
