@@ -3746,15 +3746,48 @@ function budOpenExpenseForm(opts){
   if($('#bfGo')) $('#bfGo').onclick=()=>runQuick($('#bfQuick').value);
   $('#bfQuick').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); runQuick($('#bfQuick').value); } });
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition; let rec=null, listening=false;
+  /* Respaldo para iPhone/app instalada (donde el dictado del navegador falla): graba el audio y lo transcribe con Groq (Whisper). */
+  let mr=null, mstream=null, mchunks=[], mtimer=null;
+  const micOff=()=>{ const mc=$('#bfMic'); if(mc) mc.classList.remove('on'); };
+  const kbHint=()=>{ qmsg('No se pudo usar el dictado aquí. Toca el campo y usa el micrófono 🎤 del teclado del iPhone.','warn'); const q=$('#bfQuick'); if(q) q.focus(); };
+  const recFallback=async()=>{
+    if(mr&&mr.state==='recording'){ try{ mr.stop(); }catch(e){} return; }
+    const key=(state.veriApiKey||'').trim();
+    if(!key||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder){ kbHint(); return; }
+    try{ mstream=await navigator.mediaDevices.getUserMedia({audio:true}); }
+    catch(e){ qmsg('Permite el micrófono para poder dictar (Ajustes del iPhone › Safari › Micrófono).','warn'); return; }
+    const mime=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(m=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))||'';
+    mchunks=[];
+    try{ mr=new MediaRecorder(mstream,mime?{mimeType:mime}:undefined); }catch(e){ mstream.getTracks().forEach(t=>t.stop()); kbHint(); return; }
+    mr.ondataavailable=e=>{ if(e.data&&e.data.size) mchunks.push(e.data); };
+    mr.onstop=async()=>{
+      clearTimeout(mtimer); mstream.getTracks().forEach(t=>t.stop()); micOff();
+      const type=mr.mimeType||mime||'audio/mp4', blob=new Blob(mchunks,{type});
+      if(blob.size<1500){ qmsg('No te alcancé a escuchar. Intenta de nuevo.','warn'); return; }
+      qmsg('Transcribiendo…');
+      try{
+        const fd=new FormData(); fd.append('file',blob,'voz.'+(/mp4/.test(type)?'m4a':'webm')); fd.append('model','whisper-large-v3-turbo'); fd.append('language','es'); fd.append('response_format','json');
+        const res=await fetch('https://api.groq.com/openai/v1/audio/transcriptions',{method:'POST',headers:{'Authorization':'Bearer '+key},body:fd});
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        const text=String((await res.json()).text||'').trim();
+        if(!text){ qmsg('No te alcancé a escuchar. Intenta de nuevo.','warn'); return; }
+        const q=$('#bfQuick'); if(q) q.value=text;
+        if(ov.isConnected) runQuick(text);
+      }catch(e){ console.warn('Dictado (Groq):',e); qmsg('No se pudo transcribir el audio. Revisa tu conexión o escribe el gasto.','warn'); }
+    };
+    mr.start(); $('#bfMic').classList.add('on'); qmsg('Te escucho… toca 🎤 de nuevo cuando termines.');
+    mtimer=setTimeout(()=>{ try{ if(mr.state==='recording') mr.stop(); }catch(e){} },20000);
+  };
   $('#bfMic').onclick=()=>{
-    if(!SR){ qmsg('Este navegador no dicta desde la app. Toca el campo y usa el micrófono del teclado 🎤.','warn'); $('#bfQuick').focus(); return; }
+    if(mr&&mr.state==='recording'){ recFallback(); return; }
+    if(!SR||navigator.standalone===true){ recFallback(); return; }
     if(listening){ try{ rec.stop(); }catch(e){} return; }
     let heard=''; rec=new SR(); rec.lang='es-CO'; rec.interimResults=true; rec.continuous=false; rec.maxAlternatives=1;
     rec.onstart=()=>{ listening=true; $('#bfMic').classList.add('on'); qmsg('Te escucho… dime el gasto, por ejemplo “almuerzo veinticinco mil con Ana”.'); };
     rec.onresult=(e)=>{ let t=''; for(let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript; heard=t; const q=$('#bfQuick'); if(q) q.value=t; };
-    rec.onerror=(e)=>{ heard=''; qmsg(e.error==='not-allowed'||e.error==='service-not-allowed'?'Permite el micrófono para poder dictar.':(e.error==='no-speech'?'No te alcancé a escuchar. Intenta de nuevo.':'No se pudo usar el micrófono.'),'warn'); };
+    rec.onerror=(e)=>{ heard=''; if(e.error==='no-speech'){ qmsg('No te alcancé a escuchar. Intenta de nuevo.','warn'); return; } if(e.error==='not-allowed'&&!(state.veriApiKey||'').trim()){ qmsg('Permite el micrófono para poder dictar.','warn'); return; } recFallback(); };
     rec.onend=()=>{ listening=false; const mc=$('#bfMic'); if(mc) mc.classList.remove('on'); if(heard.trim()&&ov.isConnected) runQuick(heard); };
-    try{ rec.start(); }catch(e){ qmsg('No se pudo iniciar el micrófono.','warn'); }
+    try{ rec.start(); }catch(e){ recFallback(); }
   };
   $('#bfSave').onclick=()=>budSaveExpense(f,g,$('#bfSave'));
   if(opts&&opts.voice) $('#bfMic').click();
@@ -6908,10 +6941,12 @@ async function saveMyAvatarConfig(cfg){
 /* ===== Copiar información de un producto (ID, nombre y código de barras) ===== */
 function veriProdMsg(p){
   const en=state.prefs.lang==='en';
-  const lines=[en?'I need information about this product:':'Necesito información sobre este producto:'];
+  const lines=[en?'Hi, I need information about this product:':'Hola, necesito información sobre este producto:'];
   if(p.id_producto) lines.push('ID: '+p.id_producto);
   lines.push((en?'Name: ':'Nombre: ')+(p.nombre||''));
   lines.push((en?'Barcode: ':'Código de barras: ')+(p.codigo||''));
+  lines.push('');
+  lines.push(en?'Reason: ':'Motivo: ');
   return lines.join('\n');
 }
 function veriCopyAttr(p){ return encodeURIComponent(JSON.stringify({id_producto:p.id_producto||'',nombre:p.nombre||'',codigo:p.codigo||''})); }
