@@ -1243,6 +1243,12 @@ body.veri-wide .naming-col-form #namingAddBtn{min-height:52px;font-size:16px;mar
 body.veri-wide .naming-col-scan .scan-frame{width:100%}
 .rep-review-photo img.smooth,#veriPhotoLarge.smooth{transition:transform var(--zdur,400ms) cubic-bezier(.22,1,.36,1)}
 .rep-review-photo{user-select:none;-webkit-user-select:none}
+.rev-pre{display:flex;align-items:center;gap:8px;margin-top:8px}
+.rev-pre-bg{fill:none;stroke:rgba(128,128,128,.28);stroke-width:3}
+.rev-pre-arc{fill:none;stroke:var(--accent,#0a84ff);stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset .35s ease,stroke .3s}
+.rev-pre:not(.done) svg{animation:revPreSpin 1.6s linear infinite}
+.rev-pre.done .rev-pre-arc{stroke:#30d158}
+@keyframes revPreSpin{to{transform:rotate(360deg)}}
 .rep-photo-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:4;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);touch-action:manipulation;padding:0}
 .rep-photo-arrow:hover{background:rgba(0,0,0,.7)}.rep-photo-arrow.l{left:10px}.rep-photo-arrow.r{right:10px}
 .rep-review-photo.is-approved img{opacity:.55;transition:opacity .25s}
@@ -6389,9 +6395,9 @@ function repCellText(cell){
 function parseRepeticionesWorkbook(wb, filterCode, existing){
   const filterNorm = filterCode ? normalize(filterCode) : '';
   const exKey=r=>String(r.codigoProducto||'').replace(/\s+/g,'').toUpperCase()||normalize(r.nombreProducto||'');
-  const exMap=new Map(); (existing||[]).forEach(r=>{ const k=exKey(r); if(k&&!exMap.has(k)) exMap.set(k,r); });
-  const seen=new Set(); const updates=[];
-  const out=[]; const st={hojas:0, conColor:0, sinObservacion:0, duplicados:0, actualizados:0, sinCambios:0, otroFotografo:0, sinId:0, columnas:''};
+  const exMap=new Map(); (existing||[]).forEach(r=>{ const k=exKey(r); if(!k) return; if(!exMap.has(k)) exMap.set(k,[]); exMap.get(k).push(r); });
+  const seen=new Set(); const updates=[]; const fixes=new Map();   // fixes: productos ya guardados cuya fila del Excel está en color (hecha) → se corrige solo nombre y código de barras por ID
+  const out=[]; const st={hojas:0, conColor:0, sinObservacion:0, duplicados:0, actualizados:0, sinCambios:0, otroFotografo:0, sinId:0, corregidos:0, idMovido:0, idRaro:0, idConflicto:0, columnas:''};
   const idRx=/^\d{8}[_\-][^_\-\s]+[_\-]\d+/;
   const pref=wb.SheetNames.filter(n=>normalize(n).includes('REPETIC'));
   const rest=wb.SheetNames.filter(n=>!pref.includes(n));
@@ -6420,21 +6426,38 @@ function parseRepeticionesWorkbook(wb, filterCode, existing){
       const cell=(C)=> C>=0 ? sheet[XLSX.utils.encode_cell({r:R,c:C})] : undefined;
       const nombre = normalize(repCellText(cell(iNom)));
       if(!nombre || nombre.startsWith('BASE ACTUAL')) continue;
-      if(cellHasFill(cell(iNom))){ st.conColor++; continue; }           // azul, amarillo, verde… → se ignora; solo nombre en blanco
+      if(cellHasFill(cell(iNom))){                                        // azul, amarillo, verde… → no se crea; solo nombre en blanco es pendiente
+        st.conColor++;
+        const idc=repCellText(cell(iCod)).replace(/\s+/g,'').toUpperCase();
+        const exc=idRx.test(idc)?(exMap.get(idc)||[])[0]:null;
+        if(exc && !fixes.has(exc.id)){
+          const cl=v=>repCellText(v).replace(/\s+/g,''), ok=v=>/^\d{6,14}$/.test(v), e1=cl(cell(iBar)), d1=cl(cell(iBar2));
+          const bar=ok(e1)?e1:(ok(d1)?d1:'');
+          const pf={}; if((exc.nombreProducto||'')!==nombre) pf.nombre_producto=nombre; if(bar && (exc.codigoBarras||'')!==bar) pf.codigo_barras=bar;
+          if(Object.keys(pf).length) fixes.set(exc.id,{patch:pf,code:idc,prev:exc,key:idc});
+        }
+        continue;
+      }
       const motivo = repCellText(cell(iObs));
       if(iObs>=0 && !motivo){ st.sinObservacion++; continue; }
       const fotografo = normalize(repCellText(cell(iFoto)));
       if(filterNorm && fotografo!==filterNorm){ st.otroFotografo++; continue; }
-      const codigo = repCellText(cell(iCod)).replace(/\s+/g,'').toUpperCase();
+      let codigo = repCellText(cell(iCod)).replace(/\s+/g,'').toUpperCase();
+      if(!idRx.test(codigo)){   // la fila trae el ID en otra columna: se toma de la misma fila, nunca de otra
+        for(let C=0;C<=9;C++){ const v=repCellText(cell(C)).replace(/\s+/g,'').toUpperCase(); if(idRx.test(v)){ codigo=v; st.idMovido++; break; } }
+        if(codigo && !idRx.test(codigo)) st.idRaro++;
+      }
       if(!codigo) st.sinId++;
       const key = codigo||nombre;
-      if(seen.has(key)){ st.duplicados++; continue; }        // repetido dentro del mismo Excel
-      seen.add(key);
       const clean=v=>repCellText(v).replace(/\s+/g,'');
-      const barras = clean(cell(iBar)) || clean(cell(iBar2)) || 'NO REPORTADO';
+      const bcOk=v=>/^\d{6,14}$/.test(v);
+      const bE=clean(cell(iBar)), bD=clean(cell(iBar2));
+      const barras = bcOk(bE)?bE:(bcOk(bD)?bD:(bE||bD||'NO REPORTADO'));
+      if(seen.has(key)){ st.duplicados++; continue; }        // mismo ID repetido dentro del Excel (otra ronda del mismo producto)
+      seen.add(key);
       const catRaw = iCat>=0 ? repCellText(cell(iCat)) : '';
       const categoria = catRaw ? ((REP_CATEGORIES.find(c=>normalize(c)===normalize(catRaw))) || catRaw) : inferCategory(nombre);
-      const ex = exMap.get(key);
+      const ex = (exMap.get(key)||[])[0];
       if(ex){   // ya existe: se actualiza (igual que al actualizar una base), sin tocar su estado ni sus fotos
         const patch={};
         if((ex.nombreProducto||'')!==nombre) patch.nombre_producto=nombre;
@@ -6442,12 +6465,13 @@ function parseRepeticionesWorkbook(wb, filterCode, existing){
         if((ex.codigoBarras||'')!==barras) patch.codigo_barras=barras;
         if((ex.motivo||'')!==motivo) patch.motivo=motivo;
         if((ex.categoria||'')!==(categoria||'')) patch.categoria=categoria;
-        if(Object.keys(patch).length){ updates.push({id:ex.id, patch}); st.actualizados++; } else st.sinCambios++;
+        if(Object.keys(patch).length){ updates.push({id:ex.id, patch, code:codigo||nombre, prev:ex}); st.actualizados++; } else st.sinCambios++;
         continue;
       }
       out.push({ codigo_producto:codigo, nombre_producto:nombre, categoria, fotografo, codigo_barras:barras, motivo, estado:'pending', archivado:false, fecha:Date.now() });
     }
   }
+  fixes.forEach((f,id)=>{ if(seen.has(f.key)) return; updates.push({id, patch:f.patch, code:f.code, prev:f.prev}); st.corregidos++; });
   return {items:out, updates, stats:st};
 }
 function importExcelRepeticiones(file, filterCode){
@@ -6460,6 +6484,14 @@ function importExcelRepeticiones(file, filterCode){
       const {items, updates, stats} = parseRepeticionesWorkbook(wb, filterCode, state.repeticiones);
       if(!stats.hojas) throw new Error('sin-hoja-repeticiones');
       if(!items.length && !updates.length){ toast(`No hay cambios (${stats.conColor} con color, ${stats.sinObservacion} sin motivo, ${stats.sinCambios} ya estaban igual). Columnas: ${stats.columnas}`); return; }
+      const cut=(v,n)=>{ v=String(v||''); return v.length>n?v.slice(0,n-1)+'…':v; };
+      const sample=items.slice(0,6).map(it=>`${it.codigo_producto||'(sin ID)'} · ${cut(it.nombre_producto,38)} · ${it.codigo_barras} · ${cut(it.motivo,30)}`).join('\n');
+      const prio=u=>('nombre_producto' in u.patch||'codigo_barras' in u.patch)?0:1;
+      const lab={nombre_producto:'nombre',fotografo:'fotógrafo',codigo_barras:'código',motivo:'motivo',categoria:'categoría'};
+      const descr=u=>{ const pr=u.prev||{}, parts=[]; if('nombre_producto' in u.patch) parts.push(`nombre «${cut(pr.nombreProducto,26)}» → «${cut(u.patch.nombre_producto,26)}»`); if('codigo_barras' in u.patch) parts.push(`código ${pr.codigoBarras||'—'} → ${u.patch.codigo_barras}`); Object.keys(u.patch).filter(k=>!['nombre_producto','codigo_barras'].includes(k)).forEach(k=>parts.push(lab[k]||k)); return `${u.code||u.id}: ${parts.join(' · ')}`; };
+      const upSample=updates.slice().sort((a,b)=>prio(a)-prio(b)).slice(0,6).map(descr).join('\n');
+      const warn=[stats.corregidos?`${stats.corregidos} ya guardados se corrigen por su ID (nombre/código según el Excel)`:'',stats.idMovido?`${stats.idMovido} con el ID en otra columna (tomado de su misma fila)`:'',stats.idRaro?`${stats.idRaro} con ID de formato raro`:'',stats.idConflicto?`${stats.idConflicto} con un ID que ya existía en otro producto (se agregan aparte)`:'',stats.sinId?`${stats.sinId} sin ID`:''].filter(Boolean);
+      if(!confirm(`Vista previa: ${items.length} nuevos · ${updates.length} actualizaciones\n\n${sample||'(solo actualizaciones)'}${items.length>6?'\n…':''}${upSample?'\n\nSe modificarían (ID: campos):\n'+upSample+(updates.length>6?'\n…':''):''}${warn.length?'\n\n⚠ '+warn.join('\n⚠ '):''}\n\n¿Importar?`)) return;
       toast(t('loginLoading'));
       if(items.length) await insertRepeticionesRemote(items);
       for(let i=0;i<updates.length;i+=5){
@@ -6482,7 +6514,7 @@ function repApplyArchiveLocks(list){
 function mapRepRow(r){
   return {
     id:r.id, codigoProducto:r.codigo_producto, nombreProducto:r.nombre_producto,
-    fotografo:r.fotografo, codigoBarras:r.codigo_barras, motivo:r.motivo,
+    fotografo:r.fotografo, codigoBarras:r.codigo_barras, motivo:r.motivo, categoria:r.categoria||'',
     estado:r.estado, fecha:r.fecha, archivado: !!r.archivado, fotoPath:r.foto_path||null, fotoSubidaEn:r.foto_subida_en||null, revisionEstado:r.revision_estado||'pendiente', revisionMotivo:r.revision_motivo||'', revisionPor:r.revision_por||'', revisionFecha:r.revision_fecha||null,
     enProcesoPor:r.en_proceso_por||'', enProcesoDesde:r.en_proceso_desde||null
   };
@@ -8748,13 +8780,36 @@ const revBlobCache=new Map(), revThumbCache=new Map(), revTierCache=new Map(), r
 let revTxOK=(()=>{try{const v=sessionStorage.getItem('veri_rev_tx');return v===null?null:v==='1';}catch(e){return null;}})();
 function revSetTx(ok){revTxOK=ok;try{sessionStorage.setItem('veri_rev_tx',ok?'1':'0');}catch(e){}}
 let revCurPath='', revStagePending=null, __revStageTok=0, __revPre=0, revBg=0; const revBgQ=[];
+const revRank=new Map(), revFailed=new Set(); let revPlan=[];
+/* Cuántas fotos completas se mantienen en memoria: menos en celular / modo ligero / ahorro de datos. */
+function revCap(){
+  try{
+    if(document.documentElement.classList.contains('lite')) return 10;
+    if(navigator.connection&&navigator.connection.saveData) return 8;
+    const mobile=window.matchMedia&&matchMedia('(max-width:760px)').matches, mem=navigator.deviceMemory||4;
+    return mobile?(mem>=6?30:20):(mem>=8?80:50);
+  }catch(e){ return 30; }
+}
 function revBlobTrim(){
-  while(revBlobCache.size>12){
-    let victim=null; for(const k of revBlobCache.keys()){ if(k!==revCurPath){victim=k;break;} }
+  const cap=revCap();
+  while(revBlobCache.size>cap){
+    let victim=null, vr=-1;                                   // se descarta la más lejana en el orden de revisión
+    for(const k of revBlobCache.keys()){ if(k===revCurPath) continue; const rk=revRank.has(k)?revRank.get(k):1e9; if(rk>vr){ vr=rk; victim=k; } }
     if(victim===null) break;
     try{URL.revokeObjectURL(revBlobCache.get(victim));}catch(e){}
     revBlobCache.delete(victim);
   }
+}
+/* Círculo de progreso de la precarga (se actualiza sin repintar la pantalla). */
+function revPrePaint(){
+  const total=revPlan.length; let done=0, failed=0;
+  revPlan.forEach(p=>{ if(revBlobCache.has(p)) done++; else if(revFailed.has(p)) failed++; });
+  const fin=!total||done+failed>=total, C=2*Math.PI*9, frac=total?(done+failed)/total:1;
+  document.querySelectorAll('[data-rev-pre]').forEach(el=>{
+    el.style.display=total?'':'none'; el.classList.toggle('done',fin);
+    const arc=el.querySelector('.rev-pre-arc'); if(arc){ arc.style.strokeDasharray=C; arc.style.strokeDashoffset=C*(1-frac); }
+    const tx=el.querySelector('.rev-pre-txt'); if(tx) tx.textContent=fin?(failed?`Precargadas ${done} de ${total} (${failed} sin cargar)`:`✓ ${done} fotos precargadas`):`Precargando fotos ${done+failed} de ${total}`;
+  });
 }
 function revBlobTouch(path){ const o=revBlobCache.get(path); if(o){ revBlobCache.delete(path); revBlobCache.set(path,o); } return o||''; }
 async function revTierUrl(path,w,q){
@@ -8783,13 +8838,14 @@ function revFetchFull(path,high){
   if(revInflight.has(path)) return revInflight.get(path);
   const url=veriPhotoUrl(path); if(!url) return Promise.resolve('');
   const p=fetch(url,{priority:high?'high':'low'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.blob(); })
-    .then(blob=>{ const o=URL.createObjectURL(blob); revBlobCache.set(path,o); revBlobTrim(); revMakeThumb(path,blob); return o; })
-    .catch(e=>{ console.warn('Foto completa no disponible por fetch',e.message||e); return ''; })
+    .then(blob=>{ const o=URL.createObjectURL(blob); revBlobCache.set(path,o); revFailed.delete(path); revBlobTrim(); revMakeThumb(path,blob); revPrePaint(); return o; })
+    .catch(e=>{ console.warn('Foto completa no disponible por fetch',e.message||e); revFailed.add(path); revPrePaint(); return ''; })
     .finally(()=>revInflight.delete(path));
   revInflight.set(path,p); return p;
 }
 function revBgPump(){
-  while(revBg<2&&revBgQ.length){
+  const lim=revCap()>40?3:2;
+  while(revBg<lim&&revBgQ.length){
     const it=revBgQ.shift(); if(it.tok!==__revPre) continue;
     if(revBlobCache.has(it.path)||revInflight.has(it.path)) continue;
     revBg++; revFetchFull(it.path,false).finally(()=>{ revBg--; revBgPump(); });
@@ -8879,17 +8935,21 @@ function revWarmQueue(){
 }
 async function revPreloadAround(){
   const tok=++__revPre; revBgQ.length=0;
-  const P=getReviewProducts(); if(!P.length) return;
-  const i=Math.min(state.repReviewIndex||0,P.length-1);
-  // producto actual completo, luego siguiente, anterior y el que sigue
-  const order=[i,i+1,i-1,i+2].filter(n=>n>=0&&n<P.length);
-  const paths=[]; order.forEach(n=>P[n].photos.forEach(ph=>paths.push(ph.path)));
-  const list=paths.slice(0,10);
-  await revEnsureUrls(list);
+  const P=getReviewProducts();
+  if(!P.length){ revPlan=[]; revRank.clear(); revPrePaint(); return; }
+  const n=P.length, i=Math.min(state.repReviewIndex||0,n-1);
+  // orden: producto actual, siguiente, anterior, y luego todos los demás hacia adelante (con vuelta al inicio)
+  const idxs=[i]; if(n>1) idxs.push((i+1)%n); if(n>2) idxs.push((i-1+n)%n);
+  for(let k=2;k<n;k++){ const j=(i+k)%n; if(!idxs.includes(j)) idxs.push(j); }
+  const seen=new Set(), paths=[];
+  idxs.forEach(j=>P[j].photos.forEach(ph=>{ if(ph.path&&!seen.has(ph.path)){ seen.add(ph.path); paths.push(ph.path); } }));
+  revRank.clear(); paths.forEach((pt,k)=>revRank.set(pt,k));
+  revPlan=paths.slice(0,revCap()); revPrePaint();
+  await revEnsureUrls(revPlan);
   if(tok!==__revPre) return;
   if(revStagePending){ try{ await revStagePending; }catch(e){} }   // primero termina la foto actual
   if(tok!==__revPre) return;
-  list.forEach(pt=>revBgQ.push({path:pt,tok})); revBgPump();
+  revPlan.forEach(pt=>{ if(!revBlobCache.has(pt)) revBgQ.push({path:pt,tok}); }); revBgPump(); revPrePaint();
 }
 /* Fotos de un producto: todas las que subió quien repitió (multifoto) o la única foto antigua. */
 function revProductPhotos(r){
@@ -8939,6 +8999,7 @@ function renderRevFilters(){
       ${revFilterOn()?`<button class="btn ghost sm" type="button" id="rvClearFilters">✕ Limpiar</button>`:''}
       <span class="small-note">${shown} de ${all.length} producto${all.length===1?'':'s'} por revisar</span>
     </div>
+    <div class="rev-pre" data-rev-pre style="display:none" role="status" aria-live="polite"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle class="rev-pre-bg" cx="11" cy="11" r="9"/><circle class="rev-pre-arc" cx="11" cy="11" r="9" transform="rotate(-90 11 11)"/></svg><span class="rev-pre-txt small-note"></span></div>
     <div class="rep-filter-panel ${state.rvFiltersOpen?'open':''}" id="rvFilterPanel"><div class="rep-filter-inner"><div class="rep-filter-grid">
       <label class="rep-filter-field"><span>Persona</span><select id="rvCodeFilter"><option value="">Todas</option>${codes.map(c=>o(c,c,state.rvFilterCode)).join('')}</select></label>
       <label class="rep-filter-field"><span>Fecha de la foto</span><select id="rvDateFilter"><option value="">Todas</option>${dates.map(d=>o(d,repFmtDate(d),state.rvFilterDate)).join('')}</select></label>
@@ -9055,7 +9116,7 @@ function renderRepList(){
   const nActive = [state.repFilterCode,state.repFilterDate,state.repFilterStore,state.repFilterCategory].filter(Boolean).length;
   return `
     <div class="card glass">
-      ${hasAdminAccess()?`<div class="row wrap" style="gap:8px;margin-bottom:12px"><button class="btn" type="button" id="repQuickAdd">＋ Agregar nueva repetición</button>${isAdmin()?`<button class="btn secondary" type="button" id="repClearAll" style="color:#ff453a">🗑 Vaciar todas</button>`:''}<label class="btn secondary" for="repQuickImport">Importar repeticiones Excel</label><input type="file" id="repQuickImport" accept=".xlsx,.xls,.csv" style="display:none"></div>`:''}
+      ${hasAdminAccess()?`<div class="row wrap" style="gap:8px;margin-bottom:12px"><button class="btn" type="button" id="repQuickAdd">＋ Agregar nueva repetición</button>${isAdmin()?`<button class="btn secondary" type="button" id="repClearAll" style="color:#ff453a">🗑 Vaciar todas</button>`:''}${state.repFilterStatus==='pending'&&list.length?`<button class="btn secondary" type="button" id="repDelPending" style="color:#ff453a">🗑 Eliminar pendientes (${list.length})</button>`:''}<label class="btn secondary" for="repQuickImport">Importar repeticiones Excel</label><input type="file" id="repQuickImport" accept=".xlsx,.xls,.csv" style="display:none"></div>`:''}
       <div class="row" style="margin-bottom:10px;gap:8px;">
         <input type="search" id="repSearchInput" placeholder="Buscar producto, código o código de barras" value="${escapeHtml(state.repSearch||'')}" style="flex:1;min-width:0;" autocomplete="off">
         <button class="btn secondary sm" type="button" id="repScanBtn" aria-label="Escanear producto">${ICONS.camera||'📷'} Escanear</button>
@@ -11075,6 +11136,39 @@ document.addEventListener('click',e=>{
     if(!confirm('¿Descartar estas fotos? El producto volverá a pendientes.')) return;
     delete state.repUploads[k]; job.items.forEach(repCapFree); repRelease(k,true);
   }
+});
+/* Eliminar pendientes: solo lo que se ve en la pestaña Pendientes (respeta búsqueda y filtros). No toca productos con fotos, en proceso, enviados ni aprobados. */
+function repPendingVisible(){
+  const q=normalize(state.repSearch||'');
+  return (state.repeticiones||[])
+    .filter(r=>repStage(r)==='pending')
+    .filter(r=> !state.repFilterCode ? true : (r.fotografo===state.repFilterCode))
+    .filter(r=> !state.repFilterDate ? true : repDateKey(r)===state.repFilterDate)
+    .filter(r=> !state.repFilterStore ? true : repStoreKey(r)===state.repFilterStore)
+    .filter(r=> !state.repFilterCategory ? true : (state.repFilterCategory==='__none' ? !repCatOf(r) : repCatOf(r)===state.repFilterCategory))
+    .filter(r=> !q ? true : normalize([r.codigoProducto,r.nombreProducto,r.codigoBarras].join(' ')).includes(q));
+}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest&&e.target.closest('#repDelPending'); if(!b) return;
+  if(!hasAdminAccess()||state.repFilterStatus!=='pending') return;
+  const vis=repPendingVisible();
+  const withPhotos=new Set((state.repetitionPhotos||[]).map(f=>String(f.repeticionId)));
+  const del=vis.filter(r=>!r.fotoPath && !withPhotos.has(String(r.id)) && !r.enProcesoPor && (r.revisionEstado||'pendiente')==='pendiente');
+  const skipped=vis.length-del.length;
+  if(!del.length){ toast(skipped?`No se eliminó nada: los ${skipped} pendientes ya tienen fotos o están en proceso.`:'No hay pendientes para eliminar.'); return; }
+  const filtered=!!(state.repSearch||state.repFilterCode||state.repFilterDate||state.repFilterStore||state.repFilterCategory);
+  const w=prompt(`Vas a ELIMINAR ${del.length} repeticiones de la pestaña Pendientes${filtered?' (solo las que se ven con los filtros/búsqueda actuales)':''}.${skipped?`\nSe conservan ${skipped} que ya tienen fotos o están en proceso.`:''}\nNo toca las de Tomadas, Enviadas ni Aprobadas. No se puede deshacer.\nEscribe ELIMINAR para confirmar:`);
+  if(!w||w.trim().toUpperCase()!=='ELIMINAR'){ if(w!==null) toast('No se eliminó nada: debes escribir ELIMINAR.'); return; }
+  b.disabled=true;
+  try{
+    const ids=del.map(r=>r.id);
+    for(let i=0;i<ids.length;i+=80){
+      await sb(`repeticiones?id=in.(${ids.slice(i,i+80).map(x=>encodeURIComponent(x)).join(',')})`,{method:'DELETE',headers:{'Prefer':'return=minimal'}});
+    }
+    const gone=new Set(ids.map(String));
+    state.repeticiones=state.repeticiones.filter(r=>!gone.has(String(r.id)));
+    toast(`✓ Se eliminaron ${del.length} pendientes${skipped?` · ${skipped} se conservaron`:''}`); render();
+  }catch(err){ console.error(err); b.disabled=false; toast('No se pudieron eliminar. Revisa los permisos de Supabase.'); try{ await refreshRepeticiones(); render(); }catch(_){} }
 });
 document.addEventListener('click',async e=>{
   const b=e.target.closest&&e.target.closest('#repClearAll'); if(!b) return;
