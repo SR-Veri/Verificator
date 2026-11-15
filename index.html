@@ -2334,6 +2334,8 @@ html[data-theme="dark"], body[data-theme="dark"], [data-theme="dark"] body,
 <button type="button" id="veriFab" class="veri-fab" aria-label="Ask Veri" title="Veri"></button>
 
 <style id="vp-v2-css">
+.veri-photo-stage img,.rep-review-photo img{will-change:auto!important;image-rendering:auto;image-orientation:from-image}
+
 /* Estadísticas: pastel */
 .stat-chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
 .stat-chip{appearance:none;border:1px solid var(--divider);background:var(--input-bg);color:var(--text-1);border-radius:999px;padding:7px 14px;font:600 13px/1 inherit;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
@@ -2885,7 +2887,7 @@ async function veriLiteToggle(on, originEl){
   setTimeout(()=>rings.forEach(r=>r.remove()),dur+500);
 }
 let __liteImgObs=null;
-function liteTuneImgs(root){ try{ (root||document).querySelectorAll('img:not([data-lt])').forEach(im=>{ im.dataset.lt='1'; if(!im.hasAttribute('loading')) im.loading='lazy'; im.decoding='async'; }); }catch(e){} }
+function liteTuneImgs(root){ try{ (root||document).querySelectorAll('img:not([data-lt]):not([data-review-inline-image]):not(#veriPhotoLarge)').forEach(im=>{ im.dataset.lt='1'; if(!im.hasAttribute('loading')) im.loading='lazy'; im.decoding='async'; }); }catch(e){} }
 function applyLiteMode(){
   const on=!!(state.prefs&&state.prefs.liteMode);
   document.documentElement.classList.toggle('lite',on);
@@ -11462,19 +11464,19 @@ function bindTabEvents(){
       const stage=img.closest('[data-review-stage]'); let drag=null;
       const rel=e=>{const sr=stage.getBoundingClientRect();return [e.clientX-(sr.left+sr.width/2), e.clientY-(sr.top+sr.height/2)];};
       stage?.addEventListener('wheel',e=>{e.preventDefault();const z=Number(img.dataset.zoom||1);const f=Math.exp(-Math.max(-120,Math.min(120,e.deltaY))*.002);const [px,py]=rel(e);veriZoomTo(img,z*f,px,py,140);},{passive:false});
-      stage?.addEventListener('dblclick',e=>{ if(e.target.closest('[data-review-photo-arrow]')) return; e.preventDefault();const z=Number(img.dataset.zoom||1), moved=Math.abs(Number(img.dataset.x||0))>1||Math.abs(Number(img.dataset.y||0))>1;const [px,py]=rel(e);
-        if(z>1.02||moved||z<.98) veriZoomTo(img,1,0,0,460);       // ya tenía zoom → vuelve a ajustarse
-        else veriZoomTo(img,2.6,px,py,460);                        // sin zoom → acerca a la zona tocada
-      });
+      stage?.addEventListener('dblclick',e=>e.preventDefault());
+      const toggleZoom=(cx,cy)=>{ const sr=stage.getBoundingClientRect(); const px=cx-(sr.left+sr.width/2), py=cy-(sr.top+sr.height/2); const z=Number(img.dataset.zoom||1), moved=Math.abs(Number(img.dataset.x||0))>1||Math.abs(Number(img.dataset.y||0))>1;
+        if(z>1.02||moved) veriZoomTo(img,1,0,0,420); else veriZoomTo(img,2.6,px,py,420); };
+      let tapS=null,lastTap=null;
       const pts=new Map(); let pin=null;
       const relMid=(a,b)=>{const sr=stage.getBoundingClientRect();return [(a.x+b.x)/2-(sr.left+sr.width/2),(a.y+b.y)/2-(sr.top+sr.height/2)];};
-      stage?.addEventListener('pointerdown',e=>{ if(e.detail>1||e.target.closest('[data-review-photo-arrow]')) return; img.classList.remove('smooth'); clearTimeout(img._smT); pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); img.setPointerCapture?.(e.pointerId);
+      stage?.addEventListener('pointerdown',e=>{ if(e.target.closest('[data-review-photo-arrow]')) return; img.classList.remove('smooth'); clearTimeout(img._smT); pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); img.setPointerCapture?.(e.pointerId); tapS=pts.size===1?{t:Date.now(),x:e.clientX,y:e.clientY,m:false}:null;
         if(pts.size===1) drag={x:e.clientX,y:e.clientY,ox:Number(img.dataset.x||0),oy:Number(img.dataset.y||0)};
         else if(pts.size===2){ drag=null; const [a,b]=[...pts.values()]; const [mx,my]=relMid(a,b); pin={d:Math.hypot(a.x-b.x,a.y-b.y)||1,s:Number(img.dataset.zoom||1),x:Number(img.dataset.x||0),y:Number(img.dataset.y||0),mx,my}; } });
-      stage?.addEventListener('pointermove',e=>{ if(!pts.has(e.pointerId)) return; pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      stage?.addEventListener('pointermove',e=>{ if(!pts.has(e.pointerId)) return; pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); if(tapS&&Math.hypot(e.clientX-tapS.x,e.clientY-tapS.y)>10) tapS.m=true;
         if(pin&&pts.size>=2){ const [a,b]=[...pts.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y)||1; const [mx,my]=relMid(a,b); const ns=Math.max(1,Math.min(6,pin.s*d/pin.d)); const k=ns/pin.s; const r=Number(img.dataset.rotation||0); let nx=mx-(pin.mx-pin.x)*k, ny=my-(pin.my-pin.y)*k; if(ns<=1){nx=0;ny=0;} [nx,ny]=veriClampPanStatic(img,stage,ns,r,nx,ny); applyInlineReviewTransform(img,ns,r,nx,ny,true); return; }
         if(!drag) return; applyInlineReviewTransform(img,Number(img.dataset.zoom||1),Number(img.dataset.rotation||0),drag.ox+e.clientX-drag.x,drag.oy+e.clientY-drag.y); });
-      const end=e=>{ pts.delete(e.pointerId); if(pts.size<2) pin=null; if(pts.size===1){ const r1=[...pts.values()][0]; drag={x:r1.x,y:r1.y,ox:Number(img.dataset.x||0),oy:Number(img.dataset.y||0)}; } else if(pts.size===0) drag=null; };
+      const end=e=>{ if(e.type==='pointerup'&&tapS&&!tapS.m&&pts.size===1&&Date.now()-tapS.t<350){ const n=Date.now(); if(lastTap&&n-lastTap.t<400&&Math.hypot(lastTap.x-e.clientX,lastTap.y-e.clientY)<45){ toggleZoom(e.clientX,e.clientY); lastTap=null; } else lastTap={t:n,x:e.clientX,y:e.clientY}; } tapS=null; pts.delete(e.pointerId); if(pts.size<2) pin=null; if(pts.size===1){ const r1=[...pts.values()][0]; drag={x:r1.x,y:r1.y,ox:Number(img.dataset.x||0),oy:Number(img.dataset.y||0)}; } else if(pts.size===0) drag=null; };
       stage?.addEventListener('pointerup',end); stage?.addEventListener('pointercancel',end);
     });
     document.querySelectorAll('[data-review-approve]').forEach(b=>b.onclick=async()=>{const id=b.dataset.reviewApprove;const mode=b.dataset.reviewPhotoMode;const item=mode==='multi'?state.repetitionPhotos.find(x=>String(x.id)===String(id)):null;const r=item?state.repeticiones.find(x=>String(x.id)===String(item.repeticionId)):state.repeticiones.find(x=>String(x.id)===String(id));const path=item?.path||r?.fotoPath;const __prev=item?{kind:'approve',mode:'multi',id:item.id,repId:item.repeticionId,prev:{estado:item.estado,motivo:item.motivo||''}}:{kind:'approve',mode:'legacy',id,repId:id,prevRepEstado:r?r.estado:undefined};const url=path?veriPhotoUrl(path):'';if(url) downloadApprovedPhoto(url,safePhotoFilename({...r,path}));try{const now=new Date().toISOString();if(item){await patchRepPhoto(item.id,{estado:'aprobada',estado_revision:'aprobada',revisada_en:now,fecha_revision:now,revisada_por:normalize(state.session||''),revisado_por:normalize(state.session||''),aprobada_en:now,eliminar_despues_de:new Date(Date.now()+86400000).toISOString()});await syncRepetitionCompletion(item.repeticionId);}else{await patchPhotoReview(id,{revision_estado:'aprobada',revision_motivo:'',revision_por:normalize(state.session||''),revision_fecha:now});if(r)r.estado='sent';}await refreshRepPhotos();revPush(__prev);state.repReviewPhoto=null;state.repReviewWide=false;toast('Foto aprobada; descarga iniciada · puedes deshacer');render();}catch(e){console.error(e);toast('No se pudo aprobar la foto.');}});
@@ -11665,7 +11667,7 @@ async function veriStableFile(f){
     return new File([buf],name,{type,lastModified:f.lastModified||Date.now()});
   }catch(e){ return f; }
 }
-// Miniatura liviana (máx. 360 px): no se decodifica la foto completa 12 MP en cada tarjeta.
+// Miniatura (máx. 720 px, calidad alta): no se decodifica la foto completa 12 MP en cada tarjeta.
 function veriMakeThumb(file){
   return new Promise(res=>{
     let done=false, u=null;
@@ -11675,10 +11677,10 @@ function veriMakeThumb(file){
       const im=new Image();
       im.onload=()=>{ try{
         const w=im.naturalWidth,h=im.naturalHeight; if(!w||!h) return fin(null);
-        const k=Math.min(1,360/Math.max(w,h)), cv=document.createElement('canvas');
+        const k=Math.min(1,720/Math.max(w,h)), cv=document.createElement('canvas');
         cv.width=Math.max(1,Math.round(w*k)); cv.height=Math.max(1,Math.round(h*k));
         cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
-        cv.toBlob(b=>{ if(!b) return fin(null); done=true; try{URL.revokeObjectURL(u);}catch(e){} res(URL.createObjectURL(b)); },'image/jpeg',0.72);
+        cv.toBlob(b=>{ if(!b) return fin(null); done=true; try{URL.revokeObjectURL(u);}catch(e){} res(URL.createObjectURL(b)); },'image/jpeg',0.95);
       }catch(e){ fin(null); } };
       im.onerror=()=>fin(null);
       setTimeout(()=>fin(null),8000);
@@ -11990,7 +11992,7 @@ function openVeriPhotoPreview(url, title){
     let scale=1, rotation=0, x=0, y=0, dragging=false, startX=0, startY=0, originX=0, originY=0;
     let ax=0,ay=0;const update=()=>{const c=veriClampPanStatic(img,stage,scale,rotation,x,y);x=c[0];y=c[1];ax=x;ay=y;img.style.transform=`translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;modal.querySelector('#veriPhotoZoomLabel').textContent=`${Math.round(scale*100)}%`;};
     const reset=(fit=true)=>{scale=fit?1:1;rotation=0;x=0;y=0;update();};
-    const zoom=(delta)=>{veriSmooth(img,160);scale=Math.max(0.5,Math.min(6,scale+delta));update();};
+    const zoom=(delta)=>{veriSmooth(img,160);scale=Math.max(1,Math.min(6,scale+delta));if(scale<=1){x=0;y=0;}update();};
     modal.querySelector('#veriPhotoZoomIn').onclick=()=>zoom(.25);
     modal.querySelector('#veriPhotoZoomOut').onclick=()=>zoom(-.25);
     modal.querySelector('#veriPhotoActual').onclick=()=>{scale=1;x=0;y=0;update();};
@@ -11999,19 +12001,21 @@ function openVeriPhotoPreview(url, title){
     modal.querySelector('#veriPhotoClose').onclick=()=>{modal.hidden=true;document.body.style.overflow='';};
     modal.addEventListener('click',e=>{if(e.target===modal){modal.hidden=true;document.body.style.overflow='';}});
     stage.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY<0?.15:-.15);},{passive:false});
-    stage.addEventListener('dblclick',e=>{e.preventDefault();const sr=stage.getBoundingClientRect();const px=e.clientX-(sr.left+sr.width/2),py=e.clientY-(sr.top+sr.height/2);veriSmooth(img,460);
-      if(scale>1.02||scale<.98||Math.abs(x)>1||Math.abs(y)>1){scale=1;x=0;y=0;}else{const k=2.6;x=px*(1-k);y=py*(1-k);scale=k;}update();});
+    stage.addEventListener('dblclick',e=>e.preventDefault());
+    const toggleZoom=(cx,cy)=>{const sr=stage.getBoundingClientRect();const px=cx-(sr.left+sr.width/2),py=cy-(sr.top+sr.height/2);veriSmooth(img,380);
+      if(scale>1.02||Math.abs(x)>1||Math.abs(y)>1){scale=1;x=0;y=0;}else{const k=2.6;x=px*(1-k);y=py*(1-k);scale=k;}update();};
+    let tapS=null,lastTap=null;
     const pts=new Map(); let pin=null;
     const relMid=(a,b2)=>{const sr=stage.getBoundingClientRect();return [(a.x+b2.x)/2-(sr.left+sr.width/2),(a.y+b2.y)/2-(sr.top+sr.height/2)];};
-    stage.addEventListener('pointerdown',e=>{if(e.detail>1)return;img.classList.remove('smooth');clearTimeout(img._smT);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});stage.setPointerCapture?.(e.pointerId);
+    stage.addEventListener('pointerdown',e=>{img.classList.remove('smooth');clearTimeout(img._smT);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});stage.setPointerCapture?.(e.pointerId);tapS=pts.size===1?{t:Date.now(),x:e.clientX,y:e.clientY,m:false}:null;
       if(pts.size===1){dragging=true;startX=e.clientX;startY=e.clientY;originX=x;originY=y;}
       else if(pts.size===2){dragging=false;const [a2,b2]=[...pts.values()];const [mx,my]=relMid(a2,b2);pin={d:Math.hypot(a2.x-b2.x,a2.y-b2.y)||1,s:scale,x:x,y:y,mx:mx,my:my};}});
-    stage.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-      if(pin&&pts.size>=2){const [a2,b2]=[...pts.values()];const d=Math.hypot(a2.x-b2.x,a2.y-b2.y)||1;const [mx,my]=relMid(a2,b2);const ns=Math.max(0.5,Math.min(6,pin.s*d/pin.d));const k=ns/pin.s;scale=ns;x=mx-(pin.mx-pin.x)*k;y=my-(pin.my-pin.y)*k;update();return;}
+    stage.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(tapS&&Math.hypot(e.clientX-tapS.x,e.clientY-tapS.y)>10)tapS.m=true;
+      if(pin&&pts.size>=2){const [a2,b2]=[...pts.values()];const d=Math.hypot(a2.x-b2.x,a2.y-b2.y)||1;const [mx,my]=relMid(a2,b2);const ns=Math.max(1,Math.min(6,pin.s*d/pin.d));const k=ns/pin.s;scale=ns;x=mx-(pin.mx-pin.x)*k;y=my-(pin.my-pin.y)*k;if(ns<=1){x=0;y=0;}update();return;}
       if(!dragging)return;x=originX+(e.clientX-startX);y=originY+(e.clientY-startY);update();});
-    const endDrag=e=>{pts.delete(e.pointerId);if(pts.size<2)pin=null;if(pts.size===1){const r1=[...pts.values()][0];dragging=true;startX=r1.x;startY=r1.y;originX=x;originY=y;}else if(pts.size===0)dragging=false;};
+    const endDrag=e=>{if(e.type==='pointerup'&&tapS&&!tapS.m&&pts.size===1&&Date.now()-tapS.t<350){const n=Date.now();if(lastTap&&n-lastTap.t<400&&Math.hypot(lastTap.x-e.clientX,lastTap.y-e.clientY)<45){toggleZoom(e.clientX,e.clientY);lastTap=null;}else lastTap={t:n,x:e.clientX,y:e.clientY};}tapS=null;pts.delete(e.pointerId);if(pts.size<2)pin=null;if(pts.size===1){const r1=[...pts.values()][0];dragging=true;startX=r1.x;startY=r1.y;originX=x;originY=y;}else if(pts.size===0)dragging=false;};
     stage.addEventListener('pointerup',endDrag);stage.addEventListener('pointercancel',endDrag);
-    modal._setImage=(src,caption)=>{img.src=src;modal.querySelector('#veriPhotoModalTitle').textContent=caption||'Revisión de fotografía';modal.querySelector('#veriPhotoDownload').href=src;reset(true);};
+    modal._setImage=(src,caption)=>{img.dataset.lt='1';img.decoding='sync';img.loading='eager';img.src=src;modal.querySelector('#veriPhotoModalTitle').textContent=caption||'Revisión de fotografía';modal.querySelector('#veriPhotoDownload').href=src;reset(true);};
   }
   modal._setImage(url,title);modal.hidden=false;document.body.style.overflow='hidden';
   const close=()=>{modal.hidden=true;document.body.style.overflow='';};
