@@ -2306,6 +2306,9 @@ html[data-theme="dark"], body[data-theme="dark"], [data-theme="dark"] body,
 .rep-notice b{display:block;font-size:14px}.rep-notice small{display:block;font-size:12px;opacity:.75;margin-top:2px}
 @keyframes repNoticeIn{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
 </style>
+<style id="veri-budget-open">.bud-claim{margin:14px 0 4px;padding:12px;border-radius:16px;background:rgba(10,132,255,.10);border:1px solid rgba(10,132,255,.35)}.bud-claim .bud-l{margin-top:0}.bud-claim-row{display:flex;gap:8px;align-items:center;margin:6px 0}.bud-claim-row input{flex:1;min-width:0}.bud-claim-row .btn{white-space:nowrap}</style>
+<style id="veri-nstore">.nstore{margin-bottom:12px}.nstore-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}.nstore-chips{display:flex;gap:8px;flex-wrap:wrap}.nstore-chip{border:1px solid rgba(128,128,128,.35);background:transparent;color:inherit;border-radius:999px;padding:8px 14px;font:inherit;font-weight:600;font-size:14px;cursor:pointer}.nstore-chip small{opacity:.7;margin-left:2px}.nstore-chip.on{background:#0a84ff;border-color:#0a84ff;color:#fff}.nstore-sec{margin-bottom:14px}.nstore-head{display:flex;justify-content:space-between;align-items:center;padding:6px 4px;margin-bottom:4px;font-size:14px;border-bottom:1px solid rgba(128,128,128,.25)}.nstore-head span{opacity:.7;font-weight:600}</style>
+<style id="veri-cartmeta">.cart-meta{margin-bottom:10px}.cart-meta-btns{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}.cart-where{margin:6px 0 8px;border:1px solid rgba(128,128,128,.25);border-radius:14px;overflow:hidden}.cart-where-row{display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:14px;border-bottom:1px solid rgba(128,128,128,.18)}.cart-where-row:last-child{border-bottom:0}.cart-where-row span{flex:1;min-width:0;opacity:.8}.cart-where-row em{font-style:normal;font-weight:700}.cart-group-chip small{opacity:.75}</style>
 </head>
 <body data-theme="light">
 <script>
@@ -2586,7 +2589,7 @@ const I18N = {
     saveAvatar:"Guardar avatar", randomAvatar:"Aleatorio", memojiColumnMissing:"Falta la columna avatar_config (tipo texto) en la tabla personas. Créala en Supabase para guardar el avatar personalizado.",
     termsTitle:"Términos y condiciones", termsSub:"Antes de continuar debes aceptar los términos y condiciones de uso de la aplicación.", termsVersion:"Versión 1.0", termsAcceptLabel:"He leído y acepto los términos y condiciones.", termsContinue:"Aceptar y continuar", termsRequired:"Debes aceptar los términos para continuar.", termsError:"No se pudo registrar la aceptación. Revisa tu conexión e inténtalo de nuevo.",
     newsScan:"Escaneo listo", newsScanSub:"La cámara y el lector están preparados para verificar productos.", newsBase:"Base de productos", newsBaseSub:"Consulta cuándo se actualizó cada base.",
-    lastUpdated:"Última actualización", neverUpdated:"Sin actualización registrada", totalScans:"Escaneos registrados", activePeople:"Personas activas", productsScanned:"Productos encontrados", todayScans:"Escaneos hoy", adminStatsTitle:"Estadísticas", adminPeopleTitle:"Personas", adminBasesTitle:"Bases de productos", adminToolsTitle:"Herramientas de administración", adminPersonEdit:"Editar nombre", adminNoStats:"Aún no hay actividad registrada.", downloadWindow:"Los nombrados de cada día se guardan automáticamente y permanecen en Archivados durante 7 días.", adminDataWarning:"Las estadísticas se generan con los escaneos registrados en la base de datos.", noUpdate:"No disponible", updateBase:"Actualizar base",
+    lastUpdated:"Última actualización", neverUpdated:"Sin actualización registrada", totalScans:"Escaneos registrados", activePeople:"Personas activas", productsScanned:"Productos encontrados", todayScans:"Escaneos hoy", adminStatsTitle:"Estadísticas", adminPeopleTitle:"Personas", adminBasesTitle:"Bases de productos", adminToolsTitle:"Herramientas de administración", adminPersonEdit:"Editar nombre", adminNoStats:"Aún no hay actividad registrada.", downloadWindow:"Cada día de nombrado dura 24 horas desde el primer producto; luego pasa solo a Archivados, donde se guarda 7 días.", adminDataWarning:"Las estadísticas se generan con los escaneos registrados en la base de datos.", noUpdate:"No disponible", updateBase:"Actualizar base",
     adminToolAccessTitle:"Herramientas por persona", adminToolAccessSub:"Toca a una persona para elegir exactamente qué herramientas puede ver y usar (tú, como administrador, siempre ves todas).", adminToolAccessSaved:"Cambios guardados.", adminToolAccessErrorColumn:"No se pudo guardar: falta la columna 'tool_access' en la tabla 'personas' de Supabase. Pide que la agreguen (tipo jsonb) y vuelve a intentar.", adminToolAccessNone:"Agrega personas para poder asignarles herramientas.", adminToolAccessAdminNote:"El administrador siempre ve todas las herramientas.",
     namingPreview:"Ver duplicado", namingPreviewTitle:"Posible duplicado", namingPreviewCurrent:"Lo que estás nombrando", namingPreviewMatch:"Ya existe en la base 2026", namingPreviewReasonExact:"⚠️ Coincidencia exacta de nombre", namingPreviewReasonFlavor:"⚠️ Mismo sabor y mismo peso, misma marca", namingPreviewReasonCode:"⚠️ Este código ya fue nombrado en la base 2026", namingPreviewReasonSimilar:"⚠️ Nombre muy parecido a uno ya existente (misma marca y peso)", namingPreviewReasonVeri:"⚠️ Veri IA considera que es el mismo producto", namingVeriChecking:"Verificando con Veri IA…",
     namingEditOrder:"Editar", namingEditDone:"Listo",
@@ -2795,7 +2798,7 @@ const I18N = {
     emojiTab:"Emoji", builderTab:"Customize", catBg:"Background", catSkin:"Skin", catHair:"Hair", catHairColor:"Hair color", catEyes:"Eyes", catMouth:"Mouth", catAccessory:"Accessories",
     saveAvatar:"Save avatar", randomAvatar:"Random", memojiColumnMissing:"Missing avatar_config column (text type) in the personas table. Create it in Supabase to save the custom avatar.",
     newsScan:"Scanning ready", newsScanSub:"The camera and reader are ready to verify products.", newsBase:"Product databases", newsBaseSub:"See when each database was updated.",
-    lastUpdated:"Last updated", neverUpdated:"No update recorded", totalScans:"Recorded scans", activePeople:"Active people", productsScanned:"Products found", todayScans:"Today's scans", adminStatsTitle:"Statistics", adminPeopleTitle:"People", adminBasesTitle:"Product databases", adminToolsTitle:"Administration tools", adminPersonEdit:"Edit name", adminNoStats:"No activity has been recorded yet.", downloadWindow:"Each day’s named products are saved automatically and remain in Archived for 7 days.", adminDataWarning:"Statistics are generated from scans recorded in the database.", noUpdate:"Unavailable", updateBase:"Update database",
+    lastUpdated:"Last updated", neverUpdated:"No update recorded", totalScans:"Recorded scans", activePeople:"Active people", productsScanned:"Products found", todayScans:"Today's scans", adminStatsTitle:"Statistics", adminPeopleTitle:"People", adminBasesTitle:"Product databases", adminToolsTitle:"Administration tools", adminPersonEdit:"Edit name", adminNoStats:"No activity has been recorded yet.", downloadWindow:"Each naming day lasts 24 hours from the first product, then moves to Archived on its own, where it stays for 7 days.", adminDataWarning:"Statistics are generated from scans recorded in the database.", noUpdate:"Unavailable", updateBase:"Update database",
     adminToolAccessTitle:"Tools per person", adminToolAccessSub:"Tap a person to choose exactly which tools they can see and use (as admin, you always see all of them).", adminToolAccessSaved:"Changes saved.", adminToolAccessErrorColumn:"Couldn't save: the 'tool_access' column is missing from the 'personas' table in Supabase. Ask for it to be added (jsonb type) and try again.", adminToolAccessNone:"Add people to be able to assign them tools.", adminToolAccessAdminNote:"The admin always sees every tool.",
     namingPreview:"View duplicate", namingPreviewTitle:"Possible duplicate", namingPreviewCurrent:"What you're naming", namingPreviewMatch:"Already exists in the 2026 base", namingPreviewReasonExact:"⚠️ Exact name match", namingPreviewReasonFlavor:"⚠️ Same flavor and weight, same brand", namingPreviewReasonCode:"⚠️ This code was already named in the 2026 base", namingPreviewReasonSimilar:"⚠️ Name very similar to an existing one (same brand and weight)", namingPreviewReasonVeri:"⚠️ Veri AI considers this the same product", namingVeriChecking:"Checking with Veri AI…",
     namingEditOrder:"Edit", namingEditDone:"Done",
@@ -3025,6 +3028,8 @@ function sharedClearLocal(){
   Object.assign(sh,{sesion:null,role:null,puestos:[],participantes:[],openReservation:null,tick:0});
 }
 function sharedReset(){ const sh=state.shared; if(!sh) return; clearInterval(sh.timer); clearInterval(sh.lobbyTimer); state.shared=null; }
+/* La sesión compartida usa el mismo día de 24 h del Nombrador (no se corta a la medianoche). */
+function sharedDateOk(f){ return !!f && [todayKey(),namingDayKey(),addDaysKey(todayKey(),-1)].includes(f); }
 async function sharedRestore(){
   const sh=sharedState(), me=sharedMe(); if(!me || sh.sesion || sh.restoredFor===me) return;
   sh.restoredFor=me;
@@ -3033,7 +3038,7 @@ async function sharedRestore(){
   try{
     const rows=await sb(`${SH_P}sesiones?id=eq.${encodeURIComponent(st.id)}&select=*`,{silent:true});
     const row=rows&&rows[0];
-    if(!row||!row.activa||row.fecha!==todayKey()){ localStorage.removeItem(sharedStoreKey()); return; }
+    if(!row||!row.activa||!sharedDateOk(row.fecha)){ localStorage.removeItem(sharedStoreKey()); return; }
     sh.sesion=row; sh.role=st.role==='host'?'host':'helper';
     try{ sh.applied=new Set(JSON.parse(localStorage.getItem('vp_shared_applied_'+row.id)||'[]')); }catch(e){}
     sharedStartLoop(); sharedRequestRender(true);
@@ -3044,7 +3049,7 @@ async function sharedCreateSession(){
   if(!state.naming) loadNaming();
   const sh=sharedState(), now=Date.now();
   try{
-    const res=await sb(`${SH_P}sesiones`,{method:'POST',body:JSON.stringify([{host_codigo:sharedMe(),host_nombre:sharedMeName(),fecha:todayKey(),activa:true,creado_en:now,heartbeat:now,base:state.naming.items.length}]),headers:{'Prefer':'return=representation'},silent:true});
+    const res=await sb(`${SH_P}sesiones`,{method:'POST',body:JSON.stringify([{host_codigo:sharedMe(),host_nombre:sharedMeName(),fecha:namingDayKey(),activa:true,creado_en:now,heartbeat:now,base:state.naming.items.length}]),headers:{'Prefer':'return=representation'},silent:true});
     if(!res||!res[0]) throw new Error('sin fila');
     sh.sesion=res[0]; sh.role='host'; sh.puestos=[]; sh.applied=new Set();
     localStorage.setItem(sharedStoreKey(),JSON.stringify({id:res[0].id,role:'host'}));
@@ -3095,8 +3100,9 @@ async function sharedSync(){
     ]);
     if(Array.isArray(pu)) sh.puestos=pu;
     if(Array.isArray(pa)) sh.participantes=pa;
+    try{ peerSessionMembers(); }catch(e){}
     if(Array.isArray(se)){
-      if(!se[0] || !se[0].activa || se[0].fecha!==todayKey()){
+      if(!se[0] || !se[0].activa || !sharedDateOk(se[0].fecha)){
         if(sh.role!=='host') toast('La sesión compartida terminó.');
         sharedClearLocal(); sharedRequestRender(true); return;
       }
@@ -3209,6 +3215,9 @@ async function sharedRelease(id){
 async function sharedCommit(codigoRaw,nombreRaw){
   const sh=sharedState(), code=normalize(codigoRaw), nombre=normalize(nombreRaw); if(!code||!nombre) return null;
   try{
+    { try{ await Promise.race([peerNamingFresh(5000),new Promise(r=>setTimeout(r,1500))]); }catch(e){}
+      const pd=findPeerNamingDup(nombre,code);
+      if(pd && !confirm(peerDupMsg(pd))){ sharedReleaseOpenReservation(); return null; } }
     let p=null; const o=sh.openReservation;
     if(o && o.code===code){ p=await o.promise; sh.openReservation=null; }
     else {
@@ -3300,7 +3309,7 @@ function sharedStartLobbyPoll(){
   const sh=sharedState(); if(sh.lobbyTimer) return;
   const tick=async()=>{
     if(!document.getElementById('sharedLobby') || sharedIsActive()){ clearInterval(sh.lobbyTimer); sh.lobbyTimer=null; return; }
-    try{ const rows=await sb(`${SH_P}sesiones?activa=eq.true&fecha=eq.${encodeURIComponent(todayKey())}&heartbeat=gte.${Date.now()-25000}&select=*&order=creado_en.desc`,{silent:true}); sh.disponibles=Array.isArray(rows)?rows:[]; }catch(e){}
+    try{ const rows=await sb(`${SH_P}sesiones?activa=eq.true&fecha=in.(${encodeURIComponent(todayKey())},${encodeURIComponent(addDaysKey(todayKey(),-1))})&heartbeat=gte.${Date.now()-25000}&select=*&order=creado_en.desc`,{silent:true}); sh.disponibles=Array.isArray(rows)?rows:[]; }catch(e){}
     const sig=(sh.disponibles||[]).map(r=>r.id).join(',');
     const el=document.getElementById('sharedLive'); if(el && (sh.lobbySig!==sig || !el.dataset.painted)){ sh.lobbySig=sig; el.dataset.painted='1'; el.innerHTML=sharedLobbyInner(); }   // solo se repinta si cambió (para no reiniciar las ondas)
   };
@@ -3329,24 +3338,30 @@ document.addEventListener('click',(e)=>{
 const BUD_P='presupuesto_', BUD_BUCKET='veri-budget-receipts';
 const BUD_CATS=[['transporte','🚌','Transporte'],['alimentacion','🍽️','Alimentación'],['hospedaje','🛏️','Hospedaje'],['combustible','⛽','Combustible'],['materiales','🧰','Materiales'],['otros','🧾','Otros']];
 const budEnc=encodeURIComponent;
+const budAdmin=()=>hasAdminAccess();   // administrador y coadministradores tienen los mismos permisos en Presupuesto
 const budEsc=(x)=>escapeHtml(String(x==null?'':x));
 const budMoney=(n)=>'$'+Math.round(Number(n)||0).toLocaleString('es-CO');
 const budParse=(v)=>Number(String(v||'').replace(/\D/g,''))||0;
+const budHeat=(p)=>p<70?'':`hsl(${Math.round(Math.max(0,45-(Math.min(p,100)-70)*1.5))} 92% 52%)`;
+const budPayCol=(v)=>(budState().noPay||!v)?{}:{medio_pago:v};
+const budPayTxt=(v)=>v==='tarjeta'?'Tarjeta':v==='efectivo'?'Efectivo':'';
+const budPayIco=(v)=>v==='tarjeta'?'💳':v==='efectivo'?'💵':'';
+const budPct=(n)=>{ const v=Math.max(0,Number(n)||0), t=v>=10?String(Math.round(v)):v.toFixed(1).replace('.',','); return t.replace(',0','')+'%'; };
 const budFirst=(n)=>String(n||'').trim().split(/\s+/)[0]||'';
 function budState(){ return state.budget||(state.budget={loaded:false,loading:false,error:false,mineLoaded:false,memberOf:0,groups:[],members:[],gastos:[],groupId:null,tab:'mov',poll:null,urls:{}}); }
 function budMe(){ return normalize(state.session||''); }
 function budName(code){ const p=state.personas.find(x=>x.codigo===normalize(code)); return (p&&p.nombre)||code||''; }
-function budVisible(){ return isAdmin() || toolVisible('budget') || budState().memberOf>0; }
+function budVisible(){ return budAdmin() || toolVisible('budget') || budState().memberOf>0; }
 function budGroup(){ const b=budState(); return b.groups.find(g=>String(g.id)===String(b.groupId))||null; }
 async function budLoadMine(){
   const b=budState(), me=budMe(); if(b.mineLoaded||!me) return; b.mineLoaded=true;
-  try{ const rows=await sb(`${BUD_P}miembros?codigo_persona=eq.${budEnc(me)}&select=grupo_id`,{silent:true}); b.memberOf=(rows||[]).length; if(b.memberOf && state.tab==='rep' && !isAdmin() && !toolVisible('budget')) render(); }catch(e){}
+  try{ const rows=await sb(`${BUD_P}miembros?codigo_persona=eq.${budEnc(me)}&select=grupo_id`,{silent:true}); b.memberOf=(rows||[]).length; if(b.memberOf && state.tab==='rep' && !budAdmin() && !toolVisible('budget')) render(); }catch(e){}
 }
 async function budLoad(quiet){
   const b=budState(); if(b.loading) return; b.loading=true; if(!quiet){ b.error=false; }
   try{
     let groups=[];
-    if(isAdmin()) groups=await sb(`${BUD_P}grupos?activo=eq.true&order=creado_en.asc&select=*`,{silent:true});
+    if(budAdmin()) groups=await sb(`${BUD_P}grupos?activo=eq.true&order=creado_en.asc&select=*`,{silent:true});
     else{
       const mem=await sb(`${BUD_P}miembros?codigo_persona=eq.${budEnc(budMe())}&select=grupo_id`,{silent:true});
       const ids=(mem||[]).map(m=>m.grupo_id);
@@ -3394,23 +3409,26 @@ function budCalcFor(g, members, gastos){
   });
   return {budget,spent,left:budget-spent,pct:budget>0?Math.min(100,spent/budget*100):0,per,codes};
 }
-const budModoTxt=(x)=>x.modo==='personal'?'Solo para quien pagó':x.modo==='igual'?'Partes iguales':x.modo==='monto'?'Por valor':'Porcentajes';
+const budModoTxt=(x)=>x.modo==='abierto'?'Abierto: cada uno pone su parte':x.modo==='personal'?'Solo para quien pagó':x.modo==='igual'?'Partes iguales':x.modo==='monto'?'Por valor':'Porcentajes';
 const budCompact=(n)=>{ const a=Math.abs(n), sg=n<0?'-':''; return a>=1e6 ? sg+'$'+(a/1e6).toFixed(1).replace('.',',')+' M' : a>=1000 ? sg+'$'+Math.round(a/1000)+' mil' : sg+'$'+Math.round(a); };
 /* Círculo con burbujitas de las fotos de perfil */
-function budCluster(codes, centerHtml, info){
+function budCluster(codes, centerHtml, info, heat, ring0){
   const arr=codes.slice(0,14), extra=codes.length-arr.length, many=arr.length>9;
   const ratio=(c)=>{ const r=info&&info[c]?info[c].ratio:1; return Math.max(0,Math.min(1,r)); };
   const size=(c,mn,mx)=>Math.round(info?mn+(mx-mn)*Math.sqrt(ratio(c)):mx);   // más presupuesto = burbuja más grande
   const tip=(c)=>budEsc(budName(c))+(info&&info[c]?(info[c].left<0?' · se pasó por '+budMoney(-info[c].left):' · le quedan '+budMoney(info[c].left)):'');
-  const bubs=[]; const ring=(list,r,mn,mx,off)=>list.forEach((c,i)=>{ const sz=size(c,mn,mx), a=(-90+off+i*360/list.length)*Math.PI/180, low=info&&info[c]&&info[c].left<=0; bubs.push(`<div class="bud-bub${low?' low':''}" style="--s:${sz}px;--x:${(r*Math.cos(a)).toFixed(1)}px;--y:${(r*Math.sin(a)).toFixed(1)}px;--d:${(i*.35).toFixed(2)}s" data-bud-act="bub" data-tip="${tip(c)}" title="${tip(c)}"><div class="in">${veriAvatarHTML(c,sz)}</div></div>`); });
-  if(arr.length===1){ const sz=size(arr[0],46,72), low=info&&info[arr[0]]&&info[arr[0]].left<=0; bubs.push(`<div class="bud-bub${low?' low':''}" style="--s:${sz}px;--x:0px;--y:-62px;--d:0s" data-bud-act="bub" data-tip="${tip(arr[0])}" title="${tip(arr[0])}"><div class="in">${veriAvatarHTML(arr[0],sz)}</div></div>`); }
+  const bubs=[]; const ring=(list,r,mn,mx,off)=>list.forEach((c,i)=>{ const sz=size(c,mn,mx), a=(-90+off+i*360/list.length)*Math.PI/180, low=info&&info[c]&&info[c].left<=0; bubs.push(`<div class="bud-bub${low?' low':''}${ring0&&ring0.sel===c?' sel':''}" style="--s:${sz}px;--x:${(r*Math.cos(a)).toFixed(1)}px;--y:${(r*Math.sin(a)).toFixed(1)}px;--d:${(i*.35).toFixed(2)}s" data-code="${budEsc(c)}" data-bud-act="bub" data-tip="${tip(c)}" title="${tip(c)}"><div class="in">${veriAvatarHTML(c,sz)}</div></div>`); });
+  if(arr.length===1){ const sz=size(arr[0],46,72), low=info&&info[arr[0]]&&info[arr[0]].left<=0; bubs.push(`<div class="bud-bub${low?' low':''}${ring0&&ring0.sel===arr[0]?' sel':''}" style="--s:${sz}px;--x:0px;--y:-62px;--d:0s" data-code="${budEsc(arr[0])}" data-bud-act="bub" data-tip="${tip(arr[0])}" title="${tip(arr[0])}"><div class="in">${veriAvatarHTML(arr[0],sz)}</div></div>`); }
   else if(!many){ const n=arr.length; if(n<=3) ring(arr,90,40,70,0); else if(n<=6) ring(arr,92,34,60,0); else ring(arr,96,30,48,0); }
   else { ring(arr.slice(0,9),100,28,42,0); ring(arr.slice(9),56,24,36,20); }
   if(extra>0) bubs.push(`<div class="bud-bub" style="--s:34px;--x:0px;--y:0px;--d:0s"><div class="in bud-more">+${extra}</div></div>`);
-  return `<div class="bud-cluster">${bubs.join('')}${many?'':`<div class="bud-center">${centerHtml}</div>`}</div>${info?'<div class="bud-legend">Burbuja grande = le queda más presupuesto · pequeña = casi no le queda. Toca una burbuja para ver cuánto.</div>':''}`;
+  const pr=ring0?Math.max(0,Math.min(100,ring0.pct)):0, col=heat||'var(--accent)';
+  const tick=(p)=>{ const an=(-90+p*3.6)*Math.PI/180, c=Math.cos(an), s=Math.sin(an); return `<line x1="${(144+c*131).toFixed(1)}" y1="${(144+s*131).toFixed(1)}" x2="${(144+c*148).toFixed(1)}" y2="${(144+s*148).toFixed(1)}" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".55"/>`; };
+  const ringSvg=ring0?`<svg class="bud-ring" viewBox="0 0 288 288" aria-hidden="true"><circle cx="144" cy="144" r="138" fill="none" stroke="currentColor" stroke-opacity=".13" stroke-width="9"/><circle cx="144" cy="144" r="138" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" pathLength="100" stroke-dasharray="${pr.toFixed(2)} 100" transform="rotate(-90 144 144)" style="transition:stroke-dasharray .6s ease,stroke .4s"/>${tick(80)}${tick(90)}</svg>`:'';
+  return `<div class="bud-ringwrap">${ringSvg}<div class="bud-cluster${heat?' hot':''}"${heat?` style="--hc:${heat}"`:''}>${bubs.join('')}<div class="bud-center${many?' tiny':''}">${centerHtml}</div></div></div>`;
 }
 function budgetInner(){
-  const b=budState(), admin=isAdmin();
+  const b=budState(), admin=budAdmin();
   if(!b.loaded) return b.error
     ? `<div class="card glass"><div class="empty">No se pudo cargar el Presupuesto. ¿Ya ejecutaste <b>presupuesto.sql</b> en Supabase?</div><button type="button" class="btn block" data-bud-act="reload">Reintentar</button></div>`
     : `<div class="card glass"><div class="empty">Cargando presupuesto…</div></div>`;
@@ -3421,13 +3439,22 @@ function budgetInner(){
   const bubInfo={}; C.codes.forEach(c=>{ const q=C.per[c]||{asignado:0,gastado:0}, left=q.asignado-q.gastado; bubInfo[c]={left,ratio:q.asignado>0?left/q.asignado:(q.gastado>0?0:1)}; });
   const hLeft=mine?mine.asignado-mine.gastado:C.left, hNeg=hLeft<0;
   const hPct=mine?(mine.asignado>0?Math.min(100,mine.gastado/mine.asignado*100):(mine.gastado>0?100:0)):C.pct;
-  const hero=!mine?`<div class="bud-hero"><div class="bud-bar"><i class="${hNeg?'neg':''}" style="width:${hPct.toFixed(1)}%"></i></div><div class="bud-hero-sub">Gastado ${budMoney(C.spent)} de ${budMoney(C.budget)}</div></div>`:`<div class="bud-hero"><small>${mine?(hNeg?'Te pasaste por':'Te queda'):(hNeg?'El grupo se pasó por':'Disponible del grupo')}</small><b class="bud-hero-n ${hNeg?'neg':''}">${budMoney(Math.abs(hLeft))}</b><div class="bud-bar"><i class="${hNeg?'neg':''}" style="width:${hPct.toFixed(1)}%"></i></div><div class="bud-hero-sub">${mine?`Has gastado ${budMoney(mine.gastado)} de ${budMoney(mine.asignado)}`:`Gastado ${budMoney(C.spent)} de ${budMoney(C.budget)}`}</div>${mine?`<div class="bud-hero-grp">Grupo: ${budMoney(C.spent)} de ${budMoney(C.budget)}</div>`:''}</div>`;
+  const gRaw=C.budget>0?C.spent/C.budget*100:0, mRaw=mine?(mine.asignado>0?mine.gastado/mine.asignado*100:(mine.gastado>0?100:0)):0;
+  const hero=mine?`<div class="bud-hero"><small>${hNeg?'Te pasaste por':'Te queda'}</small><b class="bud-hero-n ${hNeg?'neg':''}">${budMoney(Math.abs(hLeft))}</b><div class="bud-bar"><i class="${hNeg?'neg':''}" style="width:${hPct.toFixed(1)}%"></i></div><div class="bud-hero-sub">Has gastado ${budMoney(mine.gastado)} de ${budMoney(mine.asignado)} · ${budPct(mRaw)}</div></div>`:'';
+  const heatC=budHeat(gRaw);
+  const L100=C.budget-C.spent, L80=C.budget*.8-C.spent, L90=C.budget*.9-C.spent;
+  const cell=(lbl,v)=>`<div class="bud-lc ${v<0?'neg':''}"><small>${lbl}</small><b>${v<0?'−':''}${budMoney(Math.abs(v))}</b></div>`;
+  const leftGrid=`<div class="bud-left3">${cell('Le queda del total',L100)}${cell('Si solo gasta el 90%',L90)}${cell('Si solo gasta el 80%',L80)}</div><div class="bud-left-sub">Gastado ${budMoney(C.spent)} de ${budMoney(C.budget)}</div>`;
+  const sp=b.selBub&&C.per[b.selBub]?C.per[b.selBub]:null;
+  const spLeft=sp?sp.asignado-sp.gastado:0, spRaw=sp?(sp.asignado>0?sp.gastado/sp.asignado*100:(sp.gastado>0?100:0)):0, spHeat=budHeat(spRaw);
+  const selPanel=sp?`<div class="bud-selp"><div class="bud-person"><div class="bud-pav">${veriAvatarHTML(b.selBub,44)}</div><div class="bud-pinfo"><b>${budEsc(budName(b.selBub))}</b><div class="bud-bar sm"><i class="${spLeft<0?'neg':''}" style="width:${Math.min(100,spRaw).toFixed(1)}%"></i></div><small>Presupuesto ${budMoney(sp.asignado)} · gastó ${budMoney(sp.gastado)} (<span${spHeat?` style="color:${spHeat};font-weight:700"`:''}>${budPct(spRaw)}</span>)</small></div><div class="bud-pleft ${spLeft<0?'neg':'pos'}">${budMoney(spLeft)}<small>${spLeft<0?'se pasó':'le queda'}</small></div></div></div>`:`<div class="bud-hint">Toca una burbuja para ver el presupuesto de esa persona</div>`;
   const head=`<div class="card glass bud-head">
     ${chips}
-    ${budCluster(C.codes,`<small>Disponible</small><b class="${over?'neg':''}">${budCompact(C.left)}</b>`,bubInfo)}
     <h2 class="bud-gname">${budEsc(g.nombre)}</h2>
-    <div class="bud-meta">${C.codes.length} integrante${C.codes.length===1?'':'s'} · presupuesto del grupo</div>
-    ${hero}
+    ${budCluster(C.codes,`<b class="bud-cpct"${heatC?` style="color:${heatC}"`:''}>${budPct(gRaw)}</b><small>gastado</small>`,bubInfo,heatC,{pct:gRaw,sel:b.selBub})}
+    ${selPanel}
+    ${leftGrid}
+    ${mine?hero:''}
     <div class="bud-actions"><div class="bud-addrow"><button type="button" class="btn" data-bud-act="add">＋ Nuevo gasto</button><button type="button" class="btn secondary bud-voicebtn" data-bud-act="add-voice" aria-label="Dictar un gasto">🎤</button></div>
       ${admin?`<button type="button" class="btn secondary" data-bud-act="group-edit">⚙️ Grupo</button><button type="button" class="btn secondary" data-bud-act="excel">📥 Excel</button>`:''}</div>
   </div>`;
@@ -3436,7 +3463,7 @@ function budgetInner(){
   return head+budReqCard()+tabs;
 }
 function budReqCard(){
-  const b=budState(); if(!isAdmin()) return '';
+  const b=budState(); if(!budAdmin()) return '';
   const pend=(b.solic||[]).filter(r=>r.estado==='pendiente' && b.gastos.some(x=>String(x.id)===String(r.gasto_id)));
   if(!pend.length) return '';
   return `<div class="card glass bud-reqcard"><div class="bud-reqtitle">🔔 Piden eliminar un gasto <span class="bud-badge">${pend.length}</span></div>${pend.map(r=>{ const x=b.gastos.find(y=>String(y.id)===String(r.gasto_id)); return `<div class="bud-req"><div class="bud-req-main"><b>${budEsc(x.concepto)} · ${budMoney(x.monto)}</b><small>Lo pide ${budEsc(r.solicitado_nombre||budName(r.solicitado_por))}${r.motivo?' · “'+budEsc(r.motivo)+'”':''}</small></div><div class="bud-req-btns"><button type="button" class="btn secondary sm" data-bud-act="req-no" data-id="${r.id}">Rechazar</button><button type="button" class="btn danger sm" data-bud-act="req-ok" data-id="${r.id}" data-gid="${x.id}">Eliminar</button></div></div>`; }).join('')}</div>`;
@@ -3446,15 +3473,15 @@ function budMovList(){
   let last='', out='';
   b.gastos.forEach(x=>{
     if(x.fecha!==last){ last=x.fecha; let lbl=x.fecha; try{ lbl=new Date(x.fecha+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'}); }catch(e){} out+=`<div class="bud-day">${budEsc(lbl)}</div>`; }
-    const cat=BUD_CATS.find(c=>c[0]===x.categoria)||BUD_CATS[BUD_CATS.length-1], sh=x.presupuesto_partes||[];
-    const modo=x.modo==='personal'?'Solo '+budFirst(budName(x.pagado_por)):x.modo==='igual'?`Entre ${sh.length}`:`Por valor · ${sh.length}`;
-    out+=`<button type="button" class="bud-mov ${x.anulado?'void':''}" data-bud-act="gasto" data-id="${x.id}"><span class="bud-mov-ico">${cat[1]}</span><div class="bud-mov-main"><b>${budEsc(x.concepto)}</b><small>${budEsc(budFirst(budName(x.pagado_por)))} · ${modo}${x.comprobante_path?' · 📎':''}${x.anulado?' · anulado':''}</small></div><div class="bud-mov-amt">${budMoney(x.monto)}</div></button>`;
+    const cat=BUD_CATS.find(c=>c[0]===x.categoria)||BUD_CATS[BUD_CATS.length-1], sh=x.presupuesto_partes||[], mi=sh.find(p=>p.codigo_persona===budMe());
+    const isMem=b.members.some(m=>m.codigo_persona===budMe()); const modo=x.modo==='abierto'?((mi||x.pagado_por===budMe()||!isMem)?'Abierto':'👆 Pon tu parte'):x.modo==='personal'?'Solo '+budFirst(budName(x.pagado_por)):x.modo==='igual'?`Entre ${sh.length}`:`Por valor · ${sh.length}`;
+    out+=`<button type="button" class="bud-mov ${x.anulado?'void':''}" data-bud-act="gasto" data-id="${x.id}"><span class="bud-mov-ico">${cat[1]}</span><div class="bud-mov-main"><b>${budEsc(x.concepto)}</b><small>${budEsc(budFirst(budName(x.pagado_por)))} · ${modo}${x.medio_pago?' · '+budPayIco(x.medio_pago):''}${mi&&x.modo!=='personal'?` · Tu parte ${budMoney(mi.monto)}`:''}${x.comprobante_path?' · 📎':''}${x.anulado?' · anulado':''}</small></div><div class="bud-mov-amt">${budMoney(x.monto)}</div></button>`;
   });
   return out;
 }
 function budPerList(C){
   return C.codes.map(c=>{ const p=C.per[c], left=p.asignado-p.gastado, pct=p.asignado>0?Math.min(100,p.gastado/p.asignado*100):(p.gastado>0?100:0);
-    return `<div class="bud-person"><div class="bud-pav">${veriAvatarHTML(c,44)}</div><div class="bud-pinfo"><b>${budEsc(budName(c))}</b><div class="bud-bar sm"><i class="${left<0?'neg':''}" style="width:${pct.toFixed(1)}%"></i></div><small>Presupuesto ${budMoney(p.asignado)} · gastó ${budMoney(p.gastado)}${p.pago?` · adelantó ${budMoney(p.pago)}`:''}</small></div><div class="bud-pleft ${left<0?'neg':'pos'}">${budMoney(left)}</div></div>`; }).join('');
+    return `<div class="bud-person"><div class="bud-pav">${veriAvatarHTML(c,44)}</div><div class="bud-pinfo"><b>${budEsc(budName(c))}</b><div class="bud-bar sm"><i class="${left<0?'neg':''}" style="width:${pct.toFixed(1)}%"></i></div><small>Presupuesto ${budMoney(p.asignado)} · gastó ${budMoney(p.gastado)} (${budPct(p.asignado>0?p.gastado/p.asignado*100:(p.gastado>0?100:0))} del suyo · ${budPct(C.spent>0?p.gastado/C.spent*100:0)} del gasto del grupo)${p.pago?` · adelantó ${budMoney(p.pago)}`:''}</small></div><div class="bud-pleft ${left<0?'neg':'pos'}">${budMoney(left)}</div></div>`; }).join('');
 }
 /* ---------- Hojas (modales) ---------- */
 function budOpenSheet(title, body){
@@ -3471,7 +3498,7 @@ function budBindMoney(inp,onChange){
 }
 /* ----- Grupo (crear / editar) ----- */
 function budOpenGroupForm(edit){
-  if(!isAdmin()) return;
+  if(!budAdmin()) return;
   const b=budState(), g=edit?budGroup():null; if(edit&&!g) return;
   const sel=new Map(); if(g) b.members.forEach(m=>sel.set(m.codigo_persona,m.asignacion==null?'':String(Math.round(m.asignacion))));
   const f={nombre:g?g.nombre:'',presupuesto:g?Number(g.presupuesto)||0:0,custom:g?b.members.some(m=>m.asignacion!=null):false,q:''};
@@ -3533,7 +3560,7 @@ function budOpenGroupForm(edit){
 /* ----- Registrar gasto ----- */
 function budShares(f){
   const total=Math.round(f.monto||0);
-  if(f.modo==='personal') return [{code:f.payer,pct:100,monto:total}];
+  if(f.modo==='personal'||f.modo==='abierto') return [{code:f.payer,pct:100,monto:total}];
   if(f.modo==='igual'){
     const arr=[...f.part]; if(!arr.length) return [];
     const base=Math.floor(total/arr.length), rem=total-base*arr.length;
@@ -3587,7 +3614,7 @@ function budParseQuick(text,members,me){
   const full=budNorm(raw);
   const solo=/\b(solo yo|solo para mi|solo mio|solo mia|para mi solo|personal)\b/.test(full);
   const all=/\b(todos|todas|iguales|dividir|dividido|repartir|repartido)\b/.test(full);
-  const modo=solo?'personal':(all?'igual':(namesFound.length?'igual':'personal'));
+  const modo=solo?'personal':(all?'igual':(namesFound.length?'igual':'abierto'));
   const keep=toks.filter((t,i)=>!used.has(i)&&!BUD_DROP.has(nt[i]));
   const kn=keep.map(t=>budNorm(t).replace(/[^a-z0-9]/g,''));
   let a=0,b=keep.length; while(a<b&&BUD_EDGE.has(kn[a])) a++; while(b>a&&BUD_EDGE.has(kn[b-1])) b--;
@@ -3620,12 +3647,13 @@ Responde SOLO un objeto JSON, sin texto ni markdown: {"concepto":"","monto":0,"c
 }
 function budOpenExpenseForm(opts){
   const b=budState(), g=budGroup(); if(!g) return;
-  const me=budMe(), members=b.members.map(m=>m.codigo_persona), admin=isAdmin();
+  const me=budMe(), members=b.members.map(m=>m.codigo_persona), admin=budAdmin();
   if(!admin && !members.includes(me)){ toast('Solo los integrantes del grupo pueden registrar gastos.'); return; }
-  const f={concepto:'',monto:0,fecha:todayKey(),cat:'otros',payer:members.includes(me)?me:members[0],modo:'personal',catManual:false,part:new Set(members),vals:{},file:null,fileUrl:'',caja:true,proveedor:'',notas:''};
+  const f={concepto:'',monto:0,fecha:todayKey(),cat:'otros',payer:members.includes(me)?me:members[0],modo:'abierto',catManual:false,pay:'efectivo',part:new Set(members),vals:{},file:null,fileUrl:'',caja:true,proveedor:'',notas:''};
   const aiOn=!!(toolVisible('veriai')&&state.prefs.aiEnabled&&(state.veriApiKey||'').trim());
   const ov=budOpenSheet('Registrar gasto',`
     <div class="bud-quick"><div class="bud-quick-row"><input id="bfQuick" placeholder="¿Qué gastaste? Ej: almuerzo 25 mil" autocomplete="off" enterkeyhint="done">${aiOn?'<button type="button" class="bud-go2" id="bfGo" aria-label="Que Veri lo entienda">✨</button>':''}<button type="button" class="bud-mic" id="bfMic" aria-label="Dictar el gasto">🎤</button></div><span class="bud-quick-msg" id="bfQuickMsg">Escribe o dicta: “taxi 18 mil” o “almuerzo 40 mil con Ana”. Si no dices con quién, es solo tuyo.</span><div class="bud-detect" id="bfDetect"></div></div>
+    <div class="bud-l">Pagado con</div><div class="bud-seg" id="bfPay"><button type="button" data-pay="efectivo" class="on">💵 Efectivo</button><button type="button" data-pay="tarjeta">💳 Tarjeta</button></div>
     <details class="bud-adv" id="bfAdv"><summary>Más detalles</summary><div>
     <label class="bud-l" for="bfConcepto">¿En qué se gastó?</label><input id="bfConcepto" placeholder="Ej: Almuerzo del equipo, peajes, hotel" maxlength="120" autocomplete="off">
     <label class="bud-l" for="bfMonto">Valor total</label><input id="bfMonto" class="bud-big" inputmode="numeric" placeholder="$ 0" autocomplete="off">
@@ -3633,7 +3661,7 @@ function budOpenExpenseForm(opts){
       ${admin?`<div><label class="bud-l" for="bfPayer">Quién pagó</label><select id="bfPayer">${members.map(c=>`<option value="${budEsc(c)}">${budEsc(budName(c))}</option>`).join('')}</select></div>`:''}</div>
     <div class="bud-l">Categoría</div><div class="bud-cats" id="bfCats">${BUD_CATS.map(c=>`<button type="button" class="bud-cat ${c[0]===f.cat?'on':''}" data-cat="${c[0]}">${c[1]} ${c[2]}</button>`).join('')}</div>
     <div class="bud-l">¿Cómo se reparte?</div>
-    <div class="bud-seg" id="bfSeg"><button type="button" data-modo="personal" class="on">Solo yo</button><button type="button" data-modo="igual">Iguales</button><button type="button" data-modo="monto">Por valor</button></div>
+    <div class="bud-seg" id="bfSeg"><button type="button" data-modo="abierto" class="on">Abierto</button><button type="button" data-modo="personal">Solo yo</button><button type="button" data-modo="igual">Iguales</button><button type="button" data-modo="monto">Por valor</button></div>
     <div id="budSplit"></div>
     <div class="bud-l">Comprobante</div><div id="budRcpt"></div>
     <details class="bud-more"><summary>＋ Agregar una nota</summary><textarea id="bfNotas" rows="2" maxlength="300" placeholder="Algún detalle que ayude a entender el gasto"></textarea></details>
@@ -3646,6 +3674,9 @@ function budOpenExpenseForm(opts){
   $('#bfFecha').addEventListener('change',e=>{ f.fecha=e.target.value||todayKey(); f.fechaManual=true; paintDetect(); });
   $('#bfNotas').addEventListener('input',e=>{ f.notas=e.target.value; });
   if(admin) $('#bfPayer').addEventListener('change',e=>{ f.payer=e.target.value; f.payerManual=true; if(f.modo==='personal') paintSplit(); else paintDetect(); });
+  const setPay=(v)=>{ f.pay=v; $('#bfPay').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.pay===v)); paintDetect(); };
+  $('#bfPay').addEventListener('click',e=>{ const bt=e.target.closest('[data-pay]'); if(!bt) return; f.payManual=true; setPay(bt.dataset.pay); });
+  const payFromText=(t)=>{ if(f.payManual) return; if(/tarjeta|d[eé]bito|cr[eé]dito|dat[aá]fono/i.test(t)) setPay('tarjeta'); else if(/efectivo|cash/i.test(t)) setPay('efectivo'); };
   const setCat=(c)=>{ f.cat=c; $('#bfCats').querySelectorAll('.bud-cat').forEach(x=>x.classList.toggle('on',x.dataset.cat===c)); paintDetect(); };
   $('#bfCats').addEventListener('click',e=>{ const bt=e.target.closest('[data-cat]'); if(!bt) return; f.catManual=true; setCat(bt.dataset.cat); });
   $('#bfSeg').addEventListener('click',e=>{ const bt=e.target.closest('[data-modo]'); if(!bt) return; f.modo=bt.dataset.modo; f.modoManual=true; $('#bfSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===bt)); paintSplit(); });
@@ -3663,6 +3694,7 @@ function budOpenExpenseForm(opts){
   }
   function paintSplit(){
     const el=$('#budSplit');
+    if(f.modo==='abierto'){ el.innerHTML=`<div class="bud-note">Entra <b>completo</b> al presupuesto del grupo y queda a nombre de ${f.payer===me?'ti':'<b>'+budEsc(budName(f.payer))+'</b>'}. Después cada integrante toca el gasto y pone cuánto fue lo suyo.</div>`; paintDetect(); return; }
     if(f.modo==='personal'){ el.innerHTML=f.payer===me?`<div class="bud-note">Es solo tuyo. Se descuenta de tus viáticos.</div>`:`<div class="bud-note">Es solo de <b>${budEsc(budName(f.payer))}</b>. Se descuenta de sus viáticos.</div>`; paintDetect(); return; }
     if(f.modo==='igual'){
       el.innerHTML=`<div class="bud-note">Todos los marcados pagan la misma parte. <b id="budEach"></b></div><div class="bud-chips2">${members.map(c=>`<button type="button" class="bud-pchip ${f.part.has(c)?'on':''}" data-code="${budEsc(c)}"><span class="bud-pchip-av">${veriAvatarHTML(c,26)}</span>${budEsc(budFirst(budName(c)))}</button>`).join('')}</div>`;
@@ -3683,16 +3715,18 @@ function budOpenExpenseForm(opts){
   function paintRcpt(){
     const el=$('#budRcpt');
     if(f.file){
-      el.innerHTML=`<div class="bud-rc"><img src="${f.fileUrl}" alt="Comprobante"><div><b>${budEsc(f.file.name||'Comprobante')}</b><small>${Math.round((f.file.size||0)/1024)} KB · calidad original</small><button type="button" class="btn ghost sm" id="bfRcDel">Quitar</button></div></div>`;
-      $('#bfRcDel').onclick=()=>{ try{URL.revokeObjectURL(f.fileUrl);}catch(e){} f.file=null; f.fileUrl=''; paintRcpt(); };
+      el.innerHTML=`<div class="bud-rc"><img src="${f.fileUrl}" alt="Comprobante"><div><b>${budEsc(f.file.name||'Comprobante')}</b><small>${Math.round((f.file.size||0)/1024)} KB · ${f.scanned?'escaneado':'calidad original'}</small><div class="bud-rc-act">${(f.file.type||'').startsWith('image/')?'<button type="button" class="btn ghost sm" id="bfRcCrop">✂️ Recortar</button>':''}<button type="button" class="btn ghost sm" id="bfRcDel">Quitar</button></div></div></div>`;
+      $('#bfRcDel').onclick=()=>{ try{URL.revokeObjectURL(f.fileUrl);}catch(e){} f.file=null; f.fileUrl=''; f.scanned=false; paintRcpt(); };
+      if($('#bfRcCrop')) $('#bfRcCrop').onclick=async()=>{ const out=await budScanDoc(f.file); if(out){ try{URL.revokeObjectURL(f.fileUrl);}catch(e){} f.file=out; f.fileUrl=URL.createObjectURL(out); f.scanned=true; paintRcpt(); } };
       return;
     }
-    el.innerHTML=`<div class="bud-rc-btns"><button type="button" class="rep-cap-bigbtn primary row" id="bfTake"><span class="ico">📷</span><span class="lbl">Tomar foto</span></button><button type="button" class="rep-cap-bigbtn row" id="bfPick"><span class="ico">🖼️</span><span class="lbl">Adjuntar</span></button></div>
-      <input id="bfCam" type="file" accept="image/*" capture="environment" class="rep-cap-hidden" tabindex="-1"><input id="bfFile" type="file" accept="image/*,application/pdf" class="rep-cap-hidden" tabindex="-1">
+    el.innerHTML=`<div class="bud-rc-btns"><button type="button" class="rep-cap-bigbtn primary row bud-scan-btn" id="bfScan"><span class="ico">📄</span><span class="lbl">Escanear factura</span></button><button type="button" class="rep-cap-bigbtn row" id="bfTake"><span class="ico">📷</span><span class="lbl">Tomar foto</span></button><button type="button" class="rep-cap-bigbtn row" id="bfPick"><span class="ico">🖼️</span><span class="lbl">Adjuntar</span></button></div>
+      <input id="bfScanIn" type="file" accept="image/*" capture="environment" class="rep-cap-hidden" tabindex="-1"><input id="bfCam" type="file" accept="image/*" capture="environment" class="rep-cap-hidden" tabindex="-1"><input id="bfFile" type="file" accept="image/*,application/pdf" class="rep-cap-hidden" tabindex="-1">
       <label class="bud-check"><input type="checkbox" id="bfCaja" ${f.caja?'checked':''}><span>Si no hay factura, crear un comprobante de <b>caja menor</b></span></label>
       <div id="bfProvWrap" style="${f.caja?'':'display:none'}"><input id="bfProv" placeholder="Pagado a (opcional)" value="${budEsc(f.proveedor)}" maxlength="80" autocomplete="off"></div>`;
-    $('#bfTake').onclick=()=>$('#bfCam').click(); $('#bfPick').onclick=()=>$('#bfFile').click();
-    const got=async(inp)=>{ const file=inp.files&&inp.files[0]; if(!file) return; const st=(typeof veriStableFile==='function')?await veriStableFile(file):file; f.file=st; f.fileUrl=URL.createObjectURL(st); paintRcpt(); };
+    $('#bfTake').onclick=()=>$('#bfCam').click(); $('#bfPick').onclick=()=>$('#bfFile').click(); $('#bfScan').onclick=()=>$('#bfScanIn').click();
+    $('#bfScanIn').onchange=async()=>{ const inp=$('#bfScanIn'), file=inp.files&&inp.files[0]; if(!file) return; const st=(typeof veriStableFile==='function')?await veriStableFile(file):file; inp.value=''; const out=await budScanDoc(st); if(out){ f.file=out; f.fileUrl=URL.createObjectURL(out); f.scanned=true; paintRcpt(); } };
+    const got=async(inp)=>{ const file=inp.files&&inp.files[0]; if(!file) return; const st=(typeof veriStableFile==='function')?await veriStableFile(file):file; f.file=st; f.fileUrl=URL.createObjectURL(st); f.scanned=false; paintRcpt(); };
     $('#bfCam').onchange=()=>got($('#bfCam')); $('#bfFile').onchange=()=>got($('#bfFile'));
     $('#bfCaja').onchange=(e)=>{ f.caja=e.target.checked; $('#bfProvWrap').style.display=f.caja?'':'none'; };
     $('#bfProv').addEventListener('input',e=>{ f.proveedor=e.target.value; });
@@ -3704,8 +3738,8 @@ function budOpenExpenseForm(opts){
     const el=$('#bfDetect'); if(!el) return;
     const cat=BUD_CATS.find(c=>c[0]===f.cat)||BUD_CATS[BUD_CATS.length-1];
     const fl=f.fecha===todayKey()?'Hoy':(f.fecha===budDateKey(-1)?'Ayer':f.fecha);
-    const rp=f.modo==='personal'?(f.payer===me?'Solo yo':'Solo '+budFirst(budName(f.payer))):(f.modo==='igual'?`Entre ${f.part.size}`:'Por valor');
-    el.innerHTML=`<button type="button" class="bud-dc ${f.monto?'':'warn'}" data-go="bfMonto">💰 ${f.monto?budMoney(f.monto):'Falta el valor'}</button><button type="button" class="bud-dc" data-go="bfCats">${cat[1]} ${cat[2]}</button><button type="button" class="bud-dc" data-go="bfFecha">📅 ${budEsc(fl)}</button><button type="button" class="bud-dc" data-go="bfSeg">${f.modo==='personal'?'👤':'👥'} ${budEsc(rp)}</button>`;
+    const rp=f.modo==='abierto'?'Abierto':f.modo==='personal'?(f.payer===me?'Solo yo':'Solo '+budFirst(budName(f.payer))):(f.modo==='igual'?`Entre ${f.part.size}`:'Por valor');
+    el.innerHTML=`<button type="button" class="bud-dc ${f.monto?'':'warn'}" data-go="bfMonto">💰 ${f.monto?budMoney(f.monto):'Falta el valor'}</button><button type="button" class="bud-dc" data-go="bfCats">${cat[1]} ${cat[2]}</button><button type="button" class="bud-dc" data-go="bfPay">${budPayIco(f.pay)} ${budPayTxt(f.pay)}</button><button type="button" class="bud-dc" data-go="bfFecha">📅 ${budEsc(fl)}</button><button type="button" class="bud-dc" data-go="bfSeg">${f.modo==='personal'?'👤':'👥'} ${budEsc(rp)}</button>`;
     const sv=$('#bfSave'); if(sv&&!sv.disabled) sv.textContent=f.monto?'Guardar '+budMoney(f.monto):'Guardar gasto';
   }
   $('#bfDetect').addEventListener('click',e=>{
@@ -3723,25 +3757,25 @@ function budOpenExpenseForm(opts){
     if(admin&&p.payer&&members.includes(p.payer)&&(force||!f.payerManual)){ f.payer=p.payer; $('#bfPayer').value=p.payer; }
     if(force||!f.fechaManual){ f.fecha=p.fecha||todayKey(); $('#bfFecha').value=f.fecha; }
     if(force||!f.modoManual){
-      f.modo=p.modo||'personal';
+      f.modo=p.modo||'abierto';
       if(f.modo==='igual'){
         const st=new Set((p.part||[]).filter(c=>members.includes(c)));
         if(p.all) members.forEach(c=>st.add(c));
         if(members.includes(f.payer)) st.add(f.payer);
-        if(st.size>=2) f.part=st; else f.modo='personal';
+        if(st.size>=2) f.part=st; else f.modo='abierto';
       }
       if(f.modo==='monto'){
         f.vals={}; Object.entries(p.vals||{}).forEach(([c,v])=>{ if(members.includes(c)&&Number(v)>0) f.vals[c]=Math.round(Number(v)); });
-        if(!Object.keys(f.vals).length) f.modo='personal';
+        if(!Object.keys(f.vals).length) f.modo='abierto';
       }
       $('#bfSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.modo===f.modo));
       paintSplit();
     } else paintDetect();
   };
-  $('#bfQuick').addEventListener('input',()=>{ const t=$('#bfQuick').value.trim(); if(t) applyQuick(budParseQuick(t,members,me),{live:true}); });
+  $('#bfQuick').addEventListener('input',()=>{ const t=$('#bfQuick').value.trim(); if(t) payFromText(t); if(t) applyQuick(budParseQuick(t,members,me),{live:true}); });
   let busy=false;
   const runQuick=async(text)=>{
-    text=(text||'').trim(); if(!text||busy) return;
+    text=(text||'').trim(); if(!text||busy) return; payFromText(text);
     const local=budParseQuick(text,members,me);
     const useAI=aiOn;
     let p=local, viaAI=false; busy=true; if($('#bfGo')) $('#bfGo').disabled=true;
@@ -3753,7 +3787,7 @@ function budOpenExpenseForm(opts){
     busy=false; if($('#bfGo')) $('#bfGo').disabled=false;
     if(!ov.isConnected) return;
     applyQuick(p,{force:true});
-    const modoTxt=f.modo==='personal'?(f.payer===me?'solo tuyo':'solo de '+budFirst(budName(f.payer))):(f.modo==='igual'?`entre ${f.part.size} personas`:'por valor');
+    const modoTxt=f.modo==='abierto'?'abierto, cada uno pone su parte':f.modo==='personal'?(f.payer===me?'solo tuyo':'solo de '+budFirst(budName(f.payer))):(f.modo==='igual'?`entre ${f.part.size} personas`:'por valor');
     if(!f.monto){ qmsg('Entendí '+(f.concepto?`“${f.concepto}”`:'tu gasto')+', pero me falta el valor. Escríbelo abajo.','warn'); $('#bfMonto').focus(); }
     else qmsg(`✓ ${f.concepto} · ${budMoney(f.monto)} · ${modoTxt}. Revisa y toca Guardar.`,'ok');
   };
@@ -3821,9 +3855,9 @@ async function budSaveExpense(f,g,btn){
     for(let attempt=0; attempt<5; attempt++){
       if(useCaja){ const r=await sb(`${BUD_P}gastos?grupo_id=eq.${g.id}&consecutivo=not.is.null&order=consecutivo.desc&limit=1&select=consecutivo`,{silent:true}); consecutivo=((r&&r[0]&&Number(r[0].consecutivo))||0)+1; }
       try{
-        const res=await sb(`${BUD_P}gastos`,{method:'POST',body:JSON.stringify([{grupo_id:g.id,concepto:f.concepto,monto:Math.round(f.monto),fecha:f.fecha,categoria:f.cat,pagado_por:f.payer,modo:f.modo,comprobante_tipo:f.file?'recibo':(useCaja?'caja_menor':'ninguno'),consecutivo,proveedor:useCaja?(f.proveedor||null):null,notas:f.notas||null,creado_por:budMe(),creado_en:Date.now(),anulado:false}]),headers:{'Prefer':'return=representation'},silent:true});
+        const res=await sb(`${BUD_P}gastos`,{method:'POST',body:JSON.stringify([{...budPayCol(f.pay),grupo_id:g.id,concepto:f.concepto,monto:Math.round(f.monto),fecha:f.fecha,categoria:f.cat,pagado_por:f.payer,modo:f.modo,comprobante_tipo:f.file?'recibo':(useCaja?'caja_menor':'ninguno'),consecutivo,proveedor:useCaja?(f.proveedor||null):null,notas:f.notas||null,creado_por:budMe(),creado_en:Date.now(),anulado:false}]),headers:{'Prefer':'return=representation'},silent:true});
         gasto=res&&res[0]; if(gasto) break;
-      }catch(e){ if(!useCaja||attempt===4) throw e; }   // choque de consecutivo: se recalcula
+      }catch(e){ if(!b.noPay&&/medio_pago|column|PGRST204|42703|schema cache/i.test(String((e&&(e.message||e.details))||e))){ b.noPay=true; b.payWarn=true; continue; } if(!useCaja||attempt===4) throw e; }   // choque de consecutivo: se recalcula
     }
     if(!gasto) throw new Error('sin gasto');
     try{ await sb(`${BUD_P}partes`,{method:'POST',body:JSON.stringify(shares.map(x=>({gasto_id:gasto.id,codigo_persona:x.code,porcentaje:x.pct,monto:x.monto}))),headers:{'Prefer':'return=minimal'},silent:true}); }
@@ -3840,15 +3874,326 @@ async function budSaveExpense(f,g,btn){
         await sb(`${BUD_P}gastos?id=eq.${gasto.id}`,{method:'PATCH',body:JSON.stringify({comprobante_path:path}),headers:{'Prefer':'return=minimal'},silent:true});
       }
     }catch(e){ console.error(e); warn=' (no se pudo subir el comprobante; elimina el gasto y regístralo de nuevo)'; }
+    if(b.payWarn){ warn+=' · para guardar el medio de pago falta la columna medio_pago en Supabase'; b.payWarn=false; }
     budCloseSheet();
     toast((useCaja?`✓ Guardado · caja menor N° ${String(consecutivo).padStart(4,'0')}`:'✓ Gasto guardado')+warn);
     await budLoad(true);
   }catch(err){ console.error(err); toast('No se pudo guardar el gasto. Revisa tu conexión.'); btn.disabled=false; btn.textContent=label; }
 }
+/* ----- Escáner de facturas: recorte con 4 esquinas + corrección de perspectiva + filtros (como el escáner del iPhone) ----- */
+function budQuadArea(q){ let a=0; for(let i=0;i<4;i++){ const p=q[i], n=q[(i+1)%4]; a+=p.x*n.y-n.x*p.y; } return Math.abs(a)/2; }
+function budConvex(q){
+  let sg=0;
+  for(let i=0;i<4;i++){
+    const a=q[i], b=q[(i+1)%4], c=q[(i+2)%4], z=(b.x-a.x)*(c.y-b.y)-(b.y-a.y)*(c.x-b.x);
+    if(Math.abs(z)<1e-6) return false;
+    const s=z>0?1:-1; if(!sg) sg=s; else if(s!==sg) return false;
+  }
+  return true;
+}
+/* Busca la hoja (zona clara más grande) y devuelve sus 4 esquinas [arriba-izq, arriba-der, abajo-der, abajo-izq] en px del canvas */
+function budDetectQuad(cv){
+  const W0=cv.width, H0=cv.height;
+  const fallback=()=>{ const mx=W0*.06, my=H0*.06; return [{x:mx,y:my},{x:W0-mx,y:my},{x:W0-mx,y:H0-my},{x:mx,y:H0-my}]; };
+  try{
+    const k=Math.min(1,300/Math.max(W0,H0)), w=Math.max(8,Math.round(W0*k)), h=Math.max(8,Math.round(H0*k));
+    const t=document.createElement('canvas'); t.width=w; t.height=h;
+    const cx=t.getContext('2d',{willReadFrequently:true}); cx.drawImage(cv,0,0,w,h);
+    const d=cx.getImageData(0,0,w,h).data, N=w*h, g=new Uint8Array(N);
+    for(let i=0;i<N;i++) g[i]=(d[i*4]*77+d[i*4+1]*150+d[i*4+2]*29)>>8;
+    const hist=new Array(256).fill(0); for(let i=0;i<N;i++) hist[g[i]]++;
+    let sum=0; for(let i=0;i<256;i++) sum+=i*hist[i];
+    let wB=0, sB=0, best=-1, thr=128;
+    for(let i=0;i<256;i++){
+      wB+=hist[i]; if(!wB) continue; const wF=N-wB; if(!wF) break;
+      sB+=i*hist[i]; const mB=sB/wB, mF=(sum-sB)/wF, v=wB*wF*(mB-mF)*(mB-mF);
+      if(v>best){ best=v; thr=i; }
+    }
+    const mask=new Uint8Array(N); for(let i=0;i<N;i++) mask[i]=g[i]>thr?1:0;
+    const lab=new Int32Array(N), stack=new Int32Array(N); let cur=0, bestLab=0, bestSize=0;
+    for(let s0=0;s0<N;s0++){
+      if(!mask[s0]||lab[s0]) continue;
+      cur++; let sp=0, size=0; stack[sp++]=s0; lab[s0]=cur;
+      while(sp){
+        const p=stack[--sp]; size++; const x=p%w, y=(p-x)/w;
+        if(x>0&&mask[p-1]&&!lab[p-1]){ lab[p-1]=cur; stack[sp++]=p-1; }
+        if(x<w-1&&mask[p+1]&&!lab[p+1]){ lab[p+1]=cur; stack[sp++]=p+1; }
+        if(y>0&&mask[p-w]&&!lab[p-w]){ lab[p-w]=cur; stack[sp++]=p-w; }
+        if(y<h-1&&mask[p+w]&&!lab[p+w]){ lab[p+w]=cur; stack[sp++]=p+w; }
+      }
+      if(size>bestSize){ bestSize=size; bestLab=cur; }
+    }
+    if(bestSize<N*.12) return fallback();
+    let tl=null, tr=null, br=null, bl=null, mnS=1e9, mxS=-1e9, mnD=1e9, mxD=-1e9;
+    for(let p=0;p<N;p++){
+      if(lab[p]!==bestLab) continue;
+      const x=p%w, y=(p-x)/w, s=x+y, dd=x-y;
+      if(s<mnS){ mnS=s; tl={x,y}; } if(s>mxS){ mxS=s; br={x,y}; }
+      if(dd>mxD){ mxD=dd; tr={x,y}; } if(dd<mnD){ mnD=dd; bl={x,y}; }
+    }
+    const q=[tl,tr,br,bl].map(p=>({x:Math.min(W0,Math.max(0,(p.x+.5)/w*W0)),y:Math.min(H0,Math.max(0,(p.y+.5)/h*H0))}));
+    if(!budConvex(q)||budQuadArea(q)<W0*H0*.1) return fallback();
+    return q;
+  }catch(e){ return fallback(); }
+}
+/* Endereza la hoja: transformación de perspectiva (cuadrilátero -> rectángulo) con muestreo bilineal */
+function budWarp(srcCv,q){
+  const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+  let W=Math.round(Math.max(dist(q[0],q[1]),dist(q[3],q[2]))), H=Math.round(Math.max(dist(q[0],q[3]),dist(q[1],q[2])));
+  const k=Math.min(1,1800/Math.max(W,H,1)); W=Math.max(40,Math.round(W*k)); H=Math.max(40,Math.round(H*k));
+  const [p0,p1,p2,p3]=q;
+  const sx=p0.x-p1.x+p2.x-p3.x, sy=p0.y-p1.y+p2.y-p3.y, dx1=p1.x-p2.x, dx2=p3.x-p2.x, dy1=p1.y-p2.y, dy2=p3.y-p2.y;
+  const det=dx1*dy2-dx2*dy1; let gg=0, hh=0;
+  if(Math.abs(det)>1e-9){ gg=(sx*dy2-dx2*sy)/det; hh=(dx1*sy-sx*dy1)/det; }
+  const a=p1.x-p0.x+gg*p1.x, b=p3.x-p0.x+hh*p3.x, c=p0.x, d=p1.y-p0.y+gg*p1.y, e=p3.y-p0.y+hh*p3.y, f=p0.y;
+  const sw=srcCv.width, sh=srcCv.height, sd=srcCv.getContext('2d').getImageData(0,0,sw,sh).data;
+  const out=document.createElement('canvas'); out.width=W; out.height=H;
+  const octx=out.getContext('2d'), o=octx.createImageData(W,H), od=o.data;
+  for(let y=0;y<H;y++){
+    const v=(y+.5)/H;
+    for(let x=0;x<W;x++){
+      const u=(x+.5)/W, den=gg*u+hh*v+1;
+      let X=(a*u+b*v+c)/den-.5, Y=(d*u+e*v+f)/den-.5;
+      if(X<0) X=0; else if(X>sw-1.001) X=sw-1.001; if(Y<0) Y=0; else if(Y>sh-1.001) Y=sh-1.001;
+      const x0=X|0, y0=Y|0, fx=X-x0, fy=Y-y0, i00=(y0*sw+x0)*4, i10=i00+4, i01=i00+sw*4, i11=i01+4, oi=(y*W+x)*4;
+      const w00=(1-fx)*(1-fy), w10=fx*(1-fy), w01=(1-fx)*fy, w11=fx*fy;
+      od[oi]=sd[i00]*w00+sd[i10]*w10+sd[i01]*w01+sd[i11]*w11;
+      od[oi+1]=sd[i00+1]*w00+sd[i10+1]*w10+sd[i01+1]*w01+sd[i11+1]*w11;
+      od[oi+2]=sd[i00+2]*w00+sd[i10+2]*w10+sd[i01+2]*w01+sd[i11+2]*w11;
+      od[oi+3]=255;
+    }
+  }
+  octx.putImageData(o,0,0); return out;
+}
+/* Filtros: 'doc' (quita sombras, texto nítido), 'color' (mejora brillo y contraste), 'orig' */
+function budScanFilter(base,mode){
+  if(mode==='orig') return base;
+  const W=base.width, H=base.height, d=base.getContext('2d').getImageData(0,0,W,H).data, N=W*H;
+  const out=document.createElement('canvas'); out.width=W; out.height=H;
+  const octx=out.getContext('2d'), o=octx.createImageData(W,H), od=o.data;
+  if(mode==='color'){
+    const hist=new Uint32Array(256); for(let i=0;i<N;i++) hist[(d[i*4]*77+d[i*4+1]*150+d[i*4+2]*29)>>8]++;
+    const pick=(fr)=>{ let a=0; const t=N*fr; for(let i=0;i<256;i++){ a+=hist[i]; if(a>=t) return i; } return 255; };
+    const lo=pick(.02), hi=Math.max(lo+30,pick(.85)), sc=255/(hi-lo);
+    for(let i=0;i<N*4;i+=4){ od[i]=(d[i]-lo)*sc; od[i+1]=(d[i+1]-lo)*sc; od[i+2]=(d[i+2]-lo)*sc; od[i+3]=255; }
+    octx.putImageData(o,0,0); return out;
+  }
+  const g=new Uint8Array(N); for(let i=0;i<N;i++) g[i]=(d[i*4]*77+d[i*4+1]*150+d[i*4+2]*29)>>8;
+  const W1=W+1, I=new Uint32Array(W1*(H+1));
+  for(let y=0;y<H;y++){ let rs=0; for(let x=0;x<W;x++){ rs+=g[y*W+x]; I[(y+1)*W1+x+1]=I[y*W1+x+1]+rs; } }
+  const r=Math.max(12,Math.round(Math.min(W,H)/22));
+  for(let y=0;y<H;y++){
+    const y0=Math.max(0,y-r), y1=Math.min(H,y+r+1);
+    for(let x=0;x<W;x++){
+      const x0=Math.max(0,x-r), x1=Math.min(W,x+r+1);
+      const mean=(I[y1*W1+x1]-I[y0*W1+x1]-I[y1*W1+x0]+I[y0*W1+x0])/((x1-x0)*(y1-y0));
+      const gv=g[y*W+x], norm=gv/(mean+1);
+      let v=(norm-.62)/.31*255; if(v<0) v=0; else if(v>255) v=255;
+      if(gv<50&&v>gv) v=gv;
+      const oi=(y*W+x)*4; od[oi]=od[oi+1]=od[oi+2]=v; od[oi+3]=255;
+    }
+  }
+  octx.putImageData(o,0,0); return out;
+}
+/* Pantalla del escáner. Recibe una foto (File/Blob) y devuelve un File JPG ya recortado y mejorado, o null si se cancela. */
+function budScanDoc(file){
+  return new Promise(resolve=>{
+    const ov=document.createElement('div'); ov.className='bud-scan';
+    ov.innerHTML=`<div class="bud-scan-h"><b id="bsT"></b><small id="bsS"></small></div><div class="bud-scan-stage" id="bsStage"></div><div class="bud-scan-filters" id="bsF" style="display:none"></div><div class="bud-scan-bar" id="bsBar"></div>`;
+    document.body.appendChild(ov);
+    const $=(s)=>ov.querySelector(s);
+    let url=null, src=null, quad=null, step='crop', filter='doc', base=null, cache={}, shown=null, fin=false, onR=null;
+    const done=(v)=>{ if(fin) return; fin=true; if(onR) window.removeEventListener('resize',onR); try{ if(url) URL.revokeObjectURL(url); }catch(e){} ov.remove(); resolve(v||null); };
+    const busy=(on)=>{ const st=$('#bsStage'); const old=st.querySelector('.bud-scan-busy'); if(old) old.remove(); if(on){ const b=document.createElement('div'); b.className='bud-scan-busy'; b.textContent='Procesando…'; st.appendChild(b); } };
+    const toCanvas=(im)=>{ const w0=im.naturalWidth||im.width, h0=im.naturalHeight||im.height, k=Math.min(1,2200/Math.max(w0,h0)); const c=document.createElement('canvas'); c.width=Math.max(1,Math.round(w0*k)); c.height=Math.max(1,Math.round(h0*k)); c.getContext('2d').drawImage(im,0,0,c.width,c.height); return c; };
+    const fit=(w,h)=>{ const st=$('#bsStage'), aw=Math.max(60,st.clientWidth-44), ah=Math.max(60,st.clientHeight-44), s=Math.min(aw/w,ah/h); return {s,dw:Math.max(40,Math.round(w*s)),dh:Math.max(40,Math.round(h*s))}; };
+    function paintCrop(){
+      step='crop'; $('#bsT').textContent='Ajusta las esquinas'; $('#bsS').textContent='Arrastra los puntos azules hasta los bordes de la factura'; $('#bsF').style.display='none';
+      const st=$('#bsStage'), {s,dw,dh}=fit(src.width,src.height);
+      st.innerHTML=`<div class="bud-scan-wrap" style="width:${dw}px;height:${dh}px"><canvas width="${dw}" height="${dh}"></canvas><svg viewBox="0 0 ${dw} ${dh}"><polygon id="bsPoly" fill="rgba(10,132,255,.2)" stroke="#0a84ff" stroke-width="2.5" stroke-linejoin="round"></polygon></svg>${[0,1,2,3].map(i=>`<div class="bud-scan-dot" data-i="${i}"><i></i></div>`).join('')}</div>`;
+      st.querySelector('canvas').getContext('2d').drawImage(src,0,0,dw,dh);
+      const wrap=st.querySelector('.bud-scan-wrap'), dots=[...st.querySelectorAll('.bud-scan-dot')], poly=st.querySelector('#bsPoly');
+      const sync=()=>{ dots.forEach((dt,i)=>{ dt.style.left=(quad[i].x*s)+'px'; dt.style.top=(quad[i].y*s)+'px'; }); poly.setAttribute('points',quad.map(p=>(p.x*s).toFixed(1)+','+(p.y*s).toFixed(1)).join(' ')); };
+      sync();
+      dots.forEach(dt=>{
+        const i=+dt.dataset.i;
+        dt.addEventListener('pointerdown',e=>{
+          e.preventDefault(); try{ dt.setPointerCapture(e.pointerId); }catch(x){}
+          const wr=wrap.getBoundingClientRect();
+          const mv=(ev)=>{ const x=Math.min(dw,Math.max(0,ev.clientX-wr.left)), y=Math.min(dh,Math.max(0,ev.clientY-wr.top)); quad[i]={x:x/s,y:y/s}; sync(); };
+          const up=()=>{ dt.removeEventListener('pointermove',mv); dt.removeEventListener('pointerup',up); dt.removeEventListener('pointercancel',up); };
+          dt.addEventListener('pointermove',mv); dt.addEventListener('pointerup',up); dt.addEventListener('pointercancel',up);
+        });
+      });
+      $('#bsBar').innerHTML=`<button type="button" data-a="x">Cancelar</button><button type="button" data-a="rot">↻ Girar</button><button type="button" data-a="auto">Auto</button><button type="button" class="pri" data-a="ok">Continuar</button>`;
+    }
+    function getShown(){ if(!cache[filter]) cache[filter]=budScanFilter(base,filter); return cache[filter]; }
+    function paintResult(){
+      step='res'; $('#bsT').textContent='Así quedó'; $('#bsS').textContent='Elige el estilo y toca “Usar esta”';
+      const F=$('#bsF'); F.style.display='flex';
+      F.innerHTML=[['doc','Documento'],['color','Color'],['orig','Original']].map(f=>`<button type="button" data-f="${f[0]}" class="${filter===f[0]?'on':''}">${f[1]}</button>`).join('');
+      busy(false);
+      const st=$('#bsStage'); st.innerHTML='<div class="bud-scan-busy">Procesando…</div>';
+      setTimeout(()=>{
+        if(fin) return;
+        try{ shown=getShown(); }catch(e){ console.error(e); toast('No se pudo aplicar el filtro.'); filter='orig'; shown=base; }
+        const {dw,dh}=fit(shown.width,shown.height), v=document.createElement('canvas'); v.width=dw; v.height=dh; v.className='bud-scan-res'; v.getContext('2d').drawImage(shown,0,0,dw,dh);
+        st.innerHTML=''; st.appendChild(v);
+      },30);
+      $('#bsBar').innerHTML=`<button type="button" data-a="back">← Recortar</button><button type="button" class="pri" data-a="use">✓ Usar esta</button>`;
+    }
+    function goResult(){
+      if(!budConvex(quad)){ toast('Las esquinas están cruzadas. Muévelas para formar un rectángulo.'); return; }
+      busy(true);
+      setTimeout(()=>{
+        try{ base=budWarp(src,quad); cache={}; }catch(e){ console.error(e); busy(false); toast('No se pudo procesar la imagen.'); return; }
+        paintResult();
+      },30);
+    }
+    ov.addEventListener('click',e=>{
+      const bt=e.target.closest('button'); if(!bt) return;
+      if(bt.dataset.f){ filter=bt.dataset.f; paintResult(); return; }
+      const a=bt.dataset.a; if(!a) return;
+      if(a==='x') done(null);
+      else if(a==='rot'){ const c=document.createElement('canvas'); c.width=src.height; c.height=src.width; const x=c.getContext('2d'); x.translate(c.width,0); x.rotate(Math.PI/2); x.drawImage(src,0,0); src=c; quad=budDetectQuad(src); paintCrop(); }
+      else if(a==='auto'){ quad=budDetectQuad(src); paintCrop(); }
+      else if(a==='ok') goResult();
+      else if(a==='back') paintCrop();
+      else if(a==='use'){
+        if(!shown){ return; }
+        shown.toBlob(b=>{ if(!b){ toast('No se pudo guardar la imagen.'); return; } done(new File([b],`factura_${Date.now()}.jpg`,{type:'image/jpeg'})); },'image/jpeg',.88);
+      }
+    });
+    onR=()=>{ if(!src||fin) return; if(step==='crop') paintCrop(); else paintResult(); };
+    url=URL.createObjectURL(file);
+    const im=new Image();
+    im.onload=()=>{ try{ src=toCanvas(im); quad=budDetectQuad(src); window.addEventListener('resize',onR); paintCrop(); }catch(e){ console.error(e); toast('No se pudo abrir la imagen.'); done(null); } };
+    im.onerror=()=>{ toast('No se pudo abrir la imagen.'); done(null); };
+    im.src=url;
+  });
+}
+/* ----- Selector de comprobante reutilizable (Escanear / Foto / Adjuntar) ----- */
+function budRcptPicker(el,f,onChange){
+  const stable=async(fl)=>(typeof veriStableFile==='function')?await veriStableFile(fl):fl;
+  const isImg=(fl)=>!!(fl&&(fl.type||'').startsWith('image/'));
+  const setFile=(fl,scanned)=>{ try{ if(f.fileUrl) URL.revokeObjectURL(f.fileUrl); }catch(e){} f.file=fl; f.fileUrl=fl?URL.createObjectURL(fl):''; f.scanned=!!scanned; paint(); if(onChange) onChange(); };
+  function paint(){
+    if(f.file){
+      el.innerHTML=`<div class="bud-rc">${isImg(f.file)?`<img src="${f.fileUrl}" alt="Comprobante">`:'<span style="font-size:34px">📄</span>'}<div><b>${budEsc(f.file.name||'Comprobante')}</b><small>${Math.round((f.file.size||0)/1024)} KB${f.scanned?' · escaneado':''}</small><div class="bud-rc-act">${isImg(f.file)?'<button type="button" class="btn ghost sm" data-r="crop">✂️ Recortar</button>':''}<button type="button" class="btn ghost sm" data-r="del">Quitar</button></div></div></div>`;
+    } else {
+      el.innerHTML=`<div class="bud-rc-btns"><button type="button" class="rep-cap-bigbtn primary row bud-scan-btn" data-r="scan"><span class="ico">📄</span><span class="lbl">Escanear factura</span></button><button type="button" class="rep-cap-bigbtn row" data-r="cam"><span class="ico">📷</span><span class="lbl">Tomar foto</span></button><button type="button" class="rep-cap-bigbtn row" data-r="pick"><span class="ico">🖼️</span><span class="lbl">Adjuntar</span></button></div><input data-i="scan" type="file" accept="image/*" capture="environment" class="rep-cap-hidden" tabindex="-1"><input data-i="cam" type="file" accept="image/*" capture="environment" class="rep-cap-hidden" tabindex="-1"><input data-i="pick" type="file" accept="image/*,application/pdf" class="rep-cap-hidden" tabindex="-1">`;
+    }
+  }
+  el.addEventListener('click',e=>{
+    const bt=e.target.closest('[data-r]'); if(!bt) return; const r=bt.dataset.r;
+    if(r==='del') setFile(null,false);
+    else if(r==='crop'){ budScanDoc(f.file).then(o=>{ if(o) setFile(o,true); }); }
+    else { const inp=el.querySelector(`[data-i="${r}"]`); if(inp) inp.click(); }
+  });
+  el.addEventListener('change',async e=>{
+    const inp=e.target.closest('input[data-i]'); if(!inp) return;
+    const file=inp.files&&inp.files[0]; if(!file) return;
+    const kind=inp.dataset.i, st=await stable(file); inp.value='';
+    if(kind==='scan'){ const o=await budScanDoc(st); if(o) setFile(o,true); }
+    else setFile(st,false);
+  });
+  paint();
+}
+/* ----- Editar un gasto (solo quien lo registró): descripción, valor y comprobante ----- */
+function budRescale(x,total){
+  total=Math.round(total||0); const parts=x.presupuesto_partes||[];
+  if(!parts.length||total<=0) return [];
+  if(x.modo==='personal'||parts.length===1) return [{code:parts[0].codigo_persona,pct:100,monto:total}];
+  if(x.modo==='abierto'){ const pay=x.pagado_por, oth=parts.filter(q=>q.codigo_persona!==pay), so=oth.reduce((a,q)=>a+(Number(q.monto)||0),0); if(so<total) return [...oth.map(q=>({code:q.codigo_persona,pct:+((Number(q.monto)||0)/total*100).toFixed(4),monto:Math.round(Number(q.monto)||0)})),{code:pay,pct:+((total-so)/total*100).toFixed(4),monto:total-so}]; }
+  const equal=()=>{ const n=parts.length, base=Math.floor(total/n), rem=total-base*n; return parts.map((p,i)=>({code:p.codigo_persona,pct:+(100/n).toFixed(4),monto:base+(i<rem?1:0)})); };
+  if(x.modo==='igual') return equal();
+  const old=parts.reduce((a,p)=>a+(Number(p.monto)||0),0); if(old<=0) return equal();
+  const raw=parts.map(p=>(Number(p.monto)||0)/old*total), fl=raw.map(Math.floor);
+  const rem=total-fl.reduce((a,v)=>a+v,0), order=raw.map((v,i)=>[v-fl[i],i]).sort((a,b)=>b[0]-a[0]);
+  for(let k=0;k<rem;k++) fl[order[k%order.length][1]]++;
+  return parts.map((p,i)=>({code:p.codigo_persona,pct:+(fl[i]/total*100).toFixed(4),monto:fl[i]}));
+}
+function budOpenEditExpense(x){
+  const me=budMe(), g=budGroup();
+  if(!g) return;
+  if(x.creado_por!==me){ toast('Solo quien registró el gasto puede editarlo.'); return; }
+  const f={concepto:x.concepto||'',monto:Math.round(Number(x.monto)||0),file:null,fileUrl:'',scanned:false,pay:x.medio_pago||''};
+  const tipo={recibo:'Recibo o factura',caja_menor:`Caja menor N° ${String(x.consecutivo||0).padStart(4,'0')}`,ninguno:'Sin comprobante'}[x.comprobante_tipo]||'Sin comprobante';
+  const ov=budOpenSheet('Editar gasto',`
+    <label class="bud-l" for="beConcepto">¿En qué se gastó?</label><input id="beConcepto" maxlength="120" autocomplete="off">
+    <label class="bud-l" for="beMonto">Valor total</label><input id="beMonto" class="bud-big" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+    <div class="bud-l">Pagado con</div><div class="bud-seg" id="bePay"><button type="button" data-pay="efectivo">💵 Efectivo</button><button type="button" data-pay="tarjeta">💳 Tarjeta</button></div>
+    <div id="beShares"></div>
+    <div class="bud-l">Comprobante</div>
+    <div class="bud-note">${x.comprobante_path?`Ahora tiene: <b>${budEsc(tipo)}</b>. Si agregas uno nuevo, reemplaza al anterior.`:'Este gasto todavía no tiene comprobante. Puedes escanearlo o adjuntarlo aquí.'}${x.comprobante_tipo==='caja_menor'?' Si cambias el valor o la descripción, el comprobante de caja menor se genera de nuevo.':''}</div>
+    <div id="beRcpt"></div>
+    <button type="button" class="btn block bud-save" id="beSave">Guardar cambios</button>`);
+  const $=(s)=>ov.querySelector(s);
+  $('#beConcepto').value=f.concepto; $('#beMonto').value=f.monto?f.monto.toLocaleString('es-CO'):'';
+  $('#beConcepto').addEventListener('input',e=>{ f.concepto=e.target.value; });
+  const paintShares=()=>{
+    const el=$('#beShares'), sh=budRescale(x,f.monto), changed=f.monto!==Math.round(Number(x.monto)||0);
+    el.innerHTML=(sh.length&&x.modo!=='personal')?`<div class="bud-l">Cuánto le toca a cada uno</div>${sh.map(p=>`<div class="bud-prt"><span class="bud-pchip-av">${veriAvatarHTML(p.code,32)}</span><b>${budEsc(budName(p.code))}</b><span class="bud-prt-amt">${budMoney(p.monto)}</span></div>`).join('')}${changed?'<p class="small-note" style="margin:6px 2px 0">Al cambiar el valor, la parte de cada persona se ajusta en la misma proporción.</p>':''}`:'';
+  };
+  const paintPay=()=>$('#bePay').querySelectorAll('button').forEach(bt=>bt.classList.toggle('on',bt.dataset.pay===f.pay));
+  $('#bePay').addEventListener('click',e=>{ const bt=e.target.closest('[data-pay]'); if(!bt) return; f.pay=bt.dataset.pay; paintPay(); });
+  paintPay();
+  budBindMoney($('#beMonto'),n=>{ f.monto=n; paintShares(); });
+  paintShares();
+  budRcptPicker($('#beRcpt'),f,null);
+  $('#beSave').onclick=()=>budSaveEdit(x,f,$('#beSave'));
+}
+async function budSaveEdit(x,f,btn){
+  const me=budMe(), g=budGroup();
+  if(!g) return;
+  if(x.creado_por!==me){ toast('Solo quien registró el gasto puede editarlo.'); return; }
+  const concepto=(f.concepto||'').trim()||x.concepto, monto=Math.round(f.monto||0), oldMonto=Math.round(Number(x.monto)||0);
+  if(!(monto>0)){ toast('Escribe el valor del gasto.'); return; }
+  const changedC=concepto!==x.concepto, changedM=monto!==oldMonto, changedP=!!f.pay&&f.pay!==(x.medio_pago||'');
+  if(!changedC&&!changedM&&!changedP&&!f.file){ toast('No hay cambios para guardar.'); return; }
+  btn.disabled=true; const label=btn.textContent; btn.textContent='Guardando…';
+  const mineQ=`id=eq.${x.id}&creado_por=eq.${budEnc(me)}`;
+  const oldParts=(x.presupuesto_partes||[]).map(p=>({gasto_id:x.id,codigo_persona:p.codigo_persona,porcentaje:p.porcentaje,monto:p.monto}));
+  const shares=changedM?budRescale(x,monto):(x.presupuesto_partes||[]).map(p=>({code:p.codigo_persona,pct:p.porcentaje,monto:p.monto}));
+  let patched=false, replaced=false;
+  try{
+    if(changedC||changedM||changedP){
+      const r=await sb(`${BUD_P}gastos?${mineQ}`,{method:'PATCH',body:JSON.stringify({concepto,monto,...(changedP?{medio_pago:f.pay}:{})}),headers:{'Prefer':'return=representation'},silent:true});
+      if(!r||!r.length) throw new Error('No se actualizó (sin permiso o no existe)');
+      patched=true;
+    }
+    if(changedM){
+      await sb(`${BUD_P}partes?gasto_id=eq.${x.id}`,{method:'DELETE',headers:{'Prefer':'return=minimal'},silent:true});
+      replaced=true;
+      await sb(`${BUD_P}partes`,{method:'POST',body:JSON.stringify(shares.map(s=>({gasto_id:x.id,codigo_persona:s.code,porcentaje:s.pct,monto:s.monto}))),headers:{'Prefer':'return=minimal'},silent:true});
+    }
+  }catch(err){
+    console.error(err);
+    try{
+      if(replaced){ await sb(`${BUD_P}partes?gasto_id=eq.${x.id}`,{method:'DELETE',headers:{'Prefer':'return=minimal'},silent:true}).catch(()=>{}); await sb(`${BUD_P}partes`,{method:'POST',body:JSON.stringify(oldParts),headers:{'Prefer':'return=minimal'},silent:true}); }
+      if(patched) await sb(`${BUD_P}gastos?${mineQ}`,{method:'PATCH',body:JSON.stringify({concepto:x.concepto,monto:oldMonto}),headers:{'Prefer':'return=minimal'},silent:true});
+    }catch(e2){ console.error('Rollback',e2); }
+    toast(changedP&&/medio_pago|column|PGRST204|42703|schema cache/i.test(String((err&&(err.message||err.details))||err))?'Falta la columna medio_pago en Supabase. Ejecuta el SQL y vuelve a intentar.':'No se pudieron guardar los cambios. Revisa tu conexión.'); btn.disabled=false; btn.textContent=label; return;
+  }
+  let warn='';
+  try{
+    let blob=null, name='', tipo=null;
+    if(f.file){ blob=f.file; name=(f.file.name||'comprobante').replace(/[^a-zA-Z0-9._-]/g,'_'); tipo='recibo'; }
+    else if(x.comprobante_tipo==='caja_menor'&&(changedC||changedM)){ blob=await budVoucherBlob(g,{...x,concepto,monto,medio_pago:f.pay||x.medio_pago},shares,x.proveedor); name=`caja_menor_${String(x.consecutivo||0).padStart(4,'0')}.png`; tipo='caja_menor'; }
+    if(blob){
+      const path=`${g.id}/${x.id}/${Date.now()}-${name}`;
+      const {error}=await veriStorageClient().storage.from(BUD_BUCKET).upload(path,blob,{upsert:false,contentType:blob.type||'image/png',cacheControl:'3600'});
+      if(error) throw error;
+      await sb(`${BUD_P}gastos?${mineQ}`,{method:'PATCH',body:JSON.stringify({comprobante_path:path,comprobante_tipo:tipo}),headers:{'Prefer':'return=minimal'},silent:true});
+      if(x.comprobante_path){ try{ await veriStorageClient().storage.from(BUD_BUCKET).remove([x.comprobante_path]); }catch(e){} }
+    }
+  }catch(e){ console.error(e); warn=' (no se pudo actualizar el comprobante; ábrelo de nuevo con ✏️ Editar e inténtalo otra vez)'; }
+  budCloseSheet(); toast('✓ Gasto actualizado'+warn); await budLoad(true);
+}
 /* ----- Detalle de un gasto ----- */
 function budOpenGasto(id){
   const b=budState(), x=b.gastos.find(y=>String(y.id)===String(id)); if(!x) return;
-  const me=budMe(), admin=isAdmin(), own=x.creado_por===me;
+  const me=budMe(), admin=budAdmin(), own=x.creado_por===me;
   const cat=BUD_CATS.find(c=>c[0]===x.categoria)||BUD_CATS[BUD_CATS.length-1], sh=(x.presupuesto_partes||[]).slice().sort((p,q)=>q.monto-p.monto);
   const tipo={recibo:'Recibo o factura',caja_menor:`Caja menor N° ${String(x.consecutivo||0).padStart(4,'0')}`,ninguno:'Sin comprobante'}[x.comprobante_tipo]||'Sin comprobante';
   const reqs=(b.solic||[]).filter(r=>String(r.gasto_id)===String(x.id)), pend=reqs.find(r=>r.estado==='pendiente'), rej=reqs.find(r=>r.estado==='rechazada'&&r.solicitado_por===me);
@@ -3858,19 +4203,29 @@ function budOpenGasto(id){
   else if(pend) actions+=`<div class="bud-note">⏳ Ya pediste eliminarlo. Falta la autorización del administrador.</div>`;
   else actions+=`${rej?'<div class="bud-note">El administrador rechazó tu última solicitud.</div>':''}<button type="button" class="btn secondary block" style="margin-top:14px" id="bdReq">Pedir autorización para eliminar</button><p class="small-note" style="margin:6px 2px 0">Solo quien lo registró o el administrador pueden eliminarlo directamente.</p>`;
   if(admin&&x.anulado) actions+=`<button type="button" class="btn secondary block" style="margin-top:8px" id="bdRestore">Restaurar gasto anulado</button>`;
+  const isMem=b.members.some(m=>m.codigo_persona===me), mine=sh.find(p=>p.codigo_persona===me);
+  let claim='';
+  if(x.modo==='abierto'&&!x.anulado&&isMem){
+    claim=me===x.pagado_por?`<div class="bud-note">Pagaste tú. Lo que los demás no pongan como suyo queda a tu cargo.</div>`:`<div class="bud-claim"><div class="bud-l">¿Cuánto fue lo tuyo?</div><div class="bud-claim-row"><input id="bdMine" class="bud-big" inputmode="numeric" placeholder="$ 0" autocomplete="off" value="${mine?Math.round(mine.monto).toLocaleString('es-CO'):''}"><button type="button" class="btn" id="bdMineSave">Poner mi parte</button></div><small class="small-note">El gasto sigue completo en el presupuesto del grupo y lo pagó ${budEsc(budFirst(budName(x.pagado_por)))}. Solo se reparte lo que le toca a cada uno.</small></div>`;
+  }
   const ov=budOpenSheet('Detalle del gasto',`
     <div class="bud-det-top"><span class="bud-mov-ico big">${cat[1]}</span><div><b class="bud-det-title">${budEsc(x.concepto)}</b><small class="small-note" style="display:block">${budEsc(cat[2])} · ${budEsc(x.fecha)}</small></div><div class="bud-det-amt">${budMoney(x.monto)}</div></div>
     ${x.anulado?'<div class="bud-note" style="border-color:#ff453a">Este gasto está <b>anulado</b> y no cuenta en los totales.</div>':''}
     <div class="bud-det-row"><span>Pagó</span><b>${budEsc(budName(x.pagado_por))}</b></div>
+    ${x.medio_pago?`<div class="bud-det-row"><span>Medio de pago</span><b>${budPayIco(x.medio_pago)} ${budPayTxt(x.medio_pago)}</b></div>`:''}
     <div class="bud-det-row"><span>Reparto</span><b>${budModoTxt(x)}</b></div>
     <div class="bud-det-row"><span>Comprobante</span><b>${budEsc(tipo)}</b></div>
     ${x.proveedor?`<div class="bud-det-row"><span>Pagado a</span><b>${budEsc(x.proveedor)}</b></div>`:''}
     ${x.notas?`<div class="bud-det-row"><span>Notas</span><b>${budEsc(x.notas)}</b></div>`:''}
+    ${claim}
     <div class="bud-l">Cuánto le toca a cada uno</div>
     ${sh.map(p=>`<div class="bud-prt"><span class="bud-pchip-av">${veriAvatarHTML(p.codigo_persona,32)}</span><b>${budEsc(budName(p.codigo_persona))}</b><span class="bud-prt-amt">${budMoney(p.monto)}</span></div>`).join('')}
     ${x.comprobante_path?`<button type="button" class="btn secondary block" style="margin-top:12px" data-bud-act="receipt" data-path="${budEsc(x.comprobante_path)}">📎 Ver comprobante</button>`:''}
+    ${own&&!x.anulado?`<button type="button" class="btn secondary block" style="margin-top:12px" id="bdEdit">✏️ ${x.comprobante_path?'Editar gasto':'Editar o agregar comprobante'}</button>`:''}
     ${actions}`);
   const q=(id)=>ov.querySelector(id);
+  if(q('#bdEdit')) q('#bdEdit').onclick=()=>budOpenEditExpense(x);
+  if(q('#bdMine')){ let mineVal=mine?Math.round(mine.monto):0; budBindMoney(q('#bdMine'),n=>{ mineVal=n; }); q('#bdMineSave').onclick=()=>budSetMyShare(x,mineVal,q('#bdMineSave')); }
   if(q('#bdDel')) q('#bdDel').onclick=()=>{ if(confirm('¿Eliminar este gasto? Se borra para siempre, junto con su comprobante.')) budDeleteGasto(x); };
   if(q('#bdApprove')) q('#bdApprove').onclick=()=>{ if(confirm('¿Aprobar y eliminar este gasto?')) budDeleteGasto(x); };
   if(q('#bdRej')) q('#bdRej').onclick=()=>budResolveRequest(pend.id,false);
@@ -3880,6 +4235,29 @@ function budOpenGasto(id){
     try{ await sb(`${BUD_P}solicitudes`,{method:'POST',body:JSON.stringify([{gasto_id:x.id,grupo_id:x.grupo_id,solicitado_por:me,solicitado_nombre:budName(me),motivo:(motivo||'').trim()||null,estado:'pendiente',creado_en:Date.now()}]),headers:{'Prefer':'return=minimal'},silent:true}); budCloseSheet(); toast('✓ Solicitud enviada al administrador'); await budLoad(true); }
     catch(e){ console.error(e); toast('No se pudo enviar la solicitud. ¿Ya ejecutaste de nuevo presupuesto.sql?'); }
   };
+}
+/* Pon tu parte: el gasto sigue completo en el grupo; solo se mueve lo tuyo desde quien pagó hacia ti */
+async function budSetMyShare(x,mine,btn){
+  const me=budMe(), payer=x.pagado_por, total=Math.round(Number(x.monto)||0); mine=Math.round(mine||0);
+  if(me===payer) return;
+  if(mine<0||mine>total){ toast('Ese valor no es válido para este gasto.'); return; }
+  btn.disabled=true; const label=btn.textContent; btn.textContent='Guardando…';
+  let removed=null;
+  try{
+    const fresh=(await sb(`${BUD_P}partes?gasto_id=eq.${x.id}&select=*`,{silent:true}))||[];
+    const others=fresh.filter(p=>p.codigo_persona!==me&&p.codigo_persona!==payer).reduce((a,p)=>a+Math.round(Number(p.monto)||0),0);
+    if(mine+others>total){ toast(`Se pasa del total. Lo máximo que puedes poner es ${budMoney(Math.max(0,total-others))}.`); btn.disabled=false; btn.textContent=label; return; }
+    const rest=total-others-mine, mk=(c,m)=>({gasto_id:x.id,codigo_persona:c,porcentaje:total?+(m/total*100).toFixed(4):0,monto:m});
+    const rows=[]; if(mine>0) rows.push(mk(me,mine)); if(rest>0) rows.push(mk(payer,rest));
+    removed=fresh.filter(p=>p.codigo_persona===me||p.codigo_persona===payer).map(p=>({gasto_id:x.id,codigo_persona:p.codigo_persona,porcentaje:p.porcentaje,monto:p.monto}));
+    await sb(`${BUD_P}partes?gasto_id=eq.${x.id}&codigo_persona=in.(${budEnc(me)},${budEnc(payer)})`,{method:'DELETE',headers:{'Prefer':'return=minimal'},silent:true});
+    if(rows.length) await sb(`${BUD_P}partes`,{method:'POST',body:JSON.stringify(rows),headers:{'Prefer':'return=minimal'},silent:true});
+    budCloseSheet(); toast(mine>0?`✓ Tu parte: ${budMoney(mine)}`:'✓ Quitaste tu parte'); await budLoad(true);
+  }catch(e){
+    console.error(e);
+    try{ if(removed&&removed.length){ await sb(`${BUD_P}partes?gasto_id=eq.${x.id}&codigo_persona=in.(${budEnc(me)},${budEnc(payer)})`,{method:'DELETE',headers:{'Prefer':'return=minimal'},silent:true}).catch(()=>{}); await sb(`${BUD_P}partes`,{method:'POST',body:JSON.stringify(removed),headers:{'Prefer':'return=minimal'},silent:true}); } }catch(e2){}
+    toast('No se pudo guardar tu parte. Revisa tu conexión.'); btn.disabled=false; btn.textContent=label;
+  }
 }
 async function budDeleteGasto(x){
   try{
@@ -3973,6 +4351,7 @@ function budVoucherBlob(g,gasto,shares,proveedor){
       row('Son',budNumWords(gasto.monto)+' pesos m/cte');
       const cat=BUD_CATS.find(c=>c[0]===gasto.categoria); row('Categoría',cat?cat[2]:'Otros');
       row('Pagó',budName(gasto.pagado_por));
+      if(gasto.medio_pago) row('Medio de pago',budPayTxt(gasto.medio_pago));
       row('Reparto',shares.map(s=>`${budFirst(budName(s.code))} ${budMoney(s.monto)}`).join(' · '));
       const sy=Math.max(y+60,1150);
       x.strokeStyle=ink; x.lineWidth=2;
@@ -3985,7 +4364,7 @@ function budVoucherBlob(g,gasto,shares,proveedor){
 }
 /* ----- Excel del administrador ----- */
 async function budExportExcel(){
-  if(!isAdmin()) return;
+  if(!budAdmin()) return;
   const b=budState(), g=budGroup(); if(!g) return;
   try{ await ensureXLSX(); }catch(e){ toast(t('errorImport')); return; }
   toast('Preparando Excel…');
@@ -4007,9 +4386,9 @@ async function budExportExcel(){
   for(let r=8;r<res.length;r++){ const a=XLSX.utils.encode_cell({r,c:5}); if(w1[a]&&typeof w1[a].v==='number') w1[a].z='0%'; }
   applyExcelFont(w1,'Calibri',11); XLSX.utils.book_append_sheet(wb,w1,sheetName('Resumen'));
   // 2) Movimientos
-  const mv=[['FECHA','CONCEPTO','CATEGORÍA','PAGÓ','VALOR','REPARTO','COMPROBANTE','VER COMPROBANTE','ESTADO','NOTAS']];
-  gastos.forEach(x=>{ const cat=BUD_CATS.find(c=>c[0]===x.categoria); mv.push([x.fecha,x.concepto,cat?cat[2]:'Otros',budName(x.pagado_por),Math.round(x.monto),modoTxt(x),tipoTxt(x),'',x.anulado?'ANULADO':'Válido',x.notas||'']); });
-  const w2=XLSX.utils.aoa_to_sheet(mv); w2['!cols']=[{wch:12},{wch:36},{wch:14},{wch:22},{wch:16},{wch:22},{wch:22},{wch:18},{wch:10},{wch:30}]; money(w2,[4],1);
+  const mv=[['FECHA','CONCEPTO','CATEGORÍA','PAGÓ','VALOR','REPARTO','COMPROBANTE','VER COMPROBANTE','ESTADO','NOTAS','MEDIO DE PAGO']];
+  gastos.forEach(x=>{ const cat=BUD_CATS.find(c=>c[0]===x.categoria); mv.push([x.fecha,x.concepto,cat?cat[2]:'Otros',budName(x.pagado_por),Math.round(x.monto),modoTxt(x),tipoTxt(x),'',x.anulado?'ANULADO':'Válido',x.notas||'',budPayTxt(x.medio_pago)]); });
+  const w2=XLSX.utils.aoa_to_sheet(mv); w2['!cols']=[{wch:12},{wch:36},{wch:14},{wch:22},{wch:16},{wch:22},{wch:22},{wch:18},{wch:10},{wch:30},{wch:16}]; money(w2,[4],1);
   gastos.forEach((x,i)=>link(w2,i+1,7,urls[x.id]));
   applyExcelFont(w2,'Calibri',11); XLSX.utils.book_append_sheet(wb,w2,sheetName('Movimientos'));
   // 3) Una hoja por persona, con saldo corrido
@@ -4030,12 +4409,12 @@ async function budExportExcel(){
 document.addEventListener('click',(e)=>{
   const bt=e.target&&e.target.closest&&e.target.closest('[data-bud-act]'); if(!bt) return;
   const b=budState(), a=bt.dataset.budAct;
-  if(a==='group'){ b.groupId=String(bt.dataset.id); b.loaded=true; budRepaint(); budLoadGroup().then(budRepaint).catch(()=>{}); }
+  if(a==='group'){ b.selBub=null; b.groupId=String(bt.dataset.id); b.loaded=true; budRepaint(); budLoadGroup().then(budRepaint).catch(()=>{}); }
   else if(a==='group-new') budOpenGroupForm(false);
   else if(a==='group-edit') budOpenGroupForm(true);
   else if(a==='add') budOpenExpenseForm();
   else if(a==='add-voice') budOpenExpenseForm({voice:true});
-  else if(a==='bub') toast(bt.dataset.tip||'');
+  else if(a==='bub'){ const c=bt.dataset.code; b.selBub=(b.selBub===c?null:c); budRepaint(); }
   else if(a==='tab'){ b.tab=bt.dataset.tab; budRepaint(); }
   else if(a==='gasto') budOpenGasto(bt.dataset.id);
   else if(a==='receipt') budViewReceipt(bt.dataset.path);
@@ -4058,9 +4437,129 @@ function daysAgoKey(n){
   d.setDate(d.getDate()-n);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+
+/* ===== Día de nombrado de 24 h (desde el primer producto) y supermercados ===== */
+const NAMING_WINDOW_MS=24*3600*1000;
+function addDaysKey(key,n){ const a=String(key).split('-').map(Number); const d=new Date(a[0],a[1]-1,a[2]+n); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function namingWinStore(){ return 'vp_naming_win_'+normalize(state.session||''); }
+function namingWin(){ try{ const w=JSON.parse(localStorage.getItem(namingWinStore())||'null'); if(w&&w.key&&Number(w.start)>0&&Date.now()-Number(w.start)<NAMING_WINDOW_MS) return w; }catch(e){} return null; }
+function setNamingWin(key,start){ try{ localStorage.setItem(namingWinStore(),JSON.stringify({key,start})); }catch(e){} }
+function clearNamingWin(){ try{ localStorage.removeItem(namingWinStore()); }catch(e){} }
+/* Clave del día de nombrado en curso: mientras no pasen 24 h desde el primer producto, sigue siendo la misma aunque pase la medianoche. */
+function namingDayKey(){ const w=namingWin(); return w?w.key:todayKey(); }
+function namingWindowNote(){
+  const w=namingWin(); if(!w||!state.naming||!(state.naming.items||[]).length) return '';
+  const en=state.prefs.lang==='en', end=new Date(Number(w.start)+NAMING_WINDOW_MS), same=end.toDateString()===new Date().toDateString();
+  const hh=end.toLocaleTimeString(en?'en-US':'es-CO',{hour:'numeric',minute:'2-digit'}), day=same?(en?'today':'hoy'):(en?'tomorrow':'mañana');
+  return `<p class="small-note" style="margin:0 0 10px;">⏳ ${en?`This naming day archives itself ${day} at ${hh} (24 h after the first product).`:`Este día de nombrado se archiva solo ${day} a las ${hh} (24 h después del primer producto).`}</p>`;
+}
+const NSTORE_DEF=['D1','OLÍMPICA','ÉXITO','ARA','JUMBO'];
+function nstoreKey(k){ return 'vp_naming_'+k+'_'+normalize(state.session||''); }
+function getNamingStore(){ try{ return localStorage.getItem(nstoreKey('store'))||''; }catch(e){ return ''; } }
+function setNamingStore(v){ try{ if(v) localStorage.setItem(nstoreKey('store'),v); else localStorage.removeItem(nstoreKey('store')); }catch(e){} }
+function getNamingStoreList(){
+  let c=[]; try{ c=JSON.parse(localStorage.getItem(nstoreKey('stores'))||'[]'); }catch(e){}
+  const used=((state.naming&&state.naming.items)||[]).map(i=>i.tienda).filter(Boolean);
+  return [...new Set([...NSTORE_DEF,...(Array.isArray(c)?c:[]),...used])];
+}
+function renderNamingStoreBar(){
+  const en=state.prefs.lang==='en', cur=getNamingStore(), cnt={};
+  ((state.naming&&state.naming.items)||[]).forEach(i=>{ if(i.tienda) cnt[i.tienda]=(cnt[i.tienda]||0)+1; });
+  const chips=getNamingStoreList().map(sn=>`<button type="button" class="nstore-chip${sn===cur?' on':''}" data-nstore="${escapeHtml(sn)}">${escapeHtml(sn)}${cnt[sn]?` <small>${cnt[sn]}</small>`:''}</button>`).join('');
+  return `<div class="card glass nstore" id="namingStoreBar"><div class="nstore-top"><b>🏬 ${en?'Supermarket':'Supermercado'}</b><span class="small-note">${cur?(en?'Naming for ':'Nombrando para ')+'<b>'+escapeHtml(cur)+'</b>':(en?'Pick one to keep products apart':'Elige uno para separar los nombrados')}</span></div><div class="nstore-chips">${chips}<button type="button" class="nstore-chip add" data-nstore-add="1" aria-label="${en?'Add supermarket':'Agregar supermercado'}">＋</button></div></div>`;
+}
+document.addEventListener('click',e=>{
+  const c=e.target.closest&&e.target.closest('[data-nstore],[data-nstore-add]'); if(!c) return;
+  e.preventDefault();
+  if(c.hasAttribute('data-nstore-add')){
+    const en=state.prefs.lang==='en', v=(prompt(en?'Supermarket name:':'Nombre del supermercado:')||'').trim().toUpperCase().slice(0,24); if(!v) return;
+    let l=[]; try{ l=JSON.parse(localStorage.getItem(nstoreKey('stores'))||'[]'); }catch(x){} if(!Array.isArray(l)) l=[];
+    if(!l.includes(v)&&!NSTORE_DEF.includes(v)){ l.push(v); try{ localStorage.setItem(nstoreKey('stores'),JSON.stringify(l)); }catch(x){} }
+    setNamingStore(v);
+  } else { const v=c.getAttribute('data-nstore'); setNamingStore(getNamingStore()===v?'':v); }
+  const bar=document.getElementById('namingStoreBar'); if(bar) bar.outerHTML=renderNamingStoreBar();
+});
+/* Agrupa en secciones por supermercado; si nadie usó supermercados, la lista queda como siempre. */
+function namingSectionsHTML(entries,getStore,renderOne){
+  if(!entries.some(x=>getStore(x))) return entries.map(x=>renderOne(x)).join('');
+  const g=new Map(); entries.forEach(x=>{ const k=getStore(x)||''; if(!g.has(k)) g.set(k,[]); g.get(k).push(x); });
+  const en=state.prefs.lang==='en';
+  return [...g.entries()].map(([k,arr])=>`<div class="nstore-sec"><div class="nstore-head"><b>🏬 ${escapeHtml(k||(en?'No supermarket':'Sin supermercado'))}</b><span>${arr.length}</span></div>${arr.map(x=>renderOne(x)).join('')}</div>`).join('');
+}
+function namingAddStoreSheets(wb,data){
+  const stores=[...new Set(data.map(r=>r['SUPERMERCADO']).filter(Boolean))]; if(stores.length<2) return;
+  stores.forEach(sn=>{ const rows=data.filter(r=>r['SUPERMERCADO']===sn), w=XLSX.utils.json_to_sheet(rows); w['!cols']=[{wch:16},{wch:18},{wch:18},{wch:42}]; applyExcelFont(w,'Calibri',11); XLSX.utils.book_append_sheet(wb,w,String(sn).replace(/[\\/?*\[\]:]/g,' ').slice(0,31)||'Tienda'); });
+}
+
+/* ===== Posibles duplicados con lo que OTRAS personas nombraron en su día (últimas 24 h) ===== */
+const PEER={rows:[],idx:null,last:0,full:0,seen:0,busy:null};
+function peerName(code){ const p=(state.personas||[]).find(x=>x.codigo===normalize(code)); return String((p&&p.nombre)||code||'').trim().split(/\s+/)[0]||String(code||''); }
+function peerBuildIdx(){
+  const cutoff=Date.now()-NAMING_WINDOW_MS, list=[], map=new Map();
+  PEER.rows.forEach(r=>{ if(!r||!r.codigo||!r.nombre||Number(r.creado_en)<cutoff) return; const o={codigo:r.codigo,nombre:r.nombre,__by:r.codigo_persona}; list.push(o); if(!map.has(r.codigo)) map.set(r.codigo,o); });
+  PEER.idx={list,map};
+}
+/* Trae lo nombrado por los demás: completo la primera vez y cada 5 min, y solo lo nuevo en las demás (pocos datos). */
+function peerNamingSync(force){
+  if(!state.session) return Promise.resolve();
+  if(PEER.busy) return PEER.busy;
+  PEER.busy=(async()=>{
+    try{
+      const now=Date.now(), full=force||!PEER.last||now-PEER.full>5*60000, me=encodeURIComponent(normalize(state.session));
+      const since=full?now-NAMING_WINDOW_MS:PEER.seen; let out=[];
+      for(let off=0,k=0;k<8;k++,off+=1000){
+        const rows=await sb(`nombrados_diarios?codigo_persona=neq.${me}&creado_en=${full?'gte':'gt'}.${since}&select=codigo,nombre,codigo_persona,creado_en&order=creado_en.desc&limit=1000&offset=${off}`,{silent:true});
+        if(!Array.isArray(rows)){ if(k===0) return; break; }
+        out=out.concat(rows); if(rows.length<1000) break;
+      }
+      PEER.rows=full?out:out.concat(PEER.rows);
+      out.forEach(r=>{ const c=Number(r.creado_en)||0; if(c>PEER.seen) PEER.seen=c; });
+      if(full) PEER.full=now; PEER.last=now; peerBuildIdx();
+    }catch(e){ console.error('No se pudo revisar lo nombrado por otras personas:',e); }
+    finally{ PEER.busy=null; }
+  })();
+  return PEER.busy;
+}
+function peerNamingFresh(maxAge){ return (Date.now()-PEER.last>(maxAge||20000)) ? peerNamingSync(false) : Promise.resolve(); }
+/* Personas que están o estuvieron en la sesión compartida (anfitrión, participantes y quien tomó puestos): entre ellas no se avisa. */
+function peerSessionMembers(){
+  const sh=state.shared; if(!sh||!sh.sesion) return null;
+  const sk='vp_shared_ever_'+normalize(state.session||'')+'_'+sh.sesion.id, set=new Set(sh.ever||[]);
+  if(!sh.everLoaded){ sh.everLoaded=true; try{ JSON.parse(localStorage.getItem(sk)||'[]').forEach(c=>set.add(c)); }catch(e){} }
+  const before=set.size;
+  set.add(normalize(sh.sesion.host_codigo||'')); (sh.participantes||[]).forEach(x=>x&&set.add(normalize(x.codigo_persona))); (sh.puestos||[]).forEach(x=>x&&x.codigo_persona&&set.add(normalize(x.codigo_persona)));
+  set.delete('');
+  sh.ever=[...set]; if(set.size!==before){ try{ localStorage.setItem(sk,JSON.stringify(sh.ever)); }catch(e){} }
+  return set;
+}
+function peerCtxIdx(){
+  const ex=peerSessionMembers(); if(!ex||!ex.size) return PEER.idx;
+  const k=[...ex].sort().join(',')+'|'+PEER.last; if(PEER.ctx&&PEER.ctx.k===k) return PEER.ctx.idx;
+  const cutoff=Date.now()-NAMING_WINDOW_MS, list=[], map=new Map();
+  PEER.rows.forEach(r=>{ if(!r||!r.codigo||!r.nombre||Number(r.creado_en)<cutoff||ex.has(normalize(r.codigo_persona))) return; const o={codigo:r.codigo,nombre:r.nombre,__by:r.codigo_persona}; list.push(o); if(!map.has(r.codigo)) map.set(r.codigo,o); });
+  PEER.ctx={k,idx:{list,map}}; return PEER.ctx.idx;
+}
+function findPeerNamingDup(nombre,codigo){ const ix=peerCtxIdx(); return ix?findNameDuplicateIdx(ix,nombre,codigo):null; }
+/* Actualización frecuente mientras hay internet y se está nombrando (en modo ligero se espacia sola). */
+function peerStartTimer(){
+  if(PEER.timer) return;
+  PEER.timer=setInterval(()=>{
+    if(document.hidden||!navigator.onLine||!state.session) return;
+    if(!((state.tab==='rep'&&state.repView==='naming')||sharedIsActive())) return;
+    if(veriLiteSkip('peer')) return;
+    peerNamingSync(false);
+  },8000);
+  window.addEventListener('online',()=>{ try{ peerNamingSync(false); }catch(e){} });
+}
+function peerDupMsg(pd){
+  const en=state.prefs.lang==='en', by=peerName(pd.__by);
+  const why=pd.__dupReason==='code'?(en?'same code':'mismo código'):(pd.__dupReason==='exact'?(en?'same name':'mismo nombre'):(en?'very similar product':'producto muy parecido'));
+  return en?`⚠️ Possible duplicate (${why}): ${by} already named "${pd.nombre}" (${pd.codigo}) in their day. Add it anyway?`:`⚠️ Posible duplicado (${why}): ${by} ya nombró «${pd.nombre}» (${pd.codigo}) en su día. ¿Agregarlo de todos modos?`;
+}
+const peerDupInfo=(pd)=>({codigo:`${pd.codigo} de ${peerName(pd.__by)}`,nombre:pd.nombre});
 function loadNaming(){
   setTimeout(()=>{ try{ sharedRestore(); }catch(e){} },0);
-  const today = todayKey();
+  const today = namingDayKey();
   const key = 'vp_naming_'+normalize(state.session||'')+'_'+today;
   const raw = localStorage.getItem(key);
   try{ state.naming = raw ? JSON.parse(raw) : { date: today, items:[] }; }
@@ -4069,8 +4568,9 @@ function loadNaming(){
   if(!Array.isArray(state.naming.items)) state.naming.items=[];
 }
 function saveNaming(){
-  const today = todayKey();
+  const today = namingDayKey();
   if(!state.naming || state.naming.date!==today) return;
+  { const its=state.naming.items||[]; if(!its.length) clearNamingWin(); else if(!namingWin()){ const ts=its.map(i=>Number(i.createdAt)||0).filter(Boolean); setNamingWin(today, ts.length?Math.min(...ts):Date.now()); } }
   const key = 'vp_naming_'+normalize(state.session||'')+'_'+today;
   localStorage.setItem(key, JSON.stringify(state.naming));
 }
@@ -4440,7 +4940,7 @@ function startNamingDayWatcher(){
   if(namingDayWatcher) return;
   namingDayWatcher=setInterval(async()=>{
     if(!state.session) return;
-    const today=todayKey();
+    const today=namingDayKey();
     if(state.naming&&state.naming.date!==today){
       // Pasó la medianoche: lo de ayer queda en Archivados (7 días) y arranca una lista nueva.
       try{ await pushPendingNamingOfPastDays(); }catch(e){}
@@ -4449,7 +4949,7 @@ function startNamingDayWatcher(){
       render();
       return;
     }
-    if(namingViewVisible() && !document.hidden) refreshNamingAndRender();
+    if(namingViewVisible() && !document.hidden){ refreshNamingAndRender(); peerNamingFresh(40000); }
   },30000);
   const wake=()=>{ if(state.session && !document.hidden){ refreshNamingAndRender(); } };
   document.addEventListener('visibilitychange',wake);
@@ -4584,8 +5084,9 @@ function fixBrandInName(value,newBrand){
   parts[0]=(m?m[1]:'')+newBrand;
   return parts.join(',');
 }
-function findNameDuplicate2026(nombreNorm, excludeCodigo){
-  const idx=state.index['2026']; if(!idx) return null;
+function findNameDuplicate2026(nombreNorm, excludeCodigo){ return findNameDuplicateIdx(state.index['2026'], nombreNorm, excludeCodigo); }
+function findNameDuplicateIdx(idx, nombreNorm, excludeCodigo){
+  if(!idx) return null;
   // Mismo código ya usado/nombrado en la base 2026 -> ese producto ya existe, sin importar si el nombre coincide.
   if(excludeCodigo && idx.map.has(excludeCodigo)){
     return Object.assign({},idx.map.get(excludeCodigo),{__dupReason:'code'});
@@ -5369,6 +5870,8 @@ async function updateNamingSuggestion(){
       html += `<details class="naming-suggestion-alert"><summary><span class="naming-suggestion-alert-icon">💡</span><strong>${t('naming2026Suggestion')}</strong></summary><div class="naming-suggestion-alert-body">${items}</div></details>`;
     }
   }
+  { const pix=peerCtxIdx(), pc=pix&&pix.map.get(code), en=state.prefs.lang==='en';
+    if(pc) html += `<div class="naming-duplicate-alert severity-media" role="alert"><span class="naming-duplicate-alert-icon">👤</span><div><strong>${en?`Possible duplicate: ${escapeHtml(peerName(pc.__by))} already named it`:`Posible duplicado: ${escapeHtml(peerName(pc.__by))} ya lo nombró`}</strong><div class="naming-duplicate-product">${escapeHtml(pc.nombre)}</div></div></div>`; }
   sugWrap.innerHTML = html;
 }
 function onNamingCodeScanned(code){
@@ -5399,8 +5902,13 @@ async function commitNamingItem(codigoRaw, nombreRaw, opts){
     if(!(opts&&opts.shared) && !confirm(msg)) return null;
     sessionDupInfo = { codigo: sessionDup.codigo, nombre: sessionDup.nombre };
   }
+  if(!sessionDupInfo && !(opts&&opts.shared)){
+    try{ await Promise.race([peerNamingFresh(5000), new Promise(r=>setTimeout(r,1800))]); }catch(e){}
+    const pd=findPeerNamingDup(nombre,codigo);
+    if(pd){ if(!confirm(peerDupMsg(pd))) return null; sessionDupInfo=peerDupInfo(pd); }
+  }
   const dup = findNameDuplicate2026(nombre, codigo);
-  const item={id:'n'+Date.now()+Math.random().toString(36).slice(2,6),codigo,nombre,duplicado:!!dup,duplicadoCodigo:dup?dup.codigo:null,duplicadoNombre:dup?dup.nombre:null,duplicadoTipo:dup?.__dupReason||null,veriChecking:false,veriChecked:false,veriReason:null,sessionDup:!!sessionDupInfo,sessionDupWith:sessionDupInfo?sessionDupInfo.nombre:null,sessionDupCode:sessionDupInfo?sessionDupInfo.codigo:null,createdAt:Date.now(),syncStatus:'pending'};
+  const item={id:'n'+Date.now()+Math.random().toString(36).slice(2,6),codigo,nombre,tienda:getNamingStore()||'',duplicado:!!dup,duplicadoCodigo:dup?dup.codigo:null,duplicadoNombre:dup?dup.nombre:null,duplicadoTipo:dup?.__dupReason||null,veriChecking:false,veriChecked:false,veriReason:null,sessionDup:!!sessionDupInfo,sessionDupWith:sessionDupInfo?sessionDupInfo.nombre:null,sessionDupCode:sessionDupInfo?sessionDupInfo.codigo:null,createdAt:Date.now(),syncStatus:'pending'};
   if(opts&&opts.shared){
     // Ítem que llega de un puesto compartido: se ordena por posición (createdAt = inicio de sesión + posición).
     item.createdAt=(Number(opts.sesion.creado_en)||0)+Number(opts.puesto.posicion);
@@ -5579,7 +6087,7 @@ function openArchiveNamingConfirm(){
 }
 async function archiveNamingDay(){
   const en=state.prefs.lang==='en', items=(state.naming&&state.naming.items)||[]; if(!items.length) return;
-  const target=daysAgoKey(1);   // los archivados son días anteriores a hoy
+  const target=addDaysKey(namingDayKey(),-1);   // los archivados son días anteriores al día de nombrado en curso
   try{
     const remoteIds=items.filter(it=>String(it.id).startsWith('remote_')).map(it=>String(it.id).slice(7));
     if(remoteIds.length) await sb(`nombrados_diarios?id=in.(${remoteIds.map(encodeURIComponent).join(',')})`,{method:'PATCH',body:JSON.stringify({fecha:target}),headers:{'Prefer':'return=minimal'}});
@@ -5596,6 +6104,7 @@ async function downloadNamingExcel(){
   const data = state.naming.items.map(it=>{
     const dupNombre = it.duplicado ? (it.duplicadoNombre || (findDuplicateByCode2026(it.duplicadoCodigo)||{}).nombre) : null;
     return {
+      'SUPERMERCADO': it.tienda||'',
       'TIPO': 'Producto nombrado',
       'CODIGO': it.codigo,
       'NOMBRE DEL PRODUCTO': it.nombre,
@@ -5608,10 +6117,10 @@ async function downloadNamingExcel(){
     };
   });
   const ws = XLSX.utils.json_to_sheet(data);
-  ws['!cols'] = [{wch:18},{wch:18},{wch:42},{wch:18},{wch:16},{wch:42},{wch:24},{wch:30},{wch:22}];
+  ws['!cols'] = [{wch:16},{wch:18},{wch:18},{wch:42},{wch:18},{wch:16},{wch:42},{wch:24},{wch:30},{wch:22}];
   applyExcelFont(ws, 'Calibri', 11);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Nombrados');
+  XLSX.utils.book_append_sheet(wb, ws, 'Nombrados'); namingAddStoreSheets(wb,data);
   XLSX.writeFile(wb, `nombrados_${state.naming.date}.xlsx`);
   saveNaming();
 }
@@ -5620,6 +6129,7 @@ async function downloadArchivedExcel(dateKey){
   const items = (state.archived.byDate[dateKey]||[]);
   if(!items.length){ toast(t('archivedDayEmpty')); return; }
   const data = items.map(r=>({
+    'SUPERMERCADO': r.tienda||'',
     'TIPO': 'Producto nombrado',
     'CODIGO': r.codigo,
     'NOMBRE DEL PRODUCTO': r.nombre,
@@ -5630,10 +6140,10 @@ async function downloadArchivedExcel(dateKey){
     'REPETIDO EL MISMO DIA': r.duplicado_sesion ? `SI (${r.duplicado_sesion_con||''})` : 'NO'
   }));
   const ws = XLSX.utils.json_to_sheet(data);
-  ws['!cols'] = [{wch:18},{wch:18},{wch:42},{wch:18},{wch:16},{wch:24},{wch:30},{wch:22}];
+  ws['!cols'] = [{wch:16},{wch:18},{wch:18},{wch:42},{wch:18},{wch:16},{wch:24},{wch:30},{wch:22}];
   applyExcelFont(ws, 'Calibri', 11);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Nombrados');
+  XLSX.utils.book_append_sheet(wb, ws, 'Nombrados'); namingAddStoreSheets(wb,data);
   XLSX.writeFile(wb, `nombrados_${dateKey}.xlsx`);
 }
 /* Aplica una fuente y tamaño a todas las celdas con contenido de la hoja (requiere
@@ -5990,14 +6500,14 @@ async function checkTermsAccepted(codigo){ if(!codigo) return false; try{ const 
 async function acceptTermsRemote(codigo){ await sb('terminos_aceptaciones',{method:'POST',body:JSON.stringify([{codigo_persona:normalize(codigo),version:state.termsVersion,aceptado_en:new Date().toISOString()}]),headers:{'Prefer':'return=minimal'}}); }
 async function fetchNamingRemote(){
   if(!state.session) return [];
-  try{ return await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=eq.${encodeURIComponent(todayKey())}&order=creado_en.asc`); }
+  try{ return await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=eq.${encodeURIComponent(namingDayKey())}&order=creado_en.asc`); }
   catch(e){ return null; }
 }
 /* ===================== Archivados: días anteriores de nombrados_diarios (retención 7 días) ===================== */
 async function fetchArchivedNaming(){
   if(!state.session) return [];
   const cutoff=daysAgoKey(7);
-  try{ return await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=gte.${encodeURIComponent(cutoff)}&fecha=lt.${encodeURIComponent(todayKey())}&order=fecha.desc,creado_en.asc`); }
+  try{ return await sb(`nombrados_diarios?codigo_persona=eq.${encodeURIComponent(normalize(state.session))}&fecha=gte.${encodeURIComponent(cutoff)}&fecha=lt.${encodeURIComponent(namingDayKey())}&order=fecha.desc,creado_en.asc`); }
   catch(e){ return null; }
 }
 async function deleteExpiredNamingRemote(){
@@ -6007,7 +6517,7 @@ async function deleteExpiredNamingRemote(){
   catch(e){ console.error('No se pudo limpiar el archivo vencido:',e); }
 }
 function remoteRowToNamingItem(x){
-  return {id:'remote_'+x.id,codigo:x.codigo,nombre:x.nombre,duplicado:!!x.duplicado,duplicadoCodigo:x.duplicado_codigo||null,duplicadoNombre:x.duplicado_nombre||null,duplicadoTipo:x.duplicado_tipo||null,sessionDup:!!x.duplicado_sesion,sessionDupCode:x.duplicado_sesion_con||null,createdAt:Number(x.creado_en)||Date.now(),syncStatus:'synced'};
+  return {id:'remote_'+x.id,codigo:x.codigo,nombre:x.nombre,duplicado:!!x.duplicado,duplicadoCodigo:x.duplicado_codigo||null,duplicadoNombre:x.duplicado_nombre||null,duplicadoTipo:x.duplicado_tipo||null,sessionDup:!!x.duplicado_sesion,sessionDupCode:x.duplicado_sesion_con||null,...(x.tienda?{tienda:x.tienda}:{}),createdAt:Number(x.creado_en)||Date.now(),syncStatus:'synced'};
 }
 async function syncNamingRemoteRows(remoteRows){
   if(!Array.isArray(remoteRows)||!state.naming) return false;
@@ -6036,7 +6546,7 @@ let namingRefreshing=false;
 function namingSignature(){ return (state.naming&&state.naming.items||[]).map(i=>[i.id,i.codigo,i.nombre,i.duplicado?1:0].join('|')).join('~'); }
 async function refreshNamingFromRemote(){
   if(namingRefreshing || namingEditsInFlight>0 || !state.session || !state.naming) return false;
-  if(state.naming.date!==todayKey()) return false;
+  if(state.naming.date!==namingDayKey()) return false;
   namingRefreshing=true;
   try{
     const rows=await fetchNamingRemote();
@@ -6065,7 +6575,7 @@ async function refreshNamingAndRender(){
    original para que aparezcan en Archivados. */
 async function pushPendingNamingOfPastDays(){
   if(!state.session) return;
-  const user=normalize(state.session), today=todayKey(), cutoff=daysAgoKey(7), prefix='vp_naming_'+user+'_';
+  const user=normalize(state.session), today=namingDayKey(), cutoff=daysAgoKey(7), prefix='vp_naming_'+user+'_';
   for(let i=0;i<localStorage.length;i++){
     const key=localStorage.key(i);
     if(!key || !key.startsWith(prefix)) continue;
@@ -6099,13 +6609,16 @@ async function loadArchivedNaming(force){
 async function persistNamingRemote(item, fechaOverride){
   if(!state.session) throw new Error('No hay sesión activa para guardar el nombrado.');
   const createdAt=Number(item.createdAt)||Date.now(); item.createdAt=createdAt; item.syncStatus='syncing';
-  const payload={codigo_persona:normalize(state.session),fecha:fechaOverride||state.naming.date||todayKey(),codigo:item.codigo,nombre:item.nombre,duplicado:!!item.duplicado,duplicado_codigo:item.duplicadoCodigo||null,duplicado_nombre:item.duplicadoNombre||null,duplicado_tipo:item.duplicadoTipo||null,duplicado_sesion:!!item.sessionDup,duplicado_sesion_con:item.sessionDupCode||null,creado_en:createdAt};
+  const payload={...(!state.noTienda&&item.tienda?{tienda:item.tienda}:{}),codigo_persona:normalize(state.session),fecha:fechaOverride||state.naming.date||todayKey(),codigo:item.codigo,nombre:item.nombre,duplicado:!!item.duplicado,duplicado_codigo:item.duplicadoCodigo||null,duplicado_nombre:item.duplicadoNombre||null,duplicado_tipo:item.duplicadoTipo||null,duplicado_sesion:!!item.sessionDup,duplicado_sesion_con:item.sessionDupCode||null,creado_en:createdAt};
   let res;
   try{ res=await sb('nombrados_diarios',{method:'POST',body:JSON.stringify([payload]),headers:{'Prefer':'return=representation'},silent:true}); }
   catch(e1){
+    if(payload.tienda){ try{ const p2={...payload}; delete p2.tienda; res=await sb('nombrados_diarios',{method:'POST',body:JSON.stringify([p2]),headers:{'Prefer':'return=representation'},silent:true}); state.noTienda=true; }catch(e2){ res=null; } }
+    if(!res){
     // Si faltan columnas opcionales en la tabla, se guarda lo esencial para que igual se sincronice.
     const core={codigo_persona:payload.codigo_persona,fecha:payload.fecha,codigo:payload.codigo,nombre:payload.nombre,duplicado:payload.duplicado,creado_en:payload.creado_en};
     res=await sb('nombrados_diarios',{method:'POST',body:JSON.stringify([core]),headers:{'Prefer':'return=representation'}});
+    }
   }
   if(!res||!res[0]||res[0].id==null) throw new Error('Supabase no devolvió el registro creado.');
   item.syncStatus='synced'; return res[0];
@@ -8463,6 +8976,7 @@ function renderRep(){
 }
 function renderRepNaming(){
   if(!state.naming) loadNaming();
+  setTimeout(()=>{ try{ peerNamingFresh(60000); peerStartTimer(); }catch(e){} },0);
   const items = state.naming.items;
   if(!state.namingEditMode && state.namingSelected.length) state.namingSelected = [];
   const validIds = new Set(items.map(it=>it.id));
@@ -8479,6 +8993,7 @@ function renderRepNaming(){
       <button data-namingsubmode="shared" class="${subMode==='shared'?'active':''}">Compartido</button>
     </div>
     ${renderNamingSharedBar()}
+    ${formMode==='lobby'?'':renderNamingStoreBar()}
     ${formMode==='lobby' ? renderNamingSharedLobby() : formMode==='1x1' ? `
     <p class="small-note" style="margin:0 0 14px;">${t('downloadWindow')}</p>
     <div class="card glass naming-card">
@@ -8583,8 +9098,9 @@ function renderNamingTodayPanel(items, selectedCount, allSelected){
         <button type="button" class="naming-bulkbar-select-all" id="namingSelectAllBtn">${allSelected ? t('namingDeselectAll') : t('namingSelectAll')}</button>
         <button type="button" class="btn danger sm" id="namingDeleteSelectedBtn" ${selectedCount===0?'disabled':''}>${ICONS.trash}<span>${t('namingDeleteSelected')}${selectedCount?` (${selectedCount})`:''}</span></button>
       </div>` : ''}
+      ${namingWindowNote()}
       <div class="drag-list" id="namingDragList">
-      ${items.length ? items.map((it,i)=>({it,order:i+1})).reverse().map(({it,order})=>renderNamingItem(it,order)).join('') : `<div class="empty">${t('namingEmptyList')}</div>`}
+      ${items.length ? (state.namingEditMode ? items.map((it,i)=>({it,order:i+1})).reverse().map(({it,order})=>renderNamingItem(it,order)).join('') : namingSectionsHTML(items.map((it,i)=>({it,order:i+1})).reverse(), e=>e.it.tienda, ({it,order})=>renderNamingItem(it,order))) : `<div class="empty">${t('namingEmptyList')}</div>`}
       </div>
   `;
 }
@@ -8610,9 +9126,9 @@ function renderNamingArchivedPanel(){
         <div class="section-title" style="margin:0;">${selected} (${items.length} ${t('archivedCount')})</div>
         ${items.length ? `<button class="btn secondary sm" id="archivedDownloadBtn" data-archiveddownload="${selected}">${t('archivedDownload')}</button>` : ''}
       </div>
-      ${items.length ? items.map(r=>`<div class="drag-item naming-item">
+      ${items.length ? namingSectionsHTML(items, r=>r.tienda, r=>`<div class="drag-item naming-item">
         <div class="naming-item-info"><div class="name">${r.nombre}</div><div class="code">${r.codigo}${r.duplicado ? ` · <span class="naming-dup-badge severity-${dupSeverity(r.duplicado_tipo)}">${dupSeverity(r.duplicado_tipo)==='alta'?'🔴':'⚠️'} ${t('namingDupWith')} ${r.duplicado_codigo||''}</span>`:''}${r.duplicado_sesion ? ` · 🔁 ${t('namingSessionDupBadge')} ${r.duplicado_sesion_con||''}`:''}</div></div>
-      </div>`).join('') : `<div class="empty">${t('archivedDayEmpty')}</div>`}
+      </div>`) : `<div class="empty">${t('archivedDayEmpty')}</div>`}
       <p class="small-note" style="margin-top:10px;">${t('archivedExpiryNote')}</p>
   `;
 }
@@ -8697,7 +9213,10 @@ function openNamingEditModal(itemId){
       if(!confirm(msg)) return;
       it.sessionDup = true; it.sessionDupWith = sessionDup.nombre; it.sessionDupCode = sessionDup.codigo;
     } else {
+      const same=(it.codigo===nc&&it.nombre===nn), keep=same&&it.sessionDup, pw=it.sessionDupWith, pcode=it.sessionDupCode;
       it.sessionDup = false; it.sessionDupWith = null; it.sessionDupCode = null;
+      if(keep){ it.sessionDup=true; it.sessionDupWith=pw; it.sessionDupCode=pcode; }
+      else{ const pd=findPeerNamingDup(nn,nc); if(pd){ if(!confirm(peerDupMsg(pd))) return; const pi=peerDupInfo(pd); it.sessionDup=true; it.sessionDupWith=pi.nombre; it.sessionDupCode=pi.codigo; } }
     }
     const dup = findNameDuplicate2026(nn, nc);
     it.codigo=nc; it.nombre=nn; it.duplicado=!!dup; it.duplicadoCodigo=dup?dup.codigo:null; it.duplicadoNombre=dup?dup.nombre:null; it.duplicadoTipo=dup?.__dupReason||null;
@@ -9863,8 +10382,106 @@ async function loadCartToday(){
     state.cart = [...pending, ...(rows||[])];
   }catch(e){ /* si falla la red, dejamos el carrito tal cual estaba en vez de vaciarlo */ }
   state.cartLoaded = true;
+  cartLoadMeta(false);
   updateCartListDOM();
 }
+
+/* ===== Carrito: grupos (los crea el admin/coadmin) y "dónde estamos" (supermercado de cada persona o grupo) ===== */
+const cartStoreOf=(c)=>(state.cartStores||{})[normalize(c)]||'';
+function cartCounts(){ const m={}; (state.cart||[]).forEach(it=>{ const k=it.codigo_persona||''; if(k) m[k]=(m[k]||0)+1; }); return m; }
+async function cartLoadMeta(force){
+  if(state.cartMetaMissing||!state.session) return;
+  const now=Date.now(); if(!force&&now-(state.cartMetaAt||0)<25000) return; state.cartMetaAt=now;
+  try{
+    const [g,t]=await Promise.all([sb('carrito_grupos?select=*&order=creado_en.asc',{silent:true}),sb('carrito_tiendas?select=*',{silent:true})]);
+    if(Array.isArray(g)) state.cartGroups=g.map(x=>({...x,miembros:(Array.isArray(x.miembros)?x.miembros:[]).map(normalize)}));
+    if(Array.isArray(t)){ const m={}; t.forEach(r=>{ if(r.tienda) m[normalize(r.codigo_persona)]=r.tienda; }); state.cartStores=m; }
+    updateCartListDOM();
+  }catch(e){ if(/relation|does not exist|PGRST205|42P01|404/i.test(String((e&&(e.message||e.details))||e))) state.cartMetaMissing=true; }
+}
+function cartMetaHTML(){
+  const groups=state.cartGroups||[], counts=cartCounts(), filter=state.cartFilterPersonas||[], admin=hasAdminAccess(), st=state.cartStores||{};
+  const gOn=(g)=>g.miembros.length&&g.miembros.every(c=>filter.includes(c));
+  const gsum=(g)=>g.miembros.reduce((a,c)=>a+(counts[c]||0),0);
+  const gchips=groups.map(g=>`<button type="button" class="chip cart-person-chip cart-group-chip${gOn(g)?' active':''}" data-cart-group="${g.id}">👥 ${escapeHtml(g.nombre)} <b>${gsum(g)}</b>${g.tienda?` <small>· ${escapeHtml(g.tienda)}</small>`:''}</button>`).join('');
+  const detail=groups.filter(gOn).map(g=>`<p class="small-note" style="margin:0 0 8px;">👥 <b>${escapeHtml(g.nombre)}</b>: ${gsum(g)} productos${g.tienda?` · 📍 ${escapeHtml(g.tienda)}`:''}<br>${g.miembros.map(c=>`${escapeHtml(peerName(c))} <b>${counts[c]||0}</b>`).join(' · ')}</p>`).join('');
+  const byStore=new Map(); new Set([...Object.keys(counts),...Object.keys(st)]).forEach(c=>{ const sn=st[c]; if(!sn) return; if(!byStore.has(sn)) byStore.set(sn,new Set()); byStore.get(sn).add(c); });
+  const tot=(set)=>[...set].reduce((a,c)=>a+(counts[c]||0),0);
+  const where=byStore.size?`<div class="cart-where">${[...byStore.entries()].sort((a,b)=>tot(b[1])-tot(a[1])).map(([sn,set])=>{ const rem=new Set(set), labels=[]; groups.forEach(g=>{ if(g.miembros.length&&g.miembros.every(c=>set.has(c))){ labels.push('👥 '+g.nombre); g.miembros.forEach(c=>rem.delete(c)); } }); rem.forEach(c=>labels.push(peerName(c))); return `<div class="cart-where-row"><b>📍 ${escapeHtml(sn)}</b><span>${labels.map(escapeHtml).join(' · ')}</span><em>${tot(set)}</em></div>`; }).join('')}</div>`:'';
+  return `<div class="cart-meta">${gchips?`<div class="cart-person-chips" style="margin-bottom:8px;">${gchips}</div>`:''}${detail}${where}<div class="cart-meta-btns"><button type="button" class="btn secondary sm" data-cartmeta="where">📍 Estamos en…</button>${admin?`<button type="button" class="btn secondary sm" data-cartmeta="group-new">＋ Grupo</button>${groups.length?`<button type="button" class="btn ghost sm" data-cartmeta="group-list">⚙️ Grupos</button>`:''}`:''}</div></div>`;
+}
+function cartModal(title,body){
+  const old=document.getElementById('cartMetaOv'); if(old) old.remove();
+  const ov=document.createElement('div'); ov.id='cartMetaOv'; ov.className='modal-overlay';
+  ov.innerHTML=`<div class="modal-sheet glass"><div class="modal-header"><h3>${title}</h3><button type="button" class="modal-close" id="cartMetaX" aria-label="Cerrar">${ICONS.x}</button></div>${body}</div>`;
+  document.body.appendChild(ov); const close=()=>ov.remove(); ov.addEventListener('click',e=>{ if(e.target===ov) close(); }); ov.querySelector('#cartMetaX').onclick=close; ov.__close=close; return ov;
+}
+const cartPeople=()=>(state.personas||[]).filter(x=>x&&x.codigo).map(x=>({codigo:normalize(x.codigo),nombre:x.nombre||x.codigo}));
+const cartMetaErr=()=>toast('No se pudo guardar. ¿Ya ejecutaste carrito_grupos.sql en Supabase?');
+function cartOpenWhere(){
+  const me=normalize(state.session||''), admin=hasAdminAccess(), groups=state.cartGroups||[];
+  const sel={store:cartStoreOf(me),people:new Set([me]),groups:new Set()};
+  const ov=cartModal('📍 ¿Dónde estamos?',`<div id="cwStores"></div>${admin?'<div class="bud-l" style="margin-top:12px;">¿Quiénes?</div><div id="cwWho"></div>':''}<button type="button" class="btn block" id="cwSave" style="margin-top:14px;">Guardar</button>`);
+  const paint=()=>{
+    const list=[...new Set([...getNamingStoreList(),sel.store].filter(Boolean))];
+    ov.querySelector('#cwStores').innerHTML=`<div class="bud-l">Supermercado</div><div class="nstore-chips">${list.map(x=>`<button type="button" class="nstore-chip${x===sel.store?' on':''}" data-cw-s="${escapeHtml(x)}">${escapeHtml(x)}</button>`).join('')}<button type="button" class="nstore-chip${sel.store?'':' on'}" data-cw-s="">Sin indicar</button><button type="button" class="nstore-chip add" data-cw-add="1">＋</button></div>`;
+    if(admin) ov.querySelector('#cwWho').innerHTML=`<div class="nstore-chips" style="margin-bottom:8px;"><button type="button" class="nstore-chip${sel.people.has(me)?' on':''}" data-cw-p="${escapeHtml(me)}">Yo</button>${groups.map(g=>`<button type="button" class="nstore-chip${sel.groups.has(String(g.id))?' on':''}" data-cw-g="${g.id}">👥 ${escapeHtml(g.nombre)}</button>`).join('')}</div><div class="nstore-chips">${cartPeople().filter(x=>x.codigo!==me).map(x=>`<button type="button" class="nstore-chip${sel.people.has(x.codigo)?' on':''}" data-cw-p="${escapeHtml(x.codigo)}">${escapeHtml(String(x.nombre).split(/\s+/)[0])}</button>`).join('')}</div>`;
+  };
+  ov.addEventListener('click',e=>{
+    const a=e.target.closest('[data-cw-s],[data-cw-add],[data-cw-p],[data-cw-g]'); if(!a) return;
+    if(a.hasAttribute('data-cw-add')){ const v=(prompt('Nombre del supermercado:')||'').trim().toUpperCase().slice(0,24); if(!v) return; let l=[]; try{ l=JSON.parse(localStorage.getItem(nstoreKey('stores'))||'[]'); }catch(x){} if(!Array.isArray(l)) l=[]; if(!l.includes(v)&&!NSTORE_DEF.includes(v)){ l.push(v); try{ localStorage.setItem(nstoreKey('stores'),JSON.stringify(l)); }catch(x){} } sel.store=v; }
+    else if(a.hasAttribute('data-cw-s')) sel.store=a.getAttribute('data-cw-s');
+    else if(a.hasAttribute('data-cw-p')){ const c=a.getAttribute('data-cw-p'); if(sel.people.has(c)) sel.people.delete(c); else sel.people.add(c); }
+    else if(a.hasAttribute('data-cw-g')){ const id=a.getAttribute('data-cw-g'); if(sel.groups.has(id)) sel.groups.delete(id); else sel.groups.add(id); }
+    paint();
+  });
+  paint();
+  ov.querySelector('#cwSave').onclick=async()=>{
+    const targets=new Set(admin?sel.people:[me]); if(admin) sel.groups.forEach(id=>{ const g=groups.find(x=>String(x.id)===id); if(g) g.miembros.forEach(c=>targets.add(c)); });
+    if(!targets.size){ toast('Elige a quién aplicarlo.'); return; }
+    const arr=[...targets], btn=ov.querySelector('#cwSave'); btn.disabled=true; btn.textContent='Guardando…';
+    try{
+      if(sel.store) await sb('carrito_tiendas?on_conflict=codigo_persona',{method:'POST',body:JSON.stringify(arr.map(c=>({codigo_persona:c,tienda:sel.store,actualizado_en:Date.now()}))),headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},silent:true});
+      else await sb(`carrito_tiendas?codigo_persona=in.(${arr.map(encodeURIComponent).join(',')})`,{method:'DELETE',headers:{'Prefer':'return=minimal'},silent:true});
+      if(admin&&sel.groups.size) await sb(`carrito_grupos?id=in.(${[...sel.groups].join(',')})`,{method:'PATCH',body:JSON.stringify({tienda:sel.store||null}),headers:{'Prefer':'return=minimal'},silent:true});
+      state.cartStores=state.cartStores||{}; arr.forEach(c=>{ if(sel.store) state.cartStores[c]=sel.store; else delete state.cartStores[c]; });
+      ov.__close(); toast(sel.store?`✓ Estamos en ${sel.store}`:'✓ Ubicación quitada'); updateCartListDOM(); cartLoadMeta(true);
+    }catch(e){ console.error(e); btn.disabled=false; btn.textContent='Guardar'; cartMetaErr(); }
+  };
+}
+function cartOpenGroupForm(g){
+  if(!hasAdminAccess()) return;
+  const sel=new Set(g?g.miembros:[]);
+  const ov=cartModal(g?'✏️ Editar grupo':'👥 Nuevo grupo',`<label class="bud-l" for="cgName">Nombre del grupo</label><input id="cgName" maxlength="40" placeholder="Ej: Cali" autocomplete="off"><div class="bud-l" style="margin-top:12px;">Integrantes</div><div id="cgMembers" class="nstore-chips"></div><button type="button" class="btn block" id="cgSave" style="margin-top:14px;">Guardar grupo</button>${g?'<button type="button" class="btn danger block" id="cgDel" style="margin-top:8px;">Eliminar grupo</button>':''}`);
+  ov.querySelector('#cgName').value=g?g.nombre:'';
+  const paint=()=>{ ov.querySelector('#cgMembers').innerHTML=cartPeople().map(x=>`<button type="button" class="nstore-chip${sel.has(x.codigo)?' on':''}" data-cg-p="${escapeHtml(x.codigo)}">${escapeHtml(x.nombre)}</button>`).join(''); };
+  ov.addEventListener('click',e=>{ const a=e.target.closest('[data-cg-p]'); if(!a) return; const c=a.getAttribute('data-cg-p'); if(sel.has(c)) sel.delete(c); else sel.add(c); paint(); });
+  paint();
+  ov.querySelector('#cgSave').onclick=async()=>{
+    const nombre=ov.querySelector('#cgName').value.trim(); if(!nombre){ toast('Ponle un nombre al grupo.'); return; } if(!sel.size){ toast('Elige al menos una persona.'); return; }
+    const btn=ov.querySelector('#cgSave'); btn.disabled=true;
+    try{
+      if(g) await sb(`carrito_grupos?id=eq.${g.id}`,{method:'PATCH',body:JSON.stringify({nombre,miembros:[...sel]}),headers:{'Prefer':'return=minimal'},silent:true});
+      else await sb('carrito_grupos',{method:'POST',body:JSON.stringify([{nombre,miembros:[...sel],creado_por:normalize(state.session||''),creado_en:Date.now()}]),headers:{'Prefer':'return=minimal'},silent:true});
+      ov.__close(); toast('✓ Grupo guardado'); state.cartMetaMissing=false; await cartLoadMeta(true);
+    }catch(e){ console.error(e); btn.disabled=false; cartMetaErr(); }
+  };
+  const del=ov.querySelector('#cgDel'); if(del) del.onclick=async()=>{
+    if(!confirm('¿Eliminar este grupo? Los productos del carrito no se borran.')) return;
+    try{ await sb(`carrito_grupos?id=eq.${g.id}`,{method:'DELETE',headers:{'Prefer':'return=minimal'},silent:true}); ov.__close(); toast('Grupo eliminado'); await cartLoadMeta(true); }catch(e){ cartMetaErr(); }
+  };
+}
+function cartOpenGroupList(){
+  const groups=state.cartGroups||[];
+  const ov=cartModal('⚙️ Grupos',`<div class="nstore-chips">${groups.map(g=>`<button type="button" class="nstore-chip" data-cg-edit="${g.id}">👥 ${escapeHtml(g.nombre)} · ${g.miembros.length}</button>`).join('')}</div>`);
+  ov.addEventListener('click',e=>{ const a=e.target.closest('[data-cg-edit]'); if(!a) return; const g=groups.find(x=>String(x.id)===a.getAttribute('data-cg-edit')); if(g){ ov.__close(); cartOpenGroupForm(g); } });
+}
+document.addEventListener('click',e=>{
+  const gr=e.target.closest&&e.target.closest('[data-cart-group]');
+  if(gr){ const g=(state.cartGroups||[]).find(x=>String(x.id)===gr.getAttribute('data-cart-group')); if(!g) return; const cur=state.cartFilterPersonas||[], on=g.miembros.every(c=>cur.includes(c)); state.cartFilterPersonas=on?cur.filter(c=>!g.miembros.includes(c)):[...new Set([...cur,...g.miembros])]; updateCartListDOM(); return; }
+  const b=e.target.closest&&e.target.closest('[data-cartmeta]'); if(!b) return; const a=b.getAttribute('data-cartmeta');
+  if(a==='where') cartOpenWhere(); else if(a==='group-new') cartOpenGroupForm(null); else if(a==='group-list') cartOpenGroupList();
+});
 function cartPersonOptions(){
   // Lista única de personas que han agregado algo hoy, para el filtro del carrito.
   const map = new Map();
@@ -9918,7 +10535,7 @@ function renderCartList(){
     return `<div class="list-item${it.excepcion?' cart-exception':''}"><div><div class="name">${escapeHtml(it.nombre_producto||'(sin nombre)')}${exTag}</div><span class="small-note">${escapeHtml(it.nombre_persona||it.codigo_persona||'')} · ${hora}</span></div><div class="row" style="align-items:center;gap:8px;"><div class="code">${escapeHtml(it.codigo_producto||'')}</div>${delBtn}</div></div>`;
   }).join('');
   const chips = persons.length ? `<div class="cart-person-chips" style="margin-bottom:10px;">
-    ${persons.map(p=>`<button type="button" class="chip cart-person-chip${filter.includes(p.codigo)?' active':''}" data-cart-person="${escapeHtml(p.codigo)}" aria-pressed="${filter.includes(p.codigo)}">${escapeHtml(p.nombre)} <b>${p.count}</b></button>`).join('')}
+    ${persons.map(p=>`<button type="button" class="chip cart-person-chip${filter.includes(p.codigo)?' active':''}" data-cart-person="${escapeHtml(p.codigo)}" aria-pressed="${filter.includes(p.codigo)}">${escapeHtml(p.nombre)} <b>${p.count}</b>${cartStoreOf(p.codigo)?` <small>· ${escapeHtml(cartStoreOf(p.codigo))}</small>`:''}</button>`).join('')}
     ${filter.length ? `<button type="button" class="chip cart-person-chip clear" id="cartFilterClearBtn">${t('cartFilterClear')}</button>` : ''}
   </div>
   ${filter.length ? `<p class="small-note" style="margin:0 0 10px;"><b>${filter.length}</b> ${t('cartFilterSelected')} · <b>${items.length}</b> ${t('cartFilterProducts')}</p>` : ''}` : '';
@@ -9932,6 +10549,7 @@ function renderCartList(){
     </div>
     <div class="cart-search" id="cartSearchRow"><input type="search" id="cartSearchInput" placeholder="${escapeHtml(t('cartSearchPlaceholder'))}" value="${escapeHtml(state.cartSearch||'')}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" /></div>
     <div id="cartDynamic">
+    ${cartMetaHTML()}
     ${chips}
     ${items.length ? rows : `<p class="small-note">${q ? t('cartSearchNone') : filter.length ? t('cartFilterEmpty') : t('cartEmpty')}</p>`}
     </div>
@@ -12058,4 +12676,53 @@ html.lite .bud-cluster{-webkit-backdrop-filter:none;backdrop-filter:none;box-sha
 .bud-mine-card .bud-mine3>div{padding:12px 6px;min-width:0}
 .bud-mine-card .bud-mine3 b{font-size:14px;overflow-wrap:anywhere}
 @media(max-width:380px){.bud-mine-card .bud-mine-row{padding-left:22px;padding-right:22px}.bud-mine-card .settings-group-title{padding-left:22px!important}.bud-mine-card .bud-mine3 b{font-size:13px}.bud-mine-card .bud-mine3 small{font-size:10.5px}}
+/* Presupuesto: porcentaje gastado, escáner de facturas y edición */
+.bud-pctrow{display:flex;align-items:baseline;gap:8px;margin-top:6px}
+.bud-pct{font-size:34px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.bud-pct.neg{color:#ff453a}
+.bud-pctrow span{font-size:13px;color:var(--text-2);font-weight:600}
+.bud-hero-grp b{color:var(--text-1)}
+.bud-hero-grp + .bud-bar.sm{margin:8px 0 0}
+.bud-rc-btns .bud-scan-btn{grid-column:1/-1}
+.bud-rc-act{display:flex;gap:6px;flex-wrap:wrap}
+.bud-scan{position:fixed;inset:0;z-index:100020;display:flex;flex-direction:column;background:#0b0c0f;color:#fff;font-family:var(--font);padding-top:env(safe-area-inset-top)}
+.bud-scan-h{padding:12px 16px 2px;text-align:center}
+.bud-scan-h b{display:block;font-size:16px}
+.bud-scan-h small{display:block;color:#9aa0ab;font-size:12.5px;margin-top:2px}
+.bud-scan-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:22px;position:relative;overflow:hidden}
+.bud-scan-wrap{position:relative;touch-action:none;user-select:none;-webkit-user-select:none}
+.bud-scan-wrap canvas{display:block;width:100%;height:100%}
+.bud-scan-wrap svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.bud-scan-dot{position:absolute;width:48px;height:48px;margin:-24px 0 0 -24px;display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab}
+.bud-scan-dot i{width:22px;height:22px;border-radius:50%;background:#0a84ff;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.55)}
+.bud-scan-res{display:block;background:#fff;border-radius:4px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.bud-scan-filters{justify-content:center;gap:8px;padding:6px 12px}
+.bud-scan-filters button{padding:8px 15px;border-radius:999px;background:#1b1d23;color:#fff;font-weight:600;font-size:13px;border:1px solid #2a2d36}
+.bud-scan-filters button.on{background:#0a84ff;border-color:#0a84ff}
+.bud-scan-bar{display:flex;gap:10px;padding:12px 16px calc(14px + env(safe-area-inset-bottom))}
+.bud-scan-bar button{flex:1;padding:13px 8px;border-radius:14px;font-weight:700;font-size:14.5px;background:#1b1d23;color:#fff;border:1px solid #2a2d36}
+.bud-scan-bar button.pri{background:#0a84ff;border-color:#0a84ff;flex:1.7}
+.bud-scan-busy{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);font-weight:700;color:#fff}
+.bud-center .bud-cpct{font-size:30px;font-weight:800;letter-spacing:-.04em;line-height:1;transition:color .4s}
+.bud-center .bud-cleft{margin-top:3px;font-size:11px}.bud-center .bud-cleft.neg{color:#ff453a}
+.bud-center.tiny .bud-cpct{font-size:22px}.bud-center.tiny .bud-cleft{display:none}
+.bud-cluster.hot{border-color:var(--hc);background:radial-gradient(circle at 30% 24%,color-mix(in srgb,var(--hc) 28%,transparent),color-mix(in srgb,var(--hc) 8%,transparent) 62%,transparent 74%),var(--glass-bg);transition:border-color .4s}
+.bud-cluster.hot::before{border-color:var(--hc)}
+.bud-ringwrap{position:relative;width:288px;height:288px;margin:8px auto 12px;color:var(--text-1)}
+.bud-ringwrap .bud-ring{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.bud-ringwrap .bud-cluster{position:absolute;left:12px;top:12px;margin:0}
+.bud-ringwrap .bud-cluster::before{display:none}
+.bud-head .bud-gname{text-align:center;font-size:30px;margin:6px 0 2px}
+.bud-bub{cursor:pointer}.bud-bub.sel>.in{box-shadow:0 0 0 3px var(--accent),0 6px 16px rgba(0,0,0,.28)}
+.bud-hint{text-align:center;font-size:12px;color:var(--text-2);margin:0 12px 10px}
+.bud-selp{margin:0 0 10px;padding:10px 12px;border-radius:16px;background:var(--input-bg);border:1px solid var(--glass-border)}
+.bud-selp .bud-person{padding:0;border:0}.bud-selp .bud-pleft small{display:block;font-size:11px;font-weight:600;color:var(--text-2);text-align:right}
+.bud-left3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.bud-lc{padding:10px 6px;border-radius:14px;background:var(--input-bg);border:1px solid var(--glass-border);text-align:center}
+.bud-lc small{display:block;font-size:10.5px;line-height:1.2;color:var(--text-2);font-weight:600;min-height:25px}
+.bud-lc b{display:block;font-size:15px;letter-spacing:-.02em;margin-top:2px}
+.bud-lc.neg b{color:#ff453a}
+.bud-left-sub{text-align:center;font-size:12.5px;color:var(--text-2);margin:8px 0 0;font-weight:600}
+.bud-head .bud-hero{margin-top:14px}
+.bud-head .bud-actions{margin-top:26px}
 </style>
