@@ -2333,6 +2333,42 @@ html[data-theme="dark"], body[data-theme="dark"], [data-theme="dark"] body,
 <div id="root"></div>
 <button type="button" id="veriFab" class="veri-fab" aria-label="Ask Veri" title="Veri"></button>
 
+<style id="vp-v2-css">
+/* Estadísticas: pastel */
+.stat-chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
+.stat-chip{appearance:none;border:1px solid var(--divider);background:var(--input-bg);color:var(--text-1);border-radius:999px;padding:7px 14px;font:600 13px/1 inherit;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.stat-chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.stat-date input{border:0;background:transparent;color:inherit;font:inherit;padding:0;width:118px;min-width:0;outline:none}
+.stat-date input::-webkit-calendar-picker-indicator{opacity:.7}
+.stat-pie-wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.stat-pie-svg{width:170px;height:170px;flex:0 0 auto}
+.stat-legend{flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:4px}
+.stat-leg-row{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:10px;font-size:13px;color:var(--text-1);background:transparent;border:0;font-family:inherit;text-align:left;width:100%}
+.stat-leg-row.clickable{cursor:pointer}
+.stat-leg-row.clickable:active{background:var(--input-bg)}
+.stat-dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+.stat-leg-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stat-leg-pct{color:var(--text-2);font-size:12px;min-width:34px;text-align:right}
+/* Buscador de ajustes */
+.settings-search{position:relative;display:flex;align-items:center}
+.settings-search .ss-ico{position:absolute;left:14px;font-size:15px;pointer-events:none;opacity:.7}
+.settings-search input{width:100%;padding:13px 42px 13px 40px;border-radius:16px;border:1px solid var(--divider);background:var(--input-bg);color:var(--text-1);font-size:15px;font-family:inherit;outline:none;-webkit-appearance:none;appearance:none}
+.settings-search input:focus{border-color:var(--accent)}
+.settings-search input::-webkit-search-cancel-button{display:none}
+.settings-search .ss-clear{position:absolute;right:8px;width:30px;height:30px;border-radius:50%;border:0;background:var(--divider);color:var(--text-2);cursor:pointer;font-size:13px}
+.settings-noresults{padding:22px;text-align:center;color:var(--text-2);font-size:14px}
+.s-hide{display:none!important}
+.settings-shell.searching .profile-card,.settings-shell.searching .admin-hero,.settings-shell.searching .admin-shell>.small-note{display:none!important}
+/* Modo Lite: menos trabajo para el renderizado */
+html.lite .card,html.lite .settings-group,html.lite .home-widget,html.lite .error-item,html.lite .admin-person,html.lite .tool-matrix-row{content-visibility:auto;contain-intrinsic-size:auto 120px}
+html.lite *{box-shadow:none!important;background-attachment:scroll!important}
+html.lite .glass,html.lite .card,html.lite .settings-group,html.lite .profile-card,html.lite .home-widget,html.lite .modal-sheet,html.lite .vc-panel{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html.lite [data-theme="light"] .glass,html.lite [data-theme="light"] .card{background:#fff!important}
+html.lite [data-theme="dark"] .glass,html.lite [data-theme="dark"] .card{background:#242426!important}
+html.lite img{image-rendering:auto}
+html.lite .veri-bot,html.lite .vc-hero-glow{animation:none!important}
+html.lite.lite .stat-pie-svg circle{transition:none!important}
+</style>
 <script>
 /* ===================== Supabase config ===================== */
 const SUPABASE_URL = 'https://vgnpwlwkpxcumiqfmbti.supabase.co';
@@ -2340,30 +2376,6 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 /* Cliente de Supabase (solo para Realtime del carrito compartido; el resto de la app sigue
    usando la función sb() por REST como ya la tenías). Se crea de forma perezosa porque el
    script de supabase-js carga con "defer" y puede no estar listo todavía en este punto. */
-/* ===================== Captura automática de errores =====================
-   Además del botón de feedback (manual), la app registra sola fallas técnicas:
-   errores de JavaScript no controlados, promesas rechazadas y llamadas a Supabase
-   que fallan. Se guardan en la tabla 'app_errors' para que el administrador las
-   vea en Ajustes. Usa fetch directo (no sb()) para no crear un ciclo si falla. */
-let _lastLoggedError = {msg:'', time:0};
-async function logAppError(mensaje, contexto){
-  try{
-    mensaje = String(mensaje||'Error desconocido').slice(0,500);
-    const now = Date.now();
-    if(_lastLoggedError.msg===mensaje && (now-_lastLoggedError.time)<30000) return;
-    _lastLoggedError = {msg:mensaje, time:now};
-    await fetch(SUPABASE_URL+'/rest/v1/app_errors', {
-      method:'POST',
-      headers:{
-        'apikey':SUPABASE_ANON_KEY, 'Authorization':'Bearer '+SUPABASE_ANON_KEY,
-        'Content-Type':'application/json', 'Prefer':'return=minimal'
-      },
-      body: JSON.stringify([{ codigo_persona: normalize(state.session||''), mensaje, contexto: contexto||null, fecha: Date.now() }])
-    });
-  }catch(e){ /* silencioso: si la tabla no existe aún, no debe interrumpir a la persona */ }
-}
-window.addEventListener('error', (e)=>{ logAppError(e.message||'Error desconocido', (e.filename?e.filename+':'+e.lineno:'window.onerror')); });
-window.addEventListener('unhandledrejection', (e)=>{ logAppError((e.reason && (e.reason.message||String(e.reason)))||'Promise rejection', 'unhandledrejection'); });
 async function sb(path, opts={}){
   try{
     const res = await fetch(SUPABASE_URL+'/rest/v1/'+path, {
@@ -2379,7 +2391,6 @@ async function sb(path, opts={}){
     const text = await res.text();
     return text ? JSON.parse(text) : null;
   }catch(err){
-    if(!opts.silent) logAppError(err && err.message || String(err), 'sb:'+path.split('?')[0]);
     throw err;
   }
 }
@@ -2534,7 +2545,7 @@ const I18N = {
     veriFabAria:"Preguntarle a Veri", veriAIBetaTag:"Beta",
     cartSearchBtn:"Buscar", cartSearchPlaceholder:"Buscar en el carrito: nombre o últimos 6 dígitos", cartSearchNone:"Sin coincidencias: ese producto no está en el carrito.", cartQuickAddBtn:"Agregar", cartScannedLabel:"Código escaneado:", cartMatchLabel:"Coincide con",
     savePhotosLabel:"Guardar fotos de repeticiones en el celular", savePhotosSub:"Cada foto que tomes se descarga también al teléfono como respaldo (en iPhone queda en Archivos › Descargas).",
-    liteModeLabel:"Modo Lite", liteModeSub:"Más rápida y con menos datos: sin animaciones ni efectos, fotos solo cuando las pidas y sincronización más espaciada. Las fotos de repeticiones siempre se envían en calidad original.", liteModeHint:"¿Tu celular va lento? Prueba el Modo Lite en Ajustes.",
+    liteModeLabel:"Modo Lite", liteModeSub:"Más rápida y con menos datos: sin animaciones ni efectos, imágenes que cargan solo al verlas y fotos solo cuando las pidas. Carrito, Nombrar, notificaciones y repeticiones se siguen actualizando con la misma frecuencia; lo demás se sincroniza más espaciado. Las fotos de repeticiones siempre se envían en calidad original.", liteModeHint:"¿Tu celular va lento? Prueba el Modo Lite en Ajustes.",
     preferencesSaved:"Preferencias guardadas", soundTest:"Probar sonido", edit:"Editar", delete:"Eliminar", editSave:"Guardar cambios",
     category:"Categoría", uncategorized:"Sin categoría", reorderHint:"Mantén presionado y arrastra para ordenar",
     importWhiteOnly:"Solo se importaron productos sin color. Amarillo, azul y verde fueron omitidos.",
@@ -2604,10 +2615,7 @@ const I18N = {
     adminFeedbackTitle:"Feedback de las personas", adminFeedbackSub:"Errores reportados y sugerencias de mejora, para saber qué arreglar o qué agregar a futuro.",
     adminFeedbackNone:"Todavía no hay feedback.", adminFeedbackBug:"Error", adminFeedbackIdea:"Sugerencia",
     feedbackStatusPending:"Pendiente", feedbackStatusReviewed:"Revisado", feedbackStatusDone:"Resuelto",
-    adminErrorsTitle:"Errores automáticos", adminErrorsSub:"Fallas técnicas que la app detectó sola, sin que nadie las reporte.",
-    adminErrorsNone:"No se ha detectado ningún error. 🎉", adminErrorsClear:"Eliminar",
     adminStatsDailyTitle:"Escaneos por día (últimos 14 días)", adminStatsWeeklyTitle:"Escaneos por semana (últimas 8 semanas)",
-    adminErrorsWeeklyTitle:"Errores automáticos por semana",
     adminSectionCollapseHint:"Toca una sección para expandirla o colapsarla.",
   },
   en:{
@@ -2744,7 +2752,7 @@ const I18N = {
     veriFabAria:"Ask Veri", veriAIBetaTag:"Beta",
     cartSearchBtn:"Search", cartSearchPlaceholder:"Search the cart: name or last 6 digits", cartSearchNone:"No matches: that product is not in the cart.", cartQuickAddBtn:"Add", cartScannedLabel:"Scanned code:", cartMatchLabel:"Matches",
     savePhotosLabel:"Save repetition photos to this phone", savePhotosSub:"Every photo you take is also downloaded to the phone as a backup (on iPhone it goes to Files › Downloads).",
-    liteModeLabel:"Lite mode", liteModeSub:"Faster and lighter on data: no animations or effects, photos only when you ask and less frequent syncing. Repetition photos are always sent in original quality.", liteModeHint:"Phone feeling slow? Try Lite mode in Settings.",
+    liteModeLabel:"Lite mode", liteModeSub:"Faster and lighter on data: no animations or effects, images load only when visible and photos only when you ask. Cart, Naming, notifications and repetitions keep updating at the same frequency; everything else syncs less often. Repetition photos are always sent in original quality.", liteModeHint:"Phone feeling slow? Try Lite mode in Settings.",
     preferencesSaved:"Preferences saved", soundTest:"Test sound", edit:"Edit", delete:"Delete", editSave:"Save changes",
     category:"Category", uncategorized:"Uncategorized", reorderHint:"Press and drag to reorder",
     importWhiteOnly:"Only uncolored products were imported. Yellow, blue and green were skipped.",
@@ -2813,17 +2821,17 @@ const I18N = {
     adminFeedbackTitle:"Feedback from people", adminFeedbackSub:"Reported bugs and improvement ideas, to know what to fix or what to add in the future.",
     adminFeedbackNone:"No feedback yet.", adminFeedbackBug:"Bug", adminFeedbackIdea:"Suggestion",
     feedbackStatusPending:"Pending", feedbackStatusReviewed:"Reviewed", feedbackStatusDone:"Done",
-    adminErrorsTitle:"Automatic errors", adminErrorsSub:"Technical failures the app detected on its own, without anyone reporting them.",
-    adminErrorsNone:"No errors detected. 🎉", adminErrorsClear:"Delete",
     adminStatsDailyTitle:"Scans per day (last 14 days)", adminStatsWeeklyTitle:"Scans per week (last 8 weeks)",
-    adminErrorsWeeklyTitle:"Automatic errors per week",
     adminSectionCollapseHint:"Tap a section to expand or collapse it.",
   }
 };
 const veriIsLite=()=>document.documentElement.classList.contains('lite');
 const __liteTicks={};
 // En Lite, las consultas periódicas se hacen 3 veces más espaciadas (menos datos y batería).
-function veriLiteSkip(k){ if(!veriIsLite()) return false; __liteTicks[k]=(__liteTicks[k]||0)+1; return __liteTicks[k]%3!==0; }
+// Carrito, Nombrar (peer), notificaciones y repeticiones SIEMPRE se actualizan a su ritmo normal, también en Lite.
+// El resto de consultas periódicas (presupuesto, bases, personas…) se espacian 3 veces para ahorrar datos y batería.
+const LITE_REALTIME=new Set(['cart','peer','notif','rep']);
+function veriLiteSkip(k){ if(!veriIsLite()||LITE_REALTIME.has(k)) return false; __liteTicks[k]=(__liteTicks[k]||0)+1; return __liteTicks[k]%3!==0; }
 function veriLiteShowBtn(id,n){ const en=state.prefs.lang==='en'; return `<button type="button" class="btn secondary sm" data-lite-show="${id}" style="margin-top:10px">📷 ${en?(n>1?'Show '+n+' photos':'Show photo'):(n>1?'Ver '+n+' fotos':'Ver foto')} · ${en?'loads on tap':'se descarga al tocar'}</button>`; }
 document.addEventListener('click',e=>{ const b=e.target&&e.target.closest&&e.target.closest('[data-lite-show]'); if(!b) return; state.liteShown=state.liteShown||{}; state.liteShown[b.dataset.liteShow]=true; try{ render(); }catch(err){} });
 const veriReduceMotion=()=>{ try{ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } };
@@ -2845,7 +2853,7 @@ async function veriLiteToggle(on, originEl){
   const apply=()=>applyLiteMode();
   let x=innerWidth/2, y=innerHeight*0.45;
   try{ const r=originEl&&originEl.getBoundingClientRect&&originEl.getBoundingClientRect(); if(r&&r.width){ x=r.left+r.width/2; y=r.top+r.height/2; } }catch(e){}
-  if(veriReduceMotion()||!document.startViewTransition||!document.body.animate){ apply(); veriLiteFxPill(on); return; }
+  if(on||veriReduceMotion()||!document.startViewTransition||!document.body.animate){ apply(); veriLiteFxPill(on); return; }
   const R=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y))+40;
   const accent=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#0a84ff';
   // 1) la gota cae
@@ -2876,9 +2884,13 @@ async function veriLiteToggle(on, originEl){
   vt.finished.finally(()=>{ rings.forEach(r=>r.remove()); document.querySelectorAll('.veri-lite-fx[style*="view-transition-name:veri-ring"]').forEach(n=>n.remove()); });
   setTimeout(()=>rings.forEach(r=>r.remove()),dur+500);
 }
+let __liteImgObs=null;
+function liteTuneImgs(root){ try{ (root||document).querySelectorAll('img:not([data-lt])').forEach(im=>{ im.dataset.lt='1'; if(!im.hasAttribute('loading')) im.loading='lazy'; im.decoding='async'; }); }catch(e){} }
 function applyLiteMode(){
   const on=!!(state.prefs&&state.prefs.liteMode);
   document.documentElement.classList.toggle('lite',on);
+  if(on){ liteTuneImgs(); if(!__liteImgObs&&window.MutationObserver){ let tm=null; __liteImgObs=new MutationObserver(()=>{ if(tm) return; tm=setTimeout(()=>{ tm=null; liteTuneImgs(); },250); }); __liteImgObs.observe(document.body,{childList:true,subtree:true}); } }
+  else if(__liteImgObs){ __liteImgObs.disconnect(); __liteImgObs=null; }
   try{ localStorage.setItem('vp_lite',on?'1':'0'); }catch(e){}
 }
 // Aviso único, solo en Android con poca memoria o pocos núcleos: sugiere el Modo Lite.
@@ -2924,13 +2936,13 @@ const state = {
   adminPassword:null,
   veriApiKey:null,
   adminPwError:'',
-  naming:null, quality:null, qualityBusy:false, qualityProgress:null, baseUpdated:{'2025':null,'2026':null}, adminStats:{scans:[],loading:false,loaded:false},
+  naming:null, quality:null, qualityBusy:false, qualityProgress:null, baseUpdated:{'2025':null,'2026':null}, adminStats:{scans:[],dupCart:[],dupNaming:[],loading:false,loaded:false},
   archived:{loaded:false, loading:false, byDate:{}, dates:[], selectedDate:null},
 termsVersion:'1.0', termsAccepted:false, termsChecked:false,
   toolAccess:{},
   toolMatrixOpen:{},
   feedbackForm:{tipo:'bug', mensaje:''}, feedbackList:[], feedbackLoading:false, feedbackLoaded:false,
-  errorsList:[], errorsLoading:false, errorsLoaded:false,
+  statsView:{range:'today', date:''}, settingsQuery:'', settingsQFocus:false,
   adminSectionsOpen:{stats:true},
 };
 /* ===================== Herramientas visibles por persona (control del administrador) =====================
@@ -4540,7 +4552,7 @@ function peerCtxIdx(){
   PEER.ctx={k,idx:{list,map}}; return PEER.ctx.idx;
 }
 function findPeerNamingDup(nombre,codigo){ const ix=peerCtxIdx(); return ix?findNameDuplicateIdx(ix,nombre,codigo):null; }
-/* Actualización frecuente mientras hay internet y se está nombrando (en modo ligero se espacia sola). */
+/* Actualización frecuente mientras hay internet y se está nombrando (también en Modo Lite). */
 function peerStartTimer(){
   if(PEER.timer) return;
   PEER.timer=setInterval(()=>{
@@ -6413,11 +6425,17 @@ async function fetchConfig(){
     }
   }
 }
-async function fetchScanStats(){ try{return await sb('escaneos?select=codigo_persona,codigo_producto,nombre_producto,base,estado,fecha&order=fecha.desc&limit=10000', {silent:true});}catch(e){return [];} }
+async function fetchScanStats(){ try{return await sb('escaneos?select=codigo_persona,codigo_producto,nombre_producto,base,estado,fecha&order=fecha.desc&limit='+(veriIsLite()?4000:10000), {silent:true});}catch(e){return [];} }
+/* Duplicados al nombrar: se leen de nombrados_diarios (se conservan 7 días). */
+async function fetchNamingDups(){
+  const base='nombrados_diarios?select=codigo_persona,fecha,duplicado,duplicado_sesion&limit=5000&order=fecha.desc';
+  try{ return await sb(base+'&or=(duplicado.eq.true,duplicado_sesion.eq.true)',{silent:true}) || []; }
+  catch(e){ try{ return await sb(base.replace(',duplicado_sesion','')+'&duplicado=eq.true',{silent:true}) || []; }catch(e2){ return []; } }
+}
+/* Duplicados en carrito: no se guardaban, así que cada intento se registra como un escaneo con estado 'dup_carrito'. */
+function logCartDup(codigo,base){ try{ sb('escaneos',{method:'POST',body:JSON.stringify([{codigo_persona:normalize(state.session||''),codigo_escaneado:normalize(codigo),codigo_producto:normalize(codigo),base:base||state.scanBase,estado:'dup_carrito',fecha:new Date().toISOString()}]),headers:{'Prefer':'return=minimal'},silent:true}).catch(()=>{}); }catch(e){} }
 async function fetchFeedback(){ try{return await sb('feedback?select=*&order=fecha.desc&limit=500', {silent:true});}catch(e){return [];} }
-async function fetchAppErrors(){ try{return await sb('app_errors?select=*&order=fecha.desc&limit=300', {silent:true});}catch(e){return [];} }
 async function loadFeedback(){ state.feedbackLoading=true; state.feedbackList = await fetchFeedback(); state.feedbackLoading=false; state.feedbackLoaded=true; }
-async function loadAppErrors(){ state.errorsLoading=true; state.errorsList = await fetchAppErrors(); state.errorsLoading=false; state.errorsLoaded=true; }
 async function sendFeedback(){
   const mensaje = (state.feedbackForm.mensaje||'').trim();
   if(!mensaje){ toast(t('feedbackEmpty')); return; }
@@ -6487,8 +6505,8 @@ function svgBarChart(series, opts={}){
 /* Contenedor colapsable reutilizable para las secciones del panel de administrador, así con
    muchas herramientas activas el panel no se ve saturado: colapsado por defecto, se expande al tocar. */
 function adminSection(id, title, sub, contentHtml, defaultOpen){
-  const open = state.adminSectionsOpen[id]!==undefined ? state.adminSectionsOpen[id] : !!defaultOpen;
-  return `<div class="card glass admin-accordion">
+  const open = settingsAccForced(id,title,sub) || (state.adminSectionsOpen[id]!==undefined ? state.adminSectionsOpen[id] : !!defaultOpen);
+  return `<div class="card glass admin-accordion" data-sid="${id}" data-skey="${escapeHtml(settingsAccHay(id,title,sub))}">
     <button type="button" class="admin-accordion-head" data-togglesection="${id}">
       <div><div class="section-title" style="margin:0;">${title}</div>${sub?`<p class="small-note" style="margin:4px 0 0;">${sub}</p>`:''}</div>
       <span class="admin-accordion-chevron ${open?'open':''}">${ICONS.chevron}</span>
@@ -7386,7 +7404,7 @@ async function veriRefreshPersonas(){
     if(other&&!busy&&state.tab!=='scan'&&!(state.tab==='rep'&&state.repView==='review')) render();
   }catch(e){ console.warn('No se pudo refrescar personas',e); }
 }
-setInterval(veriRefreshPersonas,60000);
+setInterval(()=>{ if(document.hidden||veriLiteSkip('personas')) return; veriRefreshPersonas(); },60000);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) veriRefreshPersonas(); });
 window.addEventListener('focus',()=>{ veriRefreshPersonas(); });
 async function veriChangeProfilePhoto(file){
@@ -8432,7 +8450,7 @@ function renderNav(){
   document.querySelectorAll('.nav-btn:not(.nav-ai-btn)').forEach(b=>{ b.onclick = ()=>{ stopCamera(); state.tab=b.dataset.tab; render(); }; });
 }
 
-async function loadAdminStats(){state.adminStats.loading=true;state.adminStats.scans=await fetchScanStats();state.adminStats.loading=false;state.adminStats.loaded=true;}
+async function loadAdminStats(){state.adminStats.loading=true;const __all=await fetchScanStats(); state.adminStats.scans=__all.filter(x=>!String(x.estado||'').startsWith('dup_')); state.adminStats.dupCart=__all.filter(x=>x.estado==='dup_carrito'); state.adminStats.dupNaming=await fetchNamingDups();state.adminStats.loading=false;state.adminStats.loaded=true;}
 /* ===================== Roles: administrador / coadministrador =====================
    El acceso al panel de Administrador ya no depende de una contraseña compartida que
    cualquiera pueda usar: depende de qué rol tiene asignado el código de persona con el
@@ -9953,6 +9971,8 @@ function renderSettings(){
   setTimeout(budLoadMyBudgets,0);
   const persona=state.personas.find(p=>p.codigo===normalize(state.session||'')); const name=persona?.nombre||state.session||''; const avatarInner=personAvatarInner(persona, state.session, 52);
   return `<div class="settings-shell"><div class="settings-header"><h2>${t('tabSettings')}</h2><p>${t('settingsSub')}</p></div>
+    <div class="settings-search"><span class="ss-ico" aria-hidden="true">🔍</span><input type="search" id="settingsSearch" value="${escapeHtml(state.settingsQuery||'')}" placeholder="${state.prefs.lang==='en'?'Search settings… (e.g. change database, sound)':'Buscar en ajustes… (ej. cambiar base, sonido)'}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button type="button" class="ss-clear" id="settingsSearchClear" aria-label="${state.prefs.lang==='en'?'Clear':'Borrar'}" ${state.settingsQuery?'':'hidden'}>✕</button></div>
+    <div class="settings-noresults" id="settingsNoRes" hidden>${state.prefs.lang==='en'?'No settings match your search.':'No hay ajustes que coincidan con tu búsqueda.'}</div>
     <div class="profile-card profile-hero glass">
       <button type="button" class="profile-avatar-lg${veriPersonPhoto(persona)?' has-photo':''}" id="avatarEditBtn" aria-label="${state.prefs.lang==='en'?'Profile photo: tap to enlarge, double tap to edit':'Foto de perfil: un toque para ampliar, doble toque para editar'}">${avatarInner||'?'}</button>
       <div class="profile-name-lg">${escapeHtml(name||'—')}</div>
@@ -10009,6 +10029,45 @@ function renderSettings(){
     <div class="settings-group glass"><div class="settings-group-title">Cuenta</div><div class="settings-row"><div class="settings-row-main"><div class="settings-row-title">${t('sessionAs')}</div><div class="settings-row-sub">${state.session||'—'} · código permanente</div></div><button class="btn secondary sm" id="logoutBtn">${ICONS.logout} ${t('logout')}</button></div></div>
     ${renderSettingsAdmin()}</div>`;
 }
+/* ---- Buscador de Ajustes: filtra filas y secciones en vivo (con sinónimos) y abre las secciones del administrador que coincidan ---- */
+const SET_KW={stats:'estadisticas stats escaneos grafico pastel diagrama personas dia hoy ayer semana',notifications:'notificaciones avisos novedades notas enviar mensaje alertas',people:'personas usuarios roles rol admin administrador coadministrador permisos nombre',bases:'bases base 2025 2026 excel importar actualizar cambiar cargar productos database update import',toolaccess:'herramientas acceso permisos visibilidad carrito nombrar repeticiones veri tools access',settingspeople:'codigos personas agregar usuario pin contrasena clave cambiar administrador codes password'};
+const SET_STOP=new Set(['la','el','los','las','de','del','al','en','un','una','y','o','a','mi','mis','que','para','por','con','the','of','to','my','an','and','or','for']);
+const SET_SYN=[['cambiar','cambio','elegir','seleccionar','defecto','default','change','switch','choose','modificar'],['actualizar','actualizacion','importar','cargar','subir','update','import','refresh','excel'],['sonido','audio','pitido','beep','sound'],['color','acento','tema','apariencia','theme','accent','oscuro','claro','dark','light'],['idioma','lenguaje','language','espanol','english'],['seguridad','bloqueo','passkey','pin','lock','security'],['foto','fotos','imagen','imagenes','photo','photos'],['notificacion','notificaciones','aviso','avisos','alerta','alertas','notification'],['vibracion','vibrar','haptica','vibration'],['base','bases','database','datos'],['rapido','lite','ligero','rendimiento','lento','speed','performance'],['salir','cerrar','sesion','logout','cuenta','account']];
+function setNorm(x){ return String(x||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+function setTokens(q){ return setNorm(q).split(/\s+/).filter(k=>k&&!SET_STOP.has(k)); }
+function setMatch(hay,tokens){ hay=setNorm(hay); return tokens.every(k=>{ if(hay.includes(k)) return true; return SET_SYN.some(g=>g.includes(k)&&g.some(a=>hay.includes(a))); }); }
+function settingsAccHay(id,title,sub){ return (SET_KW[id]||'')+' '+title+' '+(sub||''); }
+function settingsAccForced(id,title,sub){ const q=(state.settingsQuery||'').trim(); if(q.length<2) return false; const tk=setTokens(q); return tk.length>0 && setMatch(settingsAccHay(id,title,sub),tk); }
+function settingsForcedSig(){ const q=(state.settingsQuery||'').trim(); if(q.length<2) return ''; const tk=setTokens(q); if(!tk.length) return ''; return [...document.querySelectorAll('.admin-accordion[data-skey]')].filter(c=>setMatch(c.dataset.skey,tk)).map(c=>c.dataset.sid).join(','); }
+function applySettingsFilter(){
+  const shell=document.querySelector('.settings-shell'); if(!shell) return;
+  const tokens=setTokens(state.settingsQuery||''); let shown=0;
+  shell.classList.toggle('searching',tokens.length>0);
+  shell.querySelectorAll('.settings-group').forEach(g=>{
+    if(g.closest('.admin-accordion')) return;
+    const rows=[...g.querySelectorAll(':scope > .settings-row')];
+    if(!tokens.length){ g.classList.remove('s-hide'); rows.forEach(r=>r.classList.remove('s-hide')); return; }
+    const title=g.querySelector(':scope > .settings-group-title'); const titleHit=!!title && setMatch(title.textContent,tokens);
+    let any=false;
+    if(!rows.length) any=setMatch(g.textContent,tokens);
+    else rows.forEach(r=>{ const hit=titleHit||setMatch(r.textContent,tokens); r.classList.toggle('s-hide',!hit); if(hit) any=true; });
+    g.classList.toggle('s-hide',!any); if(any) shown++;
+  });
+  shell.querySelectorAll('.admin-accordion').forEach(c=>{ const hit=!tokens.length||setMatch(c.dataset.skey||'',tokens); c.classList.toggle('s-hide',!hit); if(hit&&tokens.length) shown++; });
+  const nr=document.getElementById('settingsNoRes'); if(nr) nr.hidden=!tokens.length||shown>0;
+}
+function wireSettingsSearch(){
+  const inp=document.getElementById('settingsSearch'); if(!inp) return;
+  if(state.settingsQFocus){ state.settingsQFocus=false; inp.focus(); try{ inp.setSelectionRange(inp.value.length,inp.value.length); }catch(e){} }
+  inp.oninput=()=>{
+    state.settingsQuery=inp.value; applySettingsFilter();
+    const after=settingsForcedSig();
+    if(after!==(state.settingsForced||'')){ state.settingsForced=after; state.settingsQFocus=true; render(); if(after.split(',').includes('notifications')){ try{ refreshNotifications(); loadNotifSettings(); }catch(e){} } }
+  };
+  const clr=document.getElementById('settingsSearchClear');
+  if(clr) clr.onclick=()=>{ state.settingsQuery=''; state.settingsForced=''; render(); };
+  state.settingsForced=settingsForcedSig(); applySettingsFilter();
+}
 function renderAdminBasesCard(){
   return `${['2025','2026'].map(y=>`<div class="settings-row" style="padding-left:4px;padding-right:4px;"><div class="settings-row-main"><div class="settings-row-title">Base ${y}</div><div class="settings-row-sub">${state.bases[y].length.toLocaleString()} ${t('productsLoaded')} · ${formatUpdated(state.baseUpdated[y])}</div></div><label class="btn secondary sm" for="import${y}">${t('updateBase')}</label><input type="file" id="import${y}" accept=".xlsx,.xls,.csv" style="display:none;"></div>`).join('')}`;
 }
@@ -10035,13 +10094,66 @@ function renderAdminToolAccessCard(){
   }).join('');
   return rows || `<div class="empty">${t('adminToolAccessNone')}</div>`;
 }
+/* ---- Estadísticas: gráficos de pastel (por persona y por día, con día local) ---- */
+const STAT_COLORS=['#3B82F6','#F59E0B','#10B981','#EF4444','#8B5CF6','#EC4899','#14B8A6','#F97316','#6366F1'];
+const STAT_OTHER_COLOR='#9CA3AF';
+function statLocalDay(f){ const d=new Date(f); if(isNaN(d)) return null; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function statDayLabel(key){ const en=state.prefs.lang==='en'; if(key===todayKey()) return en?'Today':'Hoy'; if(key===daysAgoKey(1)) return en?'Yesterday':'Ayer'; const d=new Date(key+'T12:00:00'); return d.toLocaleDateString(en?'en-US':'es-CO',{weekday:'short',day:'numeric',month:'short'}); }
+function statPersonName(code){ const p=(state.personas||[]).find(x=>normalize(x.codigo)===code); return (p&&p.nombre)?p.nombre:code; }
+function svgPieChart(slices,total,centerLbl){
+  const R=54, C=2*Math.PI*R; let off=0;
+  const rings=slices.map(sl=>{ const len=C*sl.value/total; const el=`<circle cx="70" cy="70" r="${R}" fill="none" stroke="${sl.color}" stroke-width="26" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 70 70)"><title>${escapeHtml(sl.label)}: ${sl.value}</title></circle>`; off+=len; return el; }).join('');
+  return `<svg viewBox="0 0 140 140" class="stat-pie-svg" role="img"><circle cx="70" cy="70" r="${R}" fill="none" stroke="var(--divider)" stroke-width="26"/>${rings}<text x="70" y="68" text-anchor="middle" font-size="24" font-weight="800" fill="var(--text-1)">${total.toLocaleString()}</text><text x="70" y="85" text-anchor="middle" font-size="9.5" fill="var(--text-2)">${centerLbl}</text></svg>`;
+}
+function statPieBlock(title,slices,centerLbl,clickable){
+  const total=slices.reduce((a,x)=>a+x.value,0);
+  if(!total) return `<div class="chart-block"><p class="chart-block-title">${title}</p><div class="empty">${t('adminNoStats')}</div></div>`;
+  const legend=slices.map(sl=>`<${clickable&&sl.key?'button type="button" data-statday="'+sl.key+'"':'div'} class="stat-leg-row${clickable&&sl.key?' clickable':''}"><span class="stat-dot" style="background:${sl.color}"></span><span class="stat-leg-name">${escapeHtml(sl.label)}</span><b>${sl.value.toLocaleString()}</b><span class="stat-leg-pct">${Math.round(sl.value*100/total)}%</span></${clickable&&sl.key?'button':'div'}>`).join('');
+  return `<div class="chart-block"><p class="chart-block-title">${title}</p><div class="stat-pie-wrap">${svgPieChart(slices,total,centerLbl)}<div class="stat-legend">${legend}</div></div></div>`;
+}
 function renderAdminStatsCard(){
-  const scans=state.adminStats.scans||[]; const today=todayKey(); const todayScans=scans.filter(x=>String(x.fecha||'').slice(0,10)===today).length; const found=scans.filter(x=>x.estado==='exact').length; const people=new Map(); scans.forEach(x=>{const c=normalize(x.codigo_persona||'');if(c)people.set(c,(people.get(c)||0)+1);});
-  const daily = computeDailySeries(scans, 14);
-  const weekly = computeWeeklySeries(scans, 8);
-  return `<div class="admin-stat-grid"><div class="admin-stat"><div class="num">${scans.length.toLocaleString()}</div><div class="lbl">${t('totalScans')}</div></div><div class="admin-stat"><div class="num">${people.size}</div><div class="lbl">${t('activePeople')}</div></div><div class="admin-stat"><div class="num">${found.toLocaleString()}</div><div class="lbl">${t('productsScanned')}</div></div><div class="admin-stat"><div class="num">${todayScans.toLocaleString()}</div><div class="lbl">${t('todayScans')}</div></div></div>
-    <div class="chart-block"><p class="chart-block-title">${t('adminStatsDailyTitle')}</p>${svgBarChart(daily,{color:'var(--accent)'})}</div>
-    <div class="chart-block"><p class="chart-block-title">${t('adminStatsWeeklyTitle')}</p>${svgBarChart(weekly,{color:'#7c5cff'})}</div>
+  const en=state.prefs.lang==='en';
+  const scans=state.adminStats.scans||[]; const today=todayKey();
+  const dayOf=scans.map(x=>statLocalDay(x.fecha));
+  const todayScans=dayOf.filter(k=>k===today).length;
+  const found=scans.filter(x=>x.estado==='exact').length;
+  const peopleAll=new Set(); scans.forEach(x=>{const c=normalize(x.codigo_persona||''); if(c) peopleAll.add(c);});
+  // Rango elegido para el pastel por persona
+  const sv=state.statsView||{range:'today',date:''};
+  let from,to,rangeLbl;
+  if(sv.range==='yesterday'){ from=to=daysAgoKey(1); rangeLbl=en?'Yesterday':'Ayer'; }
+  else if(sv.range==='7'){ from=daysAgoKey(6); to=today; rangeLbl=en?'Last 7 days':'Últimos 7 días'; }
+  else if(sv.range==='30'){ from=daysAgoKey(29); to=today; rangeLbl=en?'Last 30 days':'Últimos 30 días'; }
+  else if(sv.range==='date' && sv.date){ from=to=sv.date; rangeLbl=statDayLabel(sv.date); }
+  else { from=to=today; rangeLbl=en?'Today':'Hoy'; }
+  const byPerson=new Map(); let inRange=0;
+  scans.forEach((x,i)=>{ const k=dayOf[i]; if(!k||k<from||k>to) return; const c=normalize(x.codigo_persona||'')||'—'; byPerson.set(c,(byPerson.get(c)||0)+1); inRange++; });
+  const sorted=[...byPerson.entries()].sort((a,b)=>b[1]-a[1]);
+  const personSlices=sorted.slice(0,STAT_COLORS.length).map(([c,v],i)=>({label:statPersonName(c),value:v,color:STAT_COLORS[i]}));
+  const rest=sorted.slice(STAT_COLORS.length).reduce((a,[,v])=>a+v,0);
+  if(rest) personSlices.push({label:en?'Others':'Otros',value:rest,color:STAT_OTHER_COLOR});
+  // Pastel por día: últimos 7 días
+  const dayMap=new Map(); for(let i=6;i>=0;i--) dayMap.set(daysAgoKey(i),0);
+  dayOf.forEach(k=>{ if(k&&dayMap.has(k)) dayMap.set(k,dayMap.get(k)+1); });
+  const daySlices=[...dayMap.entries()].filter(([,v])=>v>0).map(([k,v],i)=>({key:k,label:statDayLabel(k),value:v,color:STAT_COLORS[i%STAT_COLORS.length]}));
+  // Duplicados detectados (Nombrar + Carrito) en el mismo rango
+  const inR=k=>k&&k>=from&&k<=to;
+  const dN=(state.adminStats.dupNaming||[]).filter(x=>inR(String(x.fecha||'').slice(0,10)));
+  const dC=(state.adminStats.dupCart||[]).filter(x=>inR(statLocalDay(x.fecha)));
+  const dupBy=new Map(); [...dN,...dC].forEach(x=>{const c=normalize(x.codigo_persona||'')||'—'; dupBy.set(c,(dupBy.get(c)||0)+1);});
+  const dupSorted=[...dupBy.entries()].sort((a,b)=>b[1]-a[1]);
+  const dupSlices=dupSorted.slice(0,STAT_COLORS.length).map(([c,v],i)=>({label:statPersonName(c),value:v,color:STAT_COLORS[i]}));
+  const dupRest=dupSorted.slice(STAT_COLORS.length).reduce((a,[,v])=>a+v,0); if(dupRest) dupSlices.push({label:en?'Others':'Otros',value:dupRest,color:STAT_OTHER_COLOR});
+  const dupBlock=`<div class="admin-stat-grid" style="margin-top:14px"><div class="admin-stat"><div class="num">${dN.length.toLocaleString()}</div><div class="lbl">${en?'Duplicates when naming':'Duplicados al nombrar'}</div></div><div class="admin-stat"><div class="num">${dC.length.toLocaleString()}</div><div class="lbl">${en?'Duplicates in cart':'Duplicados en carrito'}</div></div></div>`
+    +statPieBlock((en?'Duplicates per person · ':'Duplicados por persona · ')+rangeLbl,dupSlices,en?'duplicates':'duplicados',false)
+    +`<p class="small-note" style="margin:6px 2px 0">${en?'Naming: from saved names (kept 7 days). Cart: each duplicate scan is counted from this version on.':'Nombrar: según los nombrados guardados (se conservan 7 días). Carrito: cada escaneo repetido se cuenta desde esta versión.'}</p>`;
+  const chips=[['today',en?'Today':'Hoy'],['yesterday',en?'Yesterday':'Ayer'],['7',en?'7 days':'7 días'],['30',en?'30 days':'30 días']].map(([id,l])=>`<button type="button" class="stat-chip${sv.range===id?' active':''}" data-statrange="${id}">${l}</button>`).join('');
+  const dateVal=(sv.range==='date'&&sv.date)?sv.date:'';
+  return `<div class="admin-stat-grid"><div class="admin-stat"><div class="num">${scans.length.toLocaleString()}</div><div class="lbl">${t('totalScans')}</div></div><div class="admin-stat"><div class="num">${peopleAll.size}</div><div class="lbl">${t('activePeople')}</div></div><div class="admin-stat"><div class="num">${found.toLocaleString()}</div><div class="lbl">${t('productsScanned')}</div></div><div class="admin-stat"><div class="num">${todayScans.toLocaleString()}</div><div class="lbl">${t('todayScans')}</div></div></div>
+    <div class="stat-chips">${chips}<label class="stat-chip stat-date${sv.range==='date'?' active':''}"><span>📅</span><input type="date" id="statDateInput" value="${dateVal}" max="${today}" aria-label="${en?'Pick a date':'Elegir fecha'}"></label></div>
+    ${statPieBlock((en?'Scans per person · ':'Escaneos por persona · ')+rangeLbl,personSlices,en?'scans':'escaneos',false)}
+    ${dupBlock}
+    ${statPieBlock(en?'Scans per day · last 7 days (tap a day)':'Escaneos por día · últimos 7 días (toca un día)',daySlices,en?'scans':'escaneos',true)}
     <div class="warning-banner" style="margin-top:14px;">${ICONS.warn}<span>${t('adminDataWarning')}</span></div>`;
 }
 function renderAdminPeopleCard(){
@@ -10057,23 +10169,11 @@ function renderAdminPeopleCard(){
 function renderAdminSettingsPeopleCard(){
   return `<div class="row wrap"><input type="text" id="newPersonCode" placeholder="${t('personCode')}" style="flex:1;min-width:100px;text-transform:uppercase;" /><input type="text" id="newPersonName" placeholder="${t('personName')}" style="flex:2;min-width:120px;" /><button class="btn sm" id="addPersonBtn">${t('addPerson')}</button></div><div style="margin-top:10px;">${state.personas.length?state.personas.map(p=>`<div class="admin-person"><div class="admin-person-avatar">${personAvatarInner(p, p.codigo, 36)}</div><div class="admin-person-info"><strong>${p.nombre||'Sin nombre'}</strong><span>${p.codigo} · ${p.pin_hash?t('pinResetLabel'):t('pinNotSetLabel')}</span></div><div class="row" style="gap:4px;">${p.pin_hash?`<button class="btn ghost sm" data-resetpin="${p.codigo}">${t('resetPinBtn')}</button>`:''}<button class="btn ghost sm" data-delperson="${p.codigo}">${ICONS.trash}</button></div></div>`).join(''):`<div class="empty">${t('noPeople')}</div>`}</div><div class="field" style="margin-top:18px;"><label>${t('adminChangePw')}</label><div class="row"><input type="password" id="adminNewPw" placeholder="${t('adminPwPlaceholder')}" style="flex:1;" /><button class="btn secondary sm" id="adminChangePwBtn">${t('save')}</button></div><p class="small-note" style="margin-top:6px;">${t('adminPwRecoveryHint')}</p></div>`;
 }
-function renderAdminErrorsCard(){
-  if(state.errorsLoading && !state.errorsLoaded) return `<div class="empty">…</div>`;
-  const list = state.errorsList||[];
-  if(!list.length) return `<div class="empty">${t('adminErrorsNone')}</div>`;
-  const weekly = computeWeeklySeries(list, 8);
-  return `<div class="chart-block"><p class="chart-block-title">${t('adminErrorsWeeklyTitle')}</p>${svgBarChart(weekly,{color:'var(--red)'})}</div>
-    ${list.map(er=>`<div class="error-item">
-      <div class="row between"><div class="error-item-msg">${String(er.mensaje||'').replace(/</g,'&lt;')}</div><button class="btn ghost sm" data-delerror="${er.id}">${ICONS.trash}</button></div>
-      <div class="error-item-meta">${er.contexto||'—'} · ${er.codigo_persona||'—'} · ${formatUpdated(er.fecha)}</div>
-    </div>`).join('')}`;
-}
 function renderSettingsAdminUnlocked(){
   return `<div class="admin-shell"><div class="admin-hero glass"><div class="admin-hero-icon">${ICONS.settings}</div><div><h3>${t('adminPanel')}</h3><p>${t('adminNote')}</p></div></div>
     <p class="small-note" style="margin:-6px 4px 0;">${t('adminSectionCollapseHint')}</p>
     ${adminSection('stats', t('adminStatsTitle'), null, renderAdminStatsCard(), true)}
     ${adminSection('notifications', 'Notificaciones', 'Envía novedades, notas y avisos a los usuarios', renderAdminNotifCard(), false)}
-    ${adminSection('errors', t('adminErrorsTitle'), t('adminErrorsSub'), renderAdminErrorsCard(), false)}
     ${adminSection('people', t('adminPeopleTitle'), null, renderAdminPeopleCard(), false)}
     ${adminSection('bases', t('adminBasesTitle'), null, renderAdminBasesCard(), false)}
     ${adminSection('toolaccess', t('adminToolAccessTitle'), t('adminToolAccessSub'), renderAdminToolAccessCard(), false)}
@@ -10635,6 +10735,7 @@ async function addToCart(codigoRaw, producto, opts){
   const excepcion = !!(opts && opts.excepcion);
   const dup = findCartDuplicate(codigo);
   if(dup){
+    logCartDup(codigo);
     toast(`${t('cartAlreadyAdded')} ${dup.nombre_persona||dup.codigo_persona||''}`);
     vibrateFor('similar'); beepFor('similar');
     return;
@@ -10642,6 +10743,7 @@ async function addToCart(codigoRaw, producto, opts){
   const nombre = await cartNameFrom2025(codigo);
   if(findCartDuplicate(codigo)){ // otro escaneo igual pudo entrar mientras se buscaba el nombre
     const d2 = findCartDuplicate(codigo);
+    logCartDup(codigo);
     toast(`${t('cartAlreadyAdded')} ${d2.nombre_persona||d2.codigo_persona||''}`);
     return;
   }
@@ -11105,7 +11207,11 @@ function bindTabEvents(){
   if(state.tab==='settings'){
     if(isAdmin() && !state.adminStats.loading && !state.adminStats.loaded){ loadAdminStats().then(render); }
     if(hasAdminAccess() && state.adminSectionsOpen.feedback && !state.feedbackLoading && !state.feedbackLoaded){ loadFeedback().then(render); }
-    if(hasAdminAccess() && state.adminSectionsOpen.errors && !state.errorsLoading && !state.errorsLoaded){ loadAppErrors().then(render); }
+    document.querySelectorAll('[data-statrange]').forEach(b=> b.onclick=()=>{ state.statsView={range:b.dataset.statrange,date:''}; render(); });
+    document.querySelectorAll('[data-statday]').forEach(b=> b.onclick=()=>{ state.statsView={range:'date',date:b.dataset.statday}; render(); });
+    const statDateInput=document.getElementById('statDateInput');
+    if(statDateInput) statDateInput.onchange=()=>{ if(statDateInput.value){ state.statsView={range:'date',date:statDateInput.value}; render(); } };
+    wireSettingsSearch();
     const saveUsernameBtn=document.getElementById('saveUsernameBtn');
     if(saveUsernameBtn) saveUsernameBtn.onclick=async()=>{const name=document.getElementById('usernameEdit')?.value.trim();if(!name)return;try{await sb(`personas?codigo=eq.${encodeURIComponent(normalize(state.session||''))}`,{method:'PATCH',body:JSON.stringify({nombre:name}),headers:{'Prefer':'return=minimal'}});const me=state.personas.find(p=>p.codigo===normalize(state.session||''));if(me)me.nombre=name;toast(t('nameSaved'));render();}catch(e){toast(t('errorImport'));}};
     const avatarEditBtn=document.getElementById('avatarEditBtn');
@@ -11226,14 +11332,6 @@ function bindTabEvents(){
           await sb(`feedback?id=eq.${encodeURIComponent(id)}`, {method:'PATCH', body:JSON.stringify({estado:nuevo}), headers:{'Prefer':'return=minimal'}});
           if(item) item.estado = nuevo;
         }catch(err){ toast(t('errorImport')); render(); }
-      });
-      document.querySelectorAll('[data-delerror]').forEach(b=> b.onclick = async ()=>{
-        const id = b.dataset.delerror;
-        try{
-          await sb(`app_errors?id=eq.${encodeURIComponent(id)}`, {method:'DELETE'});
-          state.errorsList = state.errorsList.filter(e=>String(e.id)!==String(id));
-          render();
-        }catch(err){ toast(t('errorImport')); }
       });
       document.querySelectorAll('[data-togglematrix]').forEach(b=> b.onclick = ()=>{
         const code = b.dataset.togglematrix;
@@ -11368,9 +11466,16 @@ function bindTabEvents(){
         if(z>1.02||moved||z<.98) veriZoomTo(img,1,0,0,460);       // ya tenía zoom → vuelve a ajustarse
         else veriZoomTo(img,2.6,px,py,460);                        // sin zoom → acerca a la zona tocada
       });
-      stage?.addEventListener('pointerdown',e=>{ if(e.detail>1||e.target.closest('[data-review-photo-arrow]')) return; img.classList.remove('smooth'); clearTimeout(img._smT); drag={x:e.clientX,y:e.clientY,ox:Number(img.dataset.x||0),oy:Number(img.dataset.y||0)};img.setPointerCapture?.(e.pointerId);});
-      stage?.addEventListener('pointermove',e=>{if(!drag)return;applyInlineReviewTransform(img,Number(img.dataset.zoom||1),Number(img.dataset.rotation||0),drag.ox+e.clientX-drag.x,drag.oy+e.clientY-drag.y);});
-      const end=()=>{drag=null;};stage?.addEventListener('pointerup',end);stage?.addEventListener('pointercancel',end);
+      const pts=new Map(); let pin=null;
+      const relMid=(a,b)=>{const sr=stage.getBoundingClientRect();return [(a.x+b.x)/2-(sr.left+sr.width/2),(a.y+b.y)/2-(sr.top+sr.height/2)];};
+      stage?.addEventListener('pointerdown',e=>{ if(e.detail>1||e.target.closest('[data-review-photo-arrow]')) return; img.classList.remove('smooth'); clearTimeout(img._smT); pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); img.setPointerCapture?.(e.pointerId);
+        if(pts.size===1) drag={x:e.clientX,y:e.clientY,ox:Number(img.dataset.x||0),oy:Number(img.dataset.y||0)};
+        else if(pts.size===2){ drag=null; const [a,b]=[...pts.values()]; const [mx,my]=relMid(a,b); pin={d:Math.hypot(a.x-b.x,a.y-b.y)||1,s:Number(img.dataset.zoom||1),x:Number(img.dataset.x||0),y:Number(img.dataset.y||0),mx,my}; } });
+      stage?.addEventListener('pointermove',e=>{ if(!pts.has(e.pointerId)) return; pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+        if(pin&&pts.size>=2){ const [a,b]=[...pts.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y)||1; const [mx,my]=relMid(a,b); const ns=Math.max(1,Math.min(6,pin.s*d/pin.d)); const k=ns/pin.s; const r=Number(img.dataset.rotation||0); let nx=mx-(pin.mx-pin.x)*k, ny=my-(pin.my-pin.y)*k; if(ns<=1){nx=0;ny=0;} [nx,ny]=veriClampPanStatic(img,stage,ns,r,nx,ny); applyInlineReviewTransform(img,ns,r,nx,ny,true); return; }
+        if(!drag) return; applyInlineReviewTransform(img,Number(img.dataset.zoom||1),Number(img.dataset.rotation||0),drag.ox+e.clientX-drag.x,drag.oy+e.clientY-drag.y); });
+      const end=e=>{ pts.delete(e.pointerId); if(pts.size<2) pin=null; if(pts.size===1){ const r1=[...pts.values()][0]; drag={x:r1.x,y:r1.y,ox:Number(img.dataset.x||0),oy:Number(img.dataset.y||0)}; } else if(pts.size===0) drag=null; };
+      stage?.addEventListener('pointerup',end); stage?.addEventListener('pointercancel',end);
     });
     document.querySelectorAll('[data-review-approve]').forEach(b=>b.onclick=async()=>{const id=b.dataset.reviewApprove;const mode=b.dataset.reviewPhotoMode;const item=mode==='multi'?state.repetitionPhotos.find(x=>String(x.id)===String(id)):null;const r=item?state.repeticiones.find(x=>String(x.id)===String(item.repeticionId)):state.repeticiones.find(x=>String(x.id)===String(id));const path=item?.path||r?.fotoPath;const __prev=item?{kind:'approve',mode:'multi',id:item.id,repId:item.repeticionId,prev:{estado:item.estado,motivo:item.motivo||''}}:{kind:'approve',mode:'legacy',id,repId:id,prevRepEstado:r?r.estado:undefined};const url=path?veriPhotoUrl(path):'';if(url) downloadApprovedPhoto(url,safePhotoFilename({...r,path}));try{const now=new Date().toISOString();if(item){await patchRepPhoto(item.id,{estado:'aprobada',estado_revision:'aprobada',revisada_en:now,fecha_revision:now,revisada_por:normalize(state.session||''),revisado_por:normalize(state.session||''),aprobada_en:now,eliminar_despues_de:new Date(Date.now()+86400000).toISOString()});await syncRepetitionCompletion(item.repeticionId);}else{await patchPhotoReview(id,{revision_estado:'aprobada',revision_motivo:'',revision_por:normalize(state.session||''),revision_fecha:now});if(r)r.estado='sent';}await refreshRepPhotos();revPush(__prev);state.repReviewPhoto=null;state.repReviewWide=false;toast('Foto aprobada; descarga iniciada · puedes deshacer');render();}catch(e){console.error(e);toast('No se pudo aprobar la foto.');}});
     document.querySelectorAll('[data-review-retake]').forEach(b=>b.onclick=async()=>{
@@ -11896,9 +12001,16 @@ function openVeriPhotoPreview(url, title){
     stage.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY<0?.15:-.15);},{passive:false});
     stage.addEventListener('dblclick',e=>{e.preventDefault();const sr=stage.getBoundingClientRect();const px=e.clientX-(sr.left+sr.width/2),py=e.clientY-(sr.top+sr.height/2);veriSmooth(img,460);
       if(scale>1.02||scale<.98||Math.abs(x)>1||Math.abs(y)>1){scale=1;x=0;y=0;}else{const k=2.6;x=px*(1-k);y=py*(1-k);scale=k;}update();});
-    stage.addEventListener('pointerdown',e=>{if(e.detail>1)return;img.classList.remove('smooth');clearTimeout(img._smT);dragging=true;startX=e.clientX;startY=e.clientY;originX=x;originY=y;stage.setPointerCapture?.(e.pointerId);});
-    stage.addEventListener('pointermove',e=>{if(!dragging)return;x=originX+(e.clientX-startX);y=originY+(e.clientY-startY);update();});
-    const endDrag=()=>{dragging=false;};stage.addEventListener('pointerup',endDrag);stage.addEventListener('pointercancel',endDrag);
+    const pts=new Map(); let pin=null;
+    const relMid=(a,b2)=>{const sr=stage.getBoundingClientRect();return [(a.x+b2.x)/2-(sr.left+sr.width/2),(a.y+b2.y)/2-(sr.top+sr.height/2)];};
+    stage.addEventListener('pointerdown',e=>{if(e.detail>1)return;img.classList.remove('smooth');clearTimeout(img._smT);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});stage.setPointerCapture?.(e.pointerId);
+      if(pts.size===1){dragging=true;startX=e.clientX;startY=e.clientY;originX=x;originY=y;}
+      else if(pts.size===2){dragging=false;const [a2,b2]=[...pts.values()];const [mx,my]=relMid(a2,b2);pin={d:Math.hypot(a2.x-b2.x,a2.y-b2.y)||1,s:scale,x:x,y:y,mx:mx,my:my};}});
+    stage.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(pin&&pts.size>=2){const [a2,b2]=[...pts.values()];const d=Math.hypot(a2.x-b2.x,a2.y-b2.y)||1;const [mx,my]=relMid(a2,b2);const ns=Math.max(0.5,Math.min(6,pin.s*d/pin.d));const k=ns/pin.s;scale=ns;x=mx-(pin.mx-pin.x)*k;y=my-(pin.my-pin.y)*k;update();return;}
+      if(!dragging)return;x=originX+(e.clientX-startX);y=originY+(e.clientY-startY);update();});
+    const endDrag=e=>{pts.delete(e.pointerId);if(pts.size<2)pin=null;if(pts.size===1){const r1=[...pts.values()][0];dragging=true;startX=r1.x;startY=r1.y;originX=x;originY=y;}else if(pts.size===0)dragging=false;};
+    stage.addEventListener('pointerup',endDrag);stage.addEventListener('pointercancel',endDrag);
     modal._setImage=(src,caption)=>{img.src=src;modal.querySelector('#veriPhotoModalTitle').textContent=caption||'Revisión de fotografía';modal.querySelector('#veriPhotoDownload').href=src;reset(true);};
   }
   modal._setImage(url,title);modal.hidden=false;document.body.style.overflow='hidden';
