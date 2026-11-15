@@ -11709,7 +11709,7 @@ async function repCapAddFiles(files){
 function repCapRenderThumbs(){
   const c=state.repCapture, box=document.getElementById('repCapThumbs'); if(!c||!box) return;
   box.innerHTML=c.files.map((f,i)=>`<div class="rep-cap-thumb"><button type="button" class="rep-cap-img" data-cap-view="${i}" aria-label="Ver foto ${i+1}"><img src="${f.thumb||f.url}" alt="Foto ${i+1}" decoding="async" onerror="this.style.display='none';this.closest('.rep-cap-thumb').classList.add('nopv')"></button>${c.busy?'':`<button type="button" class="rep-cap-del" data-cap-del="${i}" aria-label="Quitar foto ${i+1}">✕</button>`}</div>`).join('') || '<p class="small-note" style="opacity:.7;text-align:center;margin:14px 0">Aún no hay fotos.</p>';
-  box.querySelectorAll('[data-cap-view]').forEach(b=>b.onclick=()=>{ const f=c.files[Number(b.dataset.capView)]; if(!f) return; openVeriPhotoPreview(f.url,'Foto '+(Number(b.dataset.capView)+1)); const v=document.getElementById('veriPhotoModal'); if(v) v.style.zIndex=100002; });
+  box.querySelectorAll('[data-cap-view]').forEach(b=>b.onclick=()=>{ const f=c.files[Number(b.dataset.capView)]; if(!f) return; openVeriPhotoPreview(f.url,'Foto '+(Number(b.dataset.capView)+1),c.files.map((q,j)=>({src:q.url,title:'Foto '+(j+1)})),Number(b.dataset.capView)); const v=document.getElementById('veriPhotoModal'); if(v) v.style.zIndex=100002; });
   box.querySelectorAll('[data-cap-del]').forEach(b=>b.onclick=()=>{ const i=Number(b.dataset.capDel); const f=c.files[i]; if(!f) return; repCapFree(f); c.files.splice(i,1); repCapRenderThumbs(); });
   const n=c.files.length, cnt=document.getElementById('repCapCount'), send=document.getElementById('repCapSend');
   if(cnt) cnt.textContent = n ? `${n} foto${n===1?'':'s'}` : 'Sin fotos';
@@ -11982,7 +11982,7 @@ setInterval(()=>{ const inRep=!!(state.session && state.tab==='rep' && state.rep
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden && state.session && state.tab==='rep' && state.repView==='list') pollRepeticiones(); });
 
 /* Visor de revisión de fotografías: zoom, giro, ajuste y arrastre */
-function openVeriPhotoPreview(url, title){
+function openVeriPhotoPreview(url, title, list, index){
   let modal=document.getElementById('veriPhotoModal');
   if(!modal){
     modal=document.createElement('div'); modal.id='veriPhotoModal'; modal.className='veri-photo-modal'; modal.hidden=true;
@@ -12005,21 +12005,54 @@ function openVeriPhotoPreview(url, title){
     const toggleZoom=(cx,cy)=>{const sr=stage.getBoundingClientRect();const px=cx-(sr.left+sr.width/2),py=cy-(sr.top+sr.height/2);veriSmooth(img,380);
       if(scale>1.02||Math.abs(x)>1||Math.abs(y)>1){scale=1;x=0;y=0;}else{const k=2.6;x=px*(1-k);y=py*(1-k);scale=k;}update();};
     let tapS=null,lastTap=null;
+    const g_cancel=()=>{try{modal._ges.cancel();}catch(e){}};
     const pts=new Map(); let pin=null;
     const relMid=(a,b2)=>{const sr=stage.getBoundingClientRect();return [(a.x+b2.x)/2-(sr.left+sr.width/2),(a.y+b2.y)/2-(sr.top+sr.height/2)];};
     stage.addEventListener('pointerdown',e=>{img.classList.remove('smooth');clearTimeout(img._smT);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});stage.setPointerCapture?.(e.pointerId);tapS=pts.size===1?{t:Date.now(),x:e.clientX,y:e.clientY,m:false}:null;
+      if(pts.size===1&&scale<=1.02)modal._ges.start(e);else g_cancel();
       if(pts.size===1){dragging=true;startX=e.clientX;startY=e.clientY;originX=x;originY=y;}
       else if(pts.size===2){dragging=false;const [a2,b2]=[...pts.values()];const [mx,my]=relMid(a2,b2);pin={d:Math.hypot(a2.x-b2.x,a2.y-b2.y)||1,s:scale,x:x,y:y,mx:mx,my:my};}});
     stage.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(tapS&&Math.hypot(e.clientX-tapS.x,e.clientY-tapS.y)>10)tapS.m=true;
       if(pin&&pts.size>=2){const [a2,b2]=[...pts.values()];const d=Math.hypot(a2.x-b2.x,a2.y-b2.y)||1;const [mx,my]=relMid(a2,b2);const ns=Math.max(1,Math.min(6,pin.s*d/pin.d));const k=ns/pin.s;scale=ns;x=mx-(pin.mx-pin.x)*k;y=my-(pin.my-pin.y)*k;if(ns<=1){x=0;y=0;}update();return;}
+      if(scale<=1.02&&pts.size===1&&modal._ges.move(e))return;
       if(!dragging)return;x=originX+(e.clientX-startX);y=originY+(e.clientY-startY);update();});
-    const endDrag=e=>{if(e.type==='pointerup'&&tapS&&!tapS.m&&pts.size===1&&Date.now()-tapS.t<350){const n=Date.now();if(lastTap&&n-lastTap.t<400&&Math.hypot(lastTap.x-e.clientX,lastTap.y-e.clientY)<45){toggleZoom(e.clientX,e.clientY);lastTap=null;}else lastTap={t:n,x:e.clientX,y:e.clientY};}tapS=null;pts.delete(e.pointerId);if(pts.size<2)pin=null;if(pts.size===1){const r1=[...pts.values()][0];dragging=true;startX=r1.x;startY=r1.y;originX=x;originY=y;}else if(pts.size===0)dragging=false;};
+    const endDrag=e=>{if(e.type==='pointerup'&&modal._ges.end()){tapS=null;pts.delete(e.pointerId);pin=null;dragging=false;return;}if(e.type==='pointercancel')modal._ges.end();if(e.type==='pointerup'&&tapS&&!tapS.m&&pts.size===1&&Date.now()-tapS.t<350){const n=Date.now();if(lastTap&&n-lastTap.t<400&&Math.hypot(lastTap.x-e.clientX,lastTap.y-e.clientY)<45){toggleZoom(e.clientX,e.clientY);lastTap=null;}else lastTap={t:n,x:e.clientX,y:e.clientY};}tapS=null;pts.delete(e.pointerId);if(pts.size<2)pin=null;if(pts.size===1){const r1=[...pts.values()][0];dragging=true;startX=r1.x;startY=r1.y;originX=x;originY=y;}else if(pts.size===0)dragging=false;};
     stage.addEventListener('pointerup',endDrag);stage.addEventListener('pointercancel',endDrag);
-    modal._setImage=(src,caption)=>{img.dataset.lt='1';img.decoding='sync';img.loading='eager';img.src=src;modal.querySelector('#veriPhotoModalTitle').textContent=caption||'Revisión de fotografía';modal.querySelector('#veriPhotoDownload').href=src;reset(true);};
+    const ctl=()=>modal.querySelectorAll('.veri-photo-modal-head,.veri-photo-modal-controls');
+    const clearFx=()=>{img.style.transition='';img.style.opacity='';modal.style.background='';ctl().forEach(n=>{n.style.opacity='';n.style.transition='';});};
+    modal._list=[];modal._idx=0;
+    modal._show=(i)=>{const it=modal._list[i];if(!it)return;modal._idx=i;img.dataset.lt='1';img.decoding='sync';img.loading='eager';img.src=it.src;
+      modal.querySelector('#veriPhotoModalTitle').textContent=(it.title||'Revisión de fotografía')+(modal._list.length>1?`  ·  ${i+1}/${modal._list.length}`:'');
+      modal.querySelector('#veriPhotoDownload').href=it.src;reset(true);};
+    modal._setImage=(src,caption)=>{modal._list=[{src,title:caption}];clearFx();modal._show(0);};
+    modal._setList=(list,i)=>{modal._list=list;clearFx();modal._show(Math.max(0,Math.min(list.length-1,i||0)));};
+    const closeNow=()=>{modal.hidden=true;document.body.style.overflow='';clearFx();};
+    modal._close=closeNow;
+    const slideTo=async(ni,dir)=>{const W=stage.clientWidth||innerWidth;img.style.transition='transform .16s ease-in,opacity .16s';img.style.transform=`translate(${-dir*W}px,0)`;img.style.opacity='0';
+      await new Promise(r=>setTimeout(r,160));img.style.transition='none';modal._show(ni);try{await img.decode();}catch(e){}
+      img.style.transition='none';img.style.opacity='0';img.style.transform=`translate(${dir*W}px,0)`;void img.offsetWidth;
+      img.style.transition='transform .22s cubic-bezier(.2,.8,.2,1),opacity .22s';img.style.opacity='1';img.style.transform='translate(0,0)';
+      setTimeout(()=>{img.style.transition='';img.style.opacity='';update();},240);};
+    modal._go=(d)=>{const ni=modal._idx+d;if(ni<0||ni>=modal._list.length||scale>1.02)return;slideTo(ni,d);};
+    let g=null;
+    const gesStart=(e)=>{g={sx:e.clientX,sy:e.clientY,axis:null,dx:0,dy:0,t:Date.now()};};
+    const gesMove=(e)=>{ if(!g) return false; g.dx=e.clientX-g.sx; g.dy=e.clientY-g.sy;
+      if(!g.axis&&Math.hypot(g.dx,g.dy)>10) g.axis=Math.abs(g.dx)>Math.abs(g.dy)?'h':(g.dy>0?'v':'n');
+      if(g.axis==='h'){ const n=modal._list.length,i=modal._idx; let ox=g.dx; if((i===0&&ox>0)||(i===n-1&&ox<0)) ox*=.3; img.style.transition='none'; img.style.transform=`translate(${ox}px,0)`; }
+      else if(g.axis==='v'){ const sc=Math.max(.55,1-g.dy/1100), op=Math.max(0,1-g.dy/420); img.style.transition='none'; img.style.transform=`translate(${g.dx*.7}px,${g.dy}px) scale(${sc})`; modal.style.background=`rgba(5,8,14,${(.94*op).toFixed(3)})`; ctl().forEach(n=>{n.style.transition='none';n.style.opacity=String(op);}); }
+      return true; };
+    const springBack=()=>{img.style.transition='transform .24s cubic-bezier(.2,.8,.2,1)';img.style.transform='translate(0,0) scale(1)';modal.style.transition='background .24s';modal.style.background='';ctl().forEach(n=>{n.style.transition='opacity .24s';n.style.opacity='';});setTimeout(()=>{img.style.transition='';modal.style.transition='';clearFx();update();},260);};
+    const gesEnd=()=>{ if(!g) return false; const gg=g; g=null; if(!gg.axis) return false;
+      const v=gg.dx/Math.max(1,Date.now()-gg.t), vy=gg.dy/Math.max(1,Date.now()-gg.t), n=modal._list.length, i=modal._idx;
+      if(gg.axis==='h'){ const th=Math.min(80,(stage.clientWidth||300)*.2), dir=gg.dx<0?1:-1, ni=i+dir;
+        if((Math.abs(gg.dx)>th||Math.abs(v)>.5)&&ni>=0&&ni<n) slideTo(ni,dir); else springBack(); return true; }
+      if(gg.axis==='v'){ if(gg.dy>110||(gg.dy>40&&vy>.6)){ img.style.transition='transform .24s ease-in,opacity .24s';img.style.transform=`translate(${gg.dx*.7}px,${innerHeight*.6}px) scale(.45)`;img.style.opacity='0';modal.style.transition='background .24s';modal.style.background='rgba(5,8,14,0)';ctl().forEach(c=>{c.style.transition='opacity .2s';c.style.opacity='0';});setTimeout(()=>{modal.style.transition='';closeNow();},250); } else springBack(); return true; }
+      springBack(); return true; };
+    modal._ges={start:gesStart,move:gesMove,end:gesEnd,cancel:()=>{if(g&&g.axis)springBack();g=null;}};
+    document.addEventListener('keydown',e=>{ if(modal.hidden) return; if(e.key==='Escape') closeNow(); else if(e.key==='ArrowRight') modal._go(1); else if(e.key==='ArrowLeft') modal._go(-1); });
   }
-  modal._setImage(url,title);modal.hidden=false;document.body.style.overflow='hidden';
-  const close=()=>{modal.hidden=true;document.body.style.overflow='';};
-  const esc=e=>{if(e.key==='Escape'){close();document.removeEventListener('keydown',esc);}};document.addEventListener('keydown',esc);
+  if(list&&list.length>1) modal._setList(list,index||0); else modal._setImage(url,title);
+  modal.hidden=false;document.body.style.overflow='hidden';
 }
 
 /* ===================== Init ===================== */
