@@ -1850,7 +1850,7 @@ body{background:var(--bg-1)!important;background-image:none!important}
 
 
 /* ===== Modo Lite: sin animaciones, transparencias ni efectos ===== */
-html.lite.lite.lite.lite *,html.lite.lite.lite.lite *::before,html.lite.lite.lite.lite *::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important;transition-delay:0s!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;filter:none!important;text-shadow:none!important;will-change:auto!important;scroll-behavior:auto!important}
+html.lite.lite.lite.lite *:not(.bs):not(.bs *),html.lite.lite.lite.lite *:not(.bs):not(.bs *)::before,html.lite.lite.lite.lite *:not(.bs):not(.bs *)::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important;transition-delay:0s!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;filter:none!important;text-shadow:none!important;will-change:auto!important;scroll-behavior:auto!important}
 html.lite body:before,html.lite body:after,html.lite .vc-hero-glow,html.lite .vc-bot::before,html.lite .veri-fab::after{display:none!important}
 html.lite .glass,html.lite .card,html.lite .home-card,html.lite .modal-sheet,html.lite .vc-panel{box-shadow:none!important}
 html.lite .topbar,html.lite .bottomnav,html.lite .sidebar{background:var(--bg-1)!important}
@@ -2375,6 +2375,15 @@ html.lite.lite .stat-pie-svg circle{transition:none!important}
 .rep-res-item b{display:block;font-size:15px;margin-bottom:4px}
 .rep-res-item small{display:block;opacity:.78;font-size:13px;line-height:1.4;margin-bottom:10px}
 .rep-res-btns{display:flex;flex-wrap:wrap;gap:8px}
+.rep-filter-sub{grid-column:1/-1;font-weight:700;font-size:12.5px;margin-top:4px;opacity:.9}
+.rep-filter-field select,.rep-filter-field input[type=date]{min-height:44px}
+.rep-filter-field input[type=date]{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--divider);background:var(--input-bg);color:var(--text-1);font:inherit;font-size:13px;box-sizing:border-box}
+.rep-filter-wide{grid-column:1/-1;display:flex;flex-direction:column;gap:5px;font-size:12px}
+.rep-lbl{opacity:.7;font-weight:600;letter-spacing:.02em}
+.rep-seg{display:flex;border:1px solid var(--divider);border-radius:12px;overflow:hidden;background:var(--input-bg)}
+.rep-seg-btn{flex:1;padding:10px 6px;border:0;background:transparent;color:var(--text-1);font:600 12.5px/1.2 inherit;font-family:inherit;cursor:pointer}
+.rep-seg-btn+.rep-seg-btn{border-left:1px solid var(--divider)}
+.rep-seg-btn.on{background:var(--accent);color:#fff}
 /* Pantalla de carga: logo Veri con puntos saltando sobre la i */
 .bs{position:fixed;inset:0;z-index:2147482900;overflow:hidden}
 .bs-bg{position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 30%,rgba(var(--accent-rgb),.16),transparent 62%),var(--bg-1,#eef1f6)}
@@ -2949,7 +2958,7 @@ const state = {
   scanResult:null,
   repFilterStatus:'pending',
   repFilterCode:'', repFiltersOpen:false, repFilterDate:'', repFilterStore:'', repFilterCategory:'', repSearch:'',
-  repSort:'desc',
+  repSort:'desc', repX:{role:'all',dateBy:'orig',dmode:'range',from:'',to:'',by:'orig',dir:'desc'}, rvX:{role:'all',dateBy:'orig',dmode:'range',from:'',to:'',by:'',dir:'desc'},
   cameraStream:null, cameraLoopId:null, scanZoom:1, scanZoomCaps:null,
   scanMode:'continuous', cart:[], cartReview:null, cartLoaded:false, cartChannel:null, cartPollTimer:null, cartFilterPersonas:[],
   preferredCameraId: localStorage.getItem('vp_camera_device') || '',
@@ -3250,7 +3259,7 @@ async function sharedCommit(codigoRaw,nombreRaw){
   try{
     { try{ await Promise.race([peerNamingFresh(5000),new Promise(r=>setTimeout(r,1500))]); }catch(e){}
       const pd=findPeerNamingDup(nombre,code);
-      if(pd && !confirm(peerDupMsg(pd))){ sharedReleaseOpenReservation(); return null; } }
+      if(pd && !(await peerDupDialog(pd,nombre,code))){ sharedReleaseOpenReservation(); return null; } }
     let p=null; const o=sh.openReservation;
     if(o && o.code===code){ p=await o.promise; sh.openReservation=null; }
     else {
@@ -3661,8 +3670,8 @@ Integrantes del grupo (codigo = nombre):
 ${list}
 Quien habla es el código ${me}.
 Categorías válidas: transporte, alimentacion, hospedaje, combustible, materiales, otros.
-Reglas: el modo por defecto es "personal" (el gasto es solo de quien paga). Usa "igual" solo si dice que se divide con otras personas o entre todos (participantes = códigos, incluyendo a quien paga). Usa "monto" si da valores distintos por persona (valores = {"codigo": monto}). Si dice que otra persona pagó, pagador = su código; si no, null. concepto: 2 a 5 palabras, con mayúscula inicial, sin el valor ni los nombres. fecha en formato YYYY-MM-DD solo si dice ayer u otro día; si no, null.
-Responde SOLO un objeto JSON, sin texto ni markdown: {"concepto":"","monto":0,"categoria":"","modo":"personal","participantes":[],"valores":{},"pagador":null,"fecha":null}`;
+Reglas: el modo por defecto es "abierto" (el gasto entra completo al grupo y cada uno pone su parte después). Usa "personal" SOLO si dice explícitamente "solo yo", "personal" o "solo mío". Usa "igual" solo si dice que se divide con otras personas o entre todos (participantes = códigos, incluyendo a quien paga). Usa "monto" si da valores distintos por persona (valores = {"codigo": monto}). Si dice que otra persona pagó, pagador = su código; si no, null. concepto: 2 a 5 palabras, con mayúscula inicial, sin el valor ni los nombres. fecha en formato YYYY-MM-DD solo si dice ayer u otro día; si no, null.
+Responde SOLO un objeto JSON, sin texto ni markdown: {"concepto":"","monto":0,"categoria":"","modo":"abierto","participantes":[],"valores":{},"pagador":null,"fecha":null}`;
   const msgs=[{role:'system',content:sys},{role:'user',content:text}];
   let out; try{ out=await callGroqRaw(msgs,500,{reasoning_effort:'low'}); }catch(e){ out=await callGroqRaw(msgs,500,{}); }
   const m=String(out||'').match(/\{[\s\S]*\}/); if(!m) return null;
@@ -3671,7 +3680,7 @@ Responde SOLO un objeto JSON, sin texto ni markdown: {"concepto":"","monto":0,"c
   if(j.concepto&&String(j.concepto).trim()) r.concepto=String(j.concepto).trim();
   if(Number(j.monto)>0) r.monto=Math.round(Number(j.monto));
   if(BUD_CATS.some(c=>c[0]===j.categoria)) r.cat=j.categoria;
-  if(['personal','igual','monto'].includes(j.modo)) r.modo=j.modo;
+  if(['personal','igual','monto'].includes(j.modo)&&(j.modo!=='personal'||/\b(solo yo|solo para mi|solo mio|solo mia|para mi solo|personal)\b/.test(budNorm(text)))) r.modo=j.modo;
   if(Array.isArray(j.participantes)) r.part=j.participantes.map(String).filter(c=>members.includes(c));
   if(j.valores&&typeof j.valores==='object'){ r.vals={}; Object.entries(j.valores).forEach(([c,v])=>{ if(members.includes(c)&&Number(v)>0) r.vals[c]=Math.round(Number(v)); }); }
   if(j.pagador&&members.includes(String(j.pagador))) r.payer=String(j.pagador);
@@ -3685,13 +3694,14 @@ function budOpenExpenseForm(opts){
   const f={concepto:'',monto:0,fecha:todayKey(),cat:'otros',payer:members.includes(me)?me:members[0],modo:'abierto',catManual:false,pay:'efectivo',part:new Set(members),vals:{},file:null,fileUrl:'',caja:true,proveedor:'',notas:''};
   const aiOn=!!(toolVisible('veriai')&&state.prefs.aiEnabled&&(state.veriApiKey||'').trim());
   const ov=budOpenSheet('Registrar gasto',`
-    <div class="bud-quick"><div class="bud-quick-row"><input id="bfQuick" placeholder="¿Qué gastaste? Ej: almuerzo 25 mil" autocomplete="off" enterkeyhint="done">${aiOn?'<button type="button" class="bud-go2" id="bfGo" aria-label="Que Veri lo entienda">✨</button>':''}<button type="button" class="bud-mic" id="bfMic" aria-label="Dictar el gasto">🎤</button></div><span class="bud-quick-msg" id="bfQuickMsg">Escribe o dicta: “taxi 18 mil” o “almuerzo 40 mil con Ana”. Si no dices con quién, es solo tuyo.</span><div class="bud-detect" id="bfDetect"></div></div>
+    <div class="bud-quick"><div class="bud-quick-row"><input id="bfQuick" placeholder="¿Qué gastaste? Ej: almuerzo 25 mil" autocomplete="off" enterkeyhint="done">${aiOn?'<button type="button" class="bud-go2" id="bfGo" aria-label="Que Veri lo entienda">✨</button>':''}<button type="button" class="bud-mic" id="bfMic" aria-label="Dictar el gasto">🎤</button></div><span class="bud-quick-msg" id="bfQuickMsg">Escribe o dicta: “taxi 18 mil” o “almuerzo 40 mil con Ana”. Si no dices con quién, queda abierto para el grupo.</span><div class="bud-detect" id="bfDetect"></div></div>
     <div class="bud-l">Pagado con</div><div class="bud-seg" id="bfPay"><button type="button" data-pay="efectivo" class="on">💵 Efectivo</button><button type="button" data-pay="tarjeta">💳 Tarjeta</button></div>
     <details class="bud-adv" id="bfAdv"><summary>Más detalles</summary><div>
     <label class="bud-l" for="bfConcepto">¿En qué se gastó?</label><input id="bfConcepto" placeholder="Ej: Almuerzo del equipo, peajes, hotel" maxlength="120" autocomplete="off">
     <label class="bud-l" for="bfMonto">Valor total</label><input id="bfMonto" class="bud-big" inputmode="numeric" placeholder="$ 0" autocomplete="off">
-    <div class="bud-row2"><div><label class="bud-l" for="bfFecha">Fecha</label><input id="bfFecha" type="date"></div>
-      ${admin?`<div><label class="bud-l" for="bfPayer">Quién pagó</label><select id="bfPayer">${members.map(c=>`<option value="${budEsc(c)}">${budEsc(budName(c))}</option>`).join('')}</select></div>`:''}</div>
+    <div class="bud-l">Fecha</div>
+    <div class="bud-date" id="bfDateBox"><button type="button" class="bud-date-chip" data-dd="0">Hoy</button><button type="button" class="bud-date-chip" data-dd="-1">Ayer</button><label class="bud-date-pick" id="bfDatePick"><span class="bud-date-ico">📅</span><span class="bud-date-txt" id="bfDateTxt">Elegir fecha</span><span class="bud-date-car">▾</span><input id="bfFecha" type="date" aria-label="Fecha del gasto"></label></div>
+    ${admin?`<div class="bud-row2"><div><label class="bud-l" for="bfPayer">Quién pagó</label><select id="bfPayer">${members.map(c=>`<option value="${budEsc(c)}">${budEsc(budName(c))}</option>`).join('')}</select></div></div>`:''}
     <div class="bud-l">Categoría</div><div class="bud-cats" id="bfCats">${BUD_CATS.map(c=>`<button type="button" class="bud-cat ${c[0]===f.cat?'on':''}" data-cat="${c[0]}">${c[1]} ${c[2]}</button>`).join('')}</div>
     <div class="bud-l">¿Cómo se reparte?</div>
     <div class="bud-seg" id="bfSeg"><button type="button" data-modo="abierto" class="on">Abierto</button><button type="button" data-modo="personal">Solo yo</button><button type="button" data-modo="igual">Iguales</button><button type="button" data-modo="monto">Por valor</button></div>
@@ -3767,8 +3777,18 @@ function budOpenExpenseForm(opts){
   paintSplit(); paintRcpt();
   /* --- Registro rápido: voz o texto --- */
   const qmsg=(t,cls)=>{ const m=$('#bfQuickMsg'); if(m){ m.textContent=t; m.className='bud-quick-msg '+(cls||''); } };
+  function paintDateUI(){
+    const k=f.fecha||todayKey(), t0=todayKey(), t1=budDateKey(-1), txt=$('#bfDateTxt'); if(!txt) return;
+    const p=k.split('-').map(Number), d=new Date(p[0],p[1]-1,p[2]);
+    let s=d.toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'}); s=s.charAt(0).toUpperCase()+s.slice(1);
+    if(p[0]!==new Date().getFullYear()) s+=' '+p[0];
+    txt.textContent=s;
+    ov.querySelectorAll('.bud-date-chip').forEach(b=>b.classList.toggle('on',(b.dataset.dd==='0'&&k===t0)||(b.dataset.dd==='-1'&&k===t1)));
+    const pk=$('#bfDatePick'); if(pk) pk.classList.toggle('on',k!==t0&&k!==t1);
+  }
+  ov.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('.bud-date-chip'); if(!b) return; f.fecha=budDateKey(Number(b.dataset.dd)); f.fechaManual=true; $('#bfFecha').value=f.fecha; paintDetect(); });
   function paintDetect(){
-    const el=$('#bfDetect'); if(!el) return;
+    const el=$('#bfDetect'); if(!el) return; paintDateUI();
     const cat=BUD_CATS.find(c=>c[0]===f.cat)||BUD_CATS[BUD_CATS.length-1];
     const fl=f.fecha===todayKey()?'Hoy':(f.fecha===budDateKey(-1)?'Ayer':f.fecha);
     const rp=f.modo==='abierto'?'Abierto':f.modo==='personal'?(f.payer===me?'Solo yo':'Solo '+budFirst(budName(f.payer))):(f.modo==='igual'?`Entre ${f.part.size}`:'Por valor');
@@ -4589,7 +4609,30 @@ function peerDupMsg(pd){
   const why=pd.__dupReason==='code'?(en?'same code':'mismo código'):(pd.__dupReason==='exact'?(en?'same name':'mismo nombre'):(en?'very similar product':'producto muy parecido'));
   return en?`⚠️ Possible duplicate (${why}): ${by} already named "${pd.nombre}" (${pd.codigo}) in their day. Add it anyway?`:`⚠️ Posible duplicado (${why}): ${by} ya nombró «${pd.nombre}» (${pd.codigo}) en su día. ¿Agregarlo de todos modos?`;
 }
-const peerDupInfo=(pd)=>({codigo:`${pd.codigo} de ${peerName(pd.__by)}`,nombre:pd.nombre});
+const peerDupInfo=(pd)=>({codigo:`${pd.codigo} de ${peerName(pd.__by)}`,nombre:pd.nombre,by:peerName(pd.__by)});
+/* Ventana para revisar un posible duplicado con lo que nombró otra persona: muestra ambos nombres y quién lo nombró. Devuelve true si se agrega igual. */
+function peerDupDialog(pd,myName,myCode){
+  return new Promise(resolve=>{
+    const en=state.prefs.lang==='en', by=escapeHtml(peerName(pd.__by));
+    const r=pd.__dupReason;
+    const why=r==='code'?(en?'Same barcode':'Mismo código de barras'):(r==='exact'?(en?'Same name':'Mismo nombre'):(pd.__loose?(en?'Very similar name (different word order, a letter or a word)':'Nombre muy parecido (cambia el orden, una letra o una palabra)'):(en?'Very similar product':'Producto muy parecido')));
+    const sev=(r==='code'||r==='exact')?'alta':'media';
+    const old=document.getElementById('peerDupOverlay'); if(old) old.remove();
+    const ov=document.createElement('div'); ov.id='peerDupOverlay'; ov.className='modal-overlay';
+    ov.innerHTML=`<div class="modal-sheet glass">
+      <div class="modal-header"><h3>${en?'Possible duplicate':'Posible duplicado'}</h3><button type="button" class="modal-close" data-pd="no" aria-label="${en?'Close':'Cerrar'}">${ICONS.x}</button></div>
+      <div class="preview-block"><div class="label">${en?"What you're naming":'Lo que estás nombrando'}</div><div class="name">${escapeHtml(myName||'')}</div><div class="code">${escapeHtml(myCode||'')}</div></div>
+      <div class="preview-reason severity-${sev}">${sev==='alta'?'🔴':'⚠️'} ${why}</div>
+      <div class="preview-block"><div class="label">👤 ${en?`Already named by ${by}`:`Ya lo nombró ${by}`}</div><div class="name">${escapeHtml(pd.nombre||'')}</div><div class="code">${escapeHtml(pd.codigo||'')}</div></div>
+      <p class="small-note" style="margin:10px 0">${en?`Check with ${by} whether it's the same product before adding it.`:`Verifica con ${by} si es el mismo producto antes de agregarlo.`}</p>
+      <button type="button" class="btn block" data-pd="yes">${en?'Add anyway':'Agregar de todos modos'}</button>
+      <button type="button" class="btn secondary block" data-pd="no" style="margin-top:8px">${en?`Don't add · I'll talk to ${by}`:`No agregar · hablaré con ${by}`}</button>
+    </div>`;
+    const done=v=>{ ov.remove(); resolve(v); };
+    ov.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('[data-pd]'); if(b) done(b.dataset.pd==='yes'); else if(e.target===ov) done(false); });
+    document.body.appendChild(ov);
+  });
+}
 function loadNaming(){
   setTimeout(()=>{ try{ sharedRestore(); }catch(e){} },0);
   const today = namingDayKey();
@@ -5118,6 +5161,34 @@ function fixBrandInName(value,newBrand){
   return parts.join(',');
 }
 function findNameDuplicate2026(nombreNorm, excludeCodigo){ return findNameDuplicateIdx(state.index['2026'], nombreNorm, excludeCodigo); }
+/* Comparación flexible de nombres: ignora el orden de las palabras y los conectores (A, DE, CON…),
+   tolera una letra de más/menos/cambiada y una palabra faltante o sobrante. Dos nombres con una
+   palabra DISTINTA cada uno (p. ej. otro sabor) no cuentan como parecidos. */
+const LOOSE_STOP=new Set(['A','Y','O','E','U','DE','EN','CON','SIN','POR','PARA','EL','LA','LOS','LAS','AL','DEL','UN','UNA','SABOR']);
+function looseTokens(name){
+  const s=normalize(name||'').replace(/(^|[\s,;\/-])(\d+(?:[.,]\d+)?)\s*(KG|KGS|KILO|KILOS|G|GR|GRAMO|GRAMOS|ML|MLS|L|LT|LTS|LITRO|LITROS|OZ|LB|LBS)\b/gi,' ');
+  return [...new Set(normalizeForSearch(s).split(' ').filter(w=>w.length>=2&&!LOOSE_STOP.has(w)))];
+}
+function looseCompare(tA,qA,flA,p){
+  const tB=p.__lt||(p.__lt=looseTokens(p.nombre||''));
+  const S=tA.length<=tB.length?tA:tB, L=tA.length<=tB.length?tB:tA;
+  if(S.length<2) return false;
+  const Lset=new Set(L); let matched=0; const rest=[], used=new Set();
+  for(const w of S){ if(Lset.has(w)){ matched++; used.add(w); } else rest.push(w); }
+  if(matched<Math.ceil(S.length*0.5)) return false;      // descarte rápido
+  const free=L.filter(w=>!used.has(w));
+  for(const w of rest){
+    if(/\d/.test(w)||w.length<5) continue;
+    const md=w.length>=9?2:1;
+    const k=free.findIndex(x=>!/\d/.test(x)&&Math.abs(x.length-w.length)<=md&&vsDist(w,x,md)<=md);
+    if(k>=0){ matched++; free.splice(k,1); }
+  }
+  const uS=S.length-matched, uL=L.length-matched;
+  if(!(uS===0&&(uL===0||(uL===1&&matched>=3)))) return false;
+  const qB=extractQuantity(p.nombre||''); if(qA&&qB&&!sameQuantity(qA,qB)) return false;
+  const flB=extractFlavorWord(p.nombre||''); if(flA&&flB&&flA!==flB) return false;
+  return true;
+}
 function findNameDuplicateIdx(idx, nombreNorm, excludeCodigo){
   if(!idx) return null;
   // Mismo código ya usado/nombrado en la base 2026 -> ese producto ya existe, sin importar si el nombre coincide.
@@ -5151,6 +5222,15 @@ function findNameDuplicateIdx(idx, nombreNorm, excludeCodigo){
   for(const p of idx.list){
     if(p.codigo===excludeCodigo) continue;
     if(namesLookSimilar(nombreNorm, p.nombre)) return Object.assign({},p,{__dupReason:'similar'});
+  }
+  // Red final: mismo nombre con palabras en otro orden, una letra mal, o una palabra de más/menos.
+  const tLoose=looseTokens(nombreNorm);
+  if(tLoose.length>=2){
+    const qL=extractQuantity(nombreNorm), flL=extractFlavorWord(nombreNorm);
+    for(const p of idx.list){
+      if(p.codigo===excludeCodigo) continue;
+      if(looseCompare(tLoose,qL,flL,p)) return Object.assign({},p,{__dupReason:'similar',__loose:true});
+    }
   }
   return null;
 }
@@ -5938,10 +6018,10 @@ async function commitNamingItem(codigoRaw, nombreRaw, opts){
   if(!sessionDupInfo && !(opts&&opts.shared)){
     try{ await Promise.race([peerNamingFresh(5000), new Promise(r=>setTimeout(r,1800))]); }catch(e){}
     const pd=findPeerNamingDup(nombre,codigo);
-    if(pd){ if(!confirm(peerDupMsg(pd))) return null; sessionDupInfo=peerDupInfo(pd); }
+    if(pd){ if(!(await peerDupDialog(pd,nombre,codigo))) return null; sessionDupInfo=peerDupInfo(pd); }
   }
   const dup = findNameDuplicate2026(nombre, codigo);
-  const item={id:'n'+Date.now()+Math.random().toString(36).slice(2,6),codigo,nombre,tienda:getNamingStore()||'',duplicado:!!dup,duplicadoCodigo:dup?dup.codigo:null,duplicadoNombre:dup?dup.nombre:null,duplicadoTipo:dup?.__dupReason||null,veriChecking:false,veriChecked:false,veriReason:null,sessionDup:!!sessionDupInfo,sessionDupWith:sessionDupInfo?sessionDupInfo.nombre:null,sessionDupCode:sessionDupInfo?sessionDupInfo.codigo:null,createdAt:Date.now(),syncStatus:'pending'};
+  const item={id:'n'+Date.now()+Math.random().toString(36).slice(2,6),codigo,nombre,tienda:getNamingStore()||'',duplicado:!!dup,duplicadoCodigo:dup?dup.codigo:null,duplicadoNombre:dup?dup.nombre:null,duplicadoTipo:dup?.__dupReason||null,veriChecking:false,veriChecked:false,veriReason:null,sessionDup:!!sessionDupInfo,sessionDupWith:sessionDupInfo?sessionDupInfo.nombre:null,sessionDupCode:sessionDupInfo?sessionDupInfo.codigo:null,sessionDupBy:sessionDupInfo?(sessionDupInfo.by||null):null,createdAt:Date.now(),syncStatus:'pending'};
   if(opts&&opts.shared){
     // Ítem que llega de un puesto compartido: se ordena por posición (createdAt = inicio de sesión + posición).
     item.createdAt=(Number(opts.sesion.creado_en)||0)+Number(opts.puesto.posicion);
@@ -6785,7 +6865,7 @@ function bootSplashDone(force){
   setTimeout(()=>{
     let tgt=null; try{ tgt=[...document.querySelectorAll('.topbar .veri-wordmark,.login-card .veri-wordmark,.sidebar .veri-wordmark')].find(n=>n.offsetWidth>0&&n.offsetHeight>0)||null; }catch(e){}
     const mark=el.querySelector('.bs-mark'), bg=el.querySelector('.bs-bg');
-    let reduce=false; try{ reduce=veriReduceMotion()||document.documentElement.classList.contains('lite'); }catch(e){}
+    let reduce=false; try{ reduce=veriReduceMotion(); }catch(e){}   // la animación inicial de Veri se ve siempre, también en Modo Lite
     const cleanup=()=>{ try{ el.remove(); }catch(e){} if(tgt) tgt.style.visibility=''; };
     setTimeout(cleanup,3000);
     if(reduce||!el.animate){ el.style.transition='opacity .2s'; el.style.opacity='0'; setTimeout(cleanup,230); return; }
@@ -8850,7 +8930,7 @@ function updateScanResultDOM(){
     const rp=state.repeticiones.find(x=>String(x.id)===repBtn.dataset.repId);
     closeScanResultFloat(true); stopCamera();
     state.tab='rep'; state.repView='list'; state.repShowForm=false;
-    state.repFilterStatus='all'; state.repFilterCode=''; state.repFilterDate=''; state.repFilterStore=''; state.repFilterCategory='';
+    state.repFilterStatus='all'; state.repFilterCode=''; state.repFilterDate=''; state.repFilterStore=''; state.repFilterCategory=''; xReset(state.repX);
     state.repSearch=rp?(rp.codigoProducto||rp.codigoBarras||''):'';
     render();
   };
@@ -9215,7 +9295,7 @@ function renderNamingItem(it, order){
     ${editMode ? `<div class="naming-select${selected?' selected':''}" data-selectnaming="${it.id}" role="checkbox" aria-checked="${selected}">${selected?NAMING_CHECK_ICON:''}</div>` : `<div class="naming-order">${order}</div>`}
     <div class="naming-item-info"${editMode?` data-selectnaming="${it.id}"`:''}><div class="name">${it.nombre}</div><div class="code">${it.codigo}${it.duplicado ? ` · <span class="naming-dup-badge severity-${dupSeverity(it.duplicadoTipo)}">${dupSeverity(it.duplicadoTipo)==='alta'?'🔴':'⚠️'} ${t('namingDupWith')} ${it.duplicadoCodigo}</span>`:''}${it.sessionDup ? ` · 🔁 ${t('namingSessionDupBadge')} ${it.sessionDupCode||''}`:''}</div>${it.veriChecking ? `<div class="small-note" style="margin-top:2px;">${t('namingVeriChecking')}</div>` : (it.veriChecked && it.veriReason ? `<div class="small-note" style="margin-top:2px;font-style:italic;">"${escapeHtml(it.veriReason)}"</div>` : '')}</div>
     ${editMode ? `<div class="drag-handle" data-drag-handle title="${t('reorderHint')}">⠿</div>` : `<div class="naming-actions">
-      ${it.duplicado ? `<button type="button" class="btn ghost sm naming-action-btn naming-preview-btn" data-previewnaming="${it.id}" aria-label="${t('namingPreview')}" title="${t('namingPreview')}">${ICONS.eye}<span>${t('namingPreview')}</span></button>` : ''}
+      ${(it.duplicado||(it.sessionDup&&it.sessionDupBy)) ? `<button type="button" class="btn ghost sm naming-action-btn naming-preview-btn" data-previewnaming="${it.id}" aria-label="${t('namingPreview')}" title="${t('namingPreview')}">${ICONS.eye}<span>${t('namingPreview')}</span></button>` : ''}
       <button type="button" class="btn ghost sm naming-action-btn" data-editnaming="${it.id}" aria-label="${t('edit')}" title="${t('edit')}">${ICONS.edit}<span>${t('edit')}</span></button>
       <button type="button" class="btn ghost sm naming-action-btn naming-delete-btn" data-delnaming="${it.id}" aria-label="${t('delete') || 'Eliminar'}" title="${t('delete') || 'Eliminar'}">${ICONS.trash}<span>${t('delete') || 'Eliminar'}</span></button>
     </div>`}
@@ -9225,7 +9305,7 @@ function findNamingItemById(id){ return (state.naming && state.naming.items) ? s
 function closeNamingPreview(){ const el=document.getElementById('namingPreviewOverlay'); if(el) el.remove(); }
 function openNamingPreview(itemId){
   const it = findNamingItemById(itemId);
-  if(!it || !it.duplicado) return;
+  if(!it || !(it.duplicado||(it.sessionDup&&it.sessionDupBy))) return;
   // Se usa el nombre guardado en el momento de la detección (it.duplicadoNombre), igual que hace
   // Calidad. Buscar de nuevo por código puede traer un producto distinto si el código quedó
   // repetido en la base entre varios nombres, así que solo se recurre a esa búsqueda como respaldo
@@ -9244,12 +9324,18 @@ function openNamingPreview(itemId){
       <div class="name">${it.nombre}</div>
       <div class="code">${it.codigo}</div>
     </div>
-    <div class="preview-reason severity-${severity}">${severity==='alta'?'🔴':'⚠️'} ${reasonText}</div>
+    ${it.duplicado ? `<div class="preview-reason severity-${severity}">${severity==='alta'?'🔴':'⚠️'} ${reasonText}</div>
     <div class="preview-block">
       <div class="label">${t('namingPreviewMatch')}</div>
       <div class="name">${dupNombre || it.duplicadoCodigo}</div>
       <div class="code">${it.duplicadoCodigo||''}</div>
-    </div>
+    </div>` : ''}
+    ${(it.sessionDup&&it.sessionDupBy) ? `<div class="preview-block">
+      <div class="label">👤 ${state.prefs.lang==='en'?'Already named by':'Ya lo nombró'} ${escapeHtml(it.sessionDupBy)}</div>
+      <div class="name">${escapeHtml(it.sessionDupWith||'')}</div>
+      <div class="code">${escapeHtml(it.sessionDupCode||'')}</div>
+      <p class="small-note" style="margin-top:8px">${state.prefs.lang==='en'?`Check with ${escapeHtml(it.sessionDupBy)} whether it's the same product.`:`Verifica con ${escapeHtml(it.sessionDupBy)} si es el mismo producto.`}</p>
+    </div>` : ''}
     <button type="button" class="btn secondary block" id="namingPreviewCloseBtn2">${t('namingEditDone')}</button>
   </div>`;
   document.body.appendChild(overlay);
@@ -9275,7 +9361,7 @@ function openNamingEditModal(itemId){
   overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeNamingEditModal(); });
   const closeBtn = document.getElementById('namingEditCloseBtn'); if(closeBtn) closeBtn.onclick = closeNamingEditModal;
   const saveBtn = document.getElementById('namingEditSaveBtn');
-  if(saveBtn) saveBtn.onclick = ()=>{
+  if(saveBtn) saveBtn.onclick = async ()=>{
     // Mismas reglas que al nombrar un producto: sin tildes, sin ñ, todo en mayúscula.
     const nc = normalize(document.getElementById('namingEditCodigo').value);
     const nn = normalize(document.getElementById('namingEditNombre').value);
@@ -9287,12 +9373,12 @@ function openNamingEditModal(itemId){
       const msgKey = sessionDup.codigo===nc ? 'namingSessionDupCode' : 'namingSessionDupName';
       const msg = t(msgKey).replace('{nombre}', sessionDup.nombre).replace('{codigo}', sessionDup.codigo);
       if(!confirm(msg)) return;
-      it.sessionDup = true; it.sessionDupWith = sessionDup.nombre; it.sessionDupCode = sessionDup.codigo;
+      it.sessionDup = true; it.sessionDupWith = sessionDup.nombre; it.sessionDupCode = sessionDup.codigo; it.sessionDupBy = null;
     } else {
-      const same=(it.codigo===nc&&it.nombre===nn), keep=same&&it.sessionDup, pw=it.sessionDupWith, pcode=it.sessionDupCode;
-      it.sessionDup = false; it.sessionDupWith = null; it.sessionDupCode = null;
-      if(keep){ it.sessionDup=true; it.sessionDupWith=pw; it.sessionDupCode=pcode; }
-      else{ const pd=findPeerNamingDup(nn,nc); if(pd){ if(!confirm(peerDupMsg(pd))) return; const pi=peerDupInfo(pd); it.sessionDup=true; it.sessionDupWith=pi.nombre; it.sessionDupCode=pi.codigo; } }
+      const same=(it.codigo===nc&&it.nombre===nn), keep=same&&it.sessionDup, pw=it.sessionDupWith, pcode=it.sessionDupCode, pby=it.sessionDupBy;
+      it.sessionDup = false; it.sessionDupWith = null; it.sessionDupCode = null; it.sessionDupBy = null;
+      if(keep){ it.sessionDup=true; it.sessionDupWith=pw; it.sessionDupCode=pcode; it.sessionDupBy=pby; }
+      else{ const pd=findPeerNamingDup(nn,nc); if(pd){ if(!(await peerDupDialog(pd,nn,nc))) return; const pi=peerDupInfo(pd); it.sessionDup=true; it.sessionDupWith=pi.nombre; it.sessionDupCode=pi.codigo; it.sessionDupBy=pi.by; } }
     }
     const dup = findNameDuplicate2026(nn, nc);
     it.codigo=nc; it.nombre=nn; it.duplicado=!!dup; it.duplicadoCodigo=dup?dup.codigo:null; it.duplicadoNombre=dup?dup.nombre:null; it.duplicadoTipo=dup?.__dupReason||null;
@@ -9558,14 +9644,13 @@ function revProductPhotos(r){
   return [];
 }
 /* Cola de revisión agrupada por producto (cada producto con todas sus fotos). */
-function revFilterOn(){ return !!(state.rvSearch||state.rvFilterCode||state.rvFilterDate||state.rvFilterStore||state.rvFilterCat); }
-function revClearFilters(){ state.rvSearch=''; state.rvFilterCode=''; state.rvFilterDate=''; state.rvFilterStore=''; state.rvFilterCat=''; }
+function revFilterOn(){ return !!(state.rvSearch||state.rvFilterCode||state.rvFilterStore||state.rvFilterCat||xOn(state.rvX)); }
+function revClearFilters(){ state.rvSearch=''; state.rvFilterCode=''; state.rvFilterDate=''; state.rvFilterStore=''; state.rvFilterCat=''; xReset(state.rvX); }
 /* Mismos filtros que Repeticiones (persona, fecha, almacén, categoría) + búsqueda por ID, código de barras o nombre. */
-function revProdMatch(pr){
+function revProdMatch(pr,idx){
   const r=pr.rep, q=normalize(state.rvSearch||'');
   if(q && !normalize([r.codigoProducto,r.nombreProducto,r.codigoBarras].join(' ')).includes(q)) return false;
-  if(state.rvFilterCode && !(r.fotografo===state.rvFilterCode || pr.photos.some(p=>p.subidoPor===state.rvFilterCode))) return false;
-  if(state.rvFilterDate && repDateKey(r)!==state.rvFilterDate) return false;
+  if(!xMatch(r,state.rvX,idx||repTakenIndex(),state.rvFilterCode)) return false;
   if(state.rvFilterStore && repStoreKey(r)!==state.rvFilterStore) return false;
   if(state.rvFilterCat && (state.rvFilterCat==='__none' ? repCatOf(r) : repCatOf(r)!==state.rvFilterCat)) return false;
   return true;
@@ -9576,7 +9661,9 @@ function getReviewProducts(ignoreFilters){
     const r=it.repetition||it, k=String(r.id); if(seen.has(k)) return; seen.add(k);
     const photos=revProductPhotos(r); if(photos.length) out.push({rep:r,photos});
   });
-  return ignoreFilters?out:out.filter(revProdMatch);
+  const __xi=repTakenIndex();
+  const res=ignoreFilters?out:out.filter(pr=>revProdMatch(pr,__xi));
+  return xSort(res,state.rvX,__xi,pr=>pr.rep);
 }
 /* Firma de la cola visible: sirve para repintar la revisión solo cuando algo cambió de verdad. */
 function revQueueSig(){ return getReviewProducts().map(pr=>pr.rep.id+':'+pr.photos.map(p=>p.key+p.estado+(p.motivo||'')).join(',')).join('|')+'#'+getReviewProducts(true).length; }
@@ -9585,7 +9672,7 @@ function renderRevFilters(){
   const codes=[...new Set(all.flatMap(pr=>[pr.rep.fotografo].concat(pr.photos.map(p=>p.subidoPor))).filter(Boolean))].sort();
   const dates=[...new Set(all.map(pr=>repDateKey(pr.rep)).filter(Boolean))].sort().reverse();
   const stores=[...new Set(all.map(pr=>repStoreKey(pr.rep)).filter(Boolean))].sort();
-  const nActive=[state.rvFilterCode,state.rvFilterDate,state.rvFilterStore,state.rvFilterCat].filter(Boolean).length;
+  const nActive=[state.rvFilterCode,state.rvFilterStore,state.rvFilterCat].filter(Boolean).length+xCount(state.rvX);
   const o=(v,l,cur)=>`<option value="${escapeHtml(v)}" ${cur===v?'selected':''}>${escapeHtml(l)}</option>`;
   return `<div class="card glass" style="padding:10px 12px;margin-bottom:10px">
     <input type="search" id="rvSearchInput" placeholder="Buscar por ID, código de barras o nombre" value="${escapeHtml(state.rvSearch||'')}" style="width:100%;margin-bottom:8px" autocomplete="off">
@@ -9596,10 +9683,7 @@ function renderRevFilters(){
     </div>
     <div class="rev-pre" data-rev-pre style="display:none" role="status" aria-live="polite"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle class="rev-pre-bg" cx="11" cy="11" r="9"/><circle class="rev-pre-arc" cx="11" cy="11" r="9" transform="rotate(-90 11 11)"/></svg><span class="rev-pre-txt small-note"></span></div>
     <div class="rep-filter-panel ${state.rvFiltersOpen?'open':''}" id="rvFilterPanel"><div class="rep-filter-inner"><div class="rep-filter-grid">
-      <label class="rep-filter-field"><span>Persona</span><select id="rvCodeFilter"><option value="">Todas</option>${codes.map(c=>o(c,c,state.rvFilterCode)).join('')}</select></label>
-      <label class="rep-filter-field"><span>Fecha de la foto</span><select id="rvDateFilter"><option value="">Todas</option>${dates.map(d=>o(d,repFmtDate(d),state.rvFilterDate)).join('')}</select></label>
-      <label class="rep-filter-field"><span>Almacén</span><select id="rvStoreFilter"><option value="">Todos</option>${stores.map(c=>o(c,c,state.rvFilterStore)).join('')}</select></label>
-      <label class="rep-filter-field"><span>Categoría</span><select id="rvCatFilter"><option value="">Todas</option>${REP_CATEGORIES.map(c=>o(c,c,state.rvFilterCat)).join('')}${o('__none',t('uncategorized'),state.rvFilterCat)}</select></label>
+      ${xFiltersHTML('rv',state.rvX,{orig:state.rvFilterCode,store:state.rvFilterStore,cat:state.rvFilterCat},all.map(pr=>pr.rep),repTakenIndex(),xCaps('rv'))}
     </div></div></div>
   </div>`;
 }
@@ -9643,9 +9727,9 @@ function renderRepReview(){
   const loopNote=(state.repRevLoop&&String(state.repRevLoop.repId)===String(r.id))?`<div class="warning-banner" style="margin-bottom:10px"><span>↻ <strong>${escapeHtml(state.repRevLoop.text)}</strong></span></div>`:'';
   const ring=`<div class="rep-ring" role="img" title="${pName} · ${escapeHtml(r.codigoProducto||'')}" aria-label="Producto ${idx+1} de ${prods.length}"><svg viewBox="0 0 48 48"><circle class="trk" cx="24" cy="24" r="19"/><circle class="bar" cx="24" cy="24" r="19" style="--off:${(119.38*(1-(idx+1)/prods.length)).toFixed(2)}"/></svg><b>${totalPending}</b></div>`;
   const navBtns=`<div class="rep-review-nav"><button class="btn secondary rep-review-action" data-review-prev="${sel.key}" ${prods.length<2?'disabled':''} aria-label="Producto anterior">${idx===0&&prods.length>1?'↻ Ir al último':'← Anterior'}</button><button class="btn secondary rep-review-action" data-review-next="${sel.key}" ${prods.length<2?'disabled':''} aria-label="Producto siguiente">${idx>=prods.length-1&&prods.length>1?'↻ Volver al primero':'Siguiente →'}</button></div>`;
-  const actBtns=`<button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'}>✓ Aprobar foto</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'}>↻ Devolver para repetir</button>${revUndoBtns(false)}`;
+  const actBtns=`<button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'}>✓ Aprobar foto</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'}>↻ Devolver para repetir</button><button class="btn secondary rep-review-action" data-review-discard="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} style="color:var(--red)" title="Eliminar esta foto sin aprobarla ni devolverla">🗑 Descartar foto</button>${revUndoBtns(false)}`;
   const info = wide
-  ? `<section class="card glass rep-review-info rep-review-mini">${ring}<div class="rep-mini-count" title="Fotos aprobadas de este producto">${nOk}/${nTotal}</div><div class="rep-mini-title" title="${pName} · ${escapeHtml(r.codigoProducto||'')} · ${escapeHtml(r.codigoBarras||'')}"><span class="rep-mini-id">${escapeHtml(r.codigoProducto||'—')}</span><span class="rep-mini-name">${pName}</span><span class="rep-mini-bc">${escapeHtml(r.codigoBarras||'—')}</span></div><span class="rep-mini-sep"></span><button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Aprobar foto" aria-label="Aprobar foto">✓</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Devolver para repetir" aria-label="Devolver para repetir">↻</button>${revUndoBtns(true)}<button class="btn secondary rep-review-action" data-review-prev="${sel.key}" ${prods.length<2?'disabled':''} title="Producto anterior" aria-label="Producto anterior">←</button><button class="btn secondary rep-review-action" data-review-next="${sel.key}" ${prods.length<2?'disabled':''} title="Producto siguiente" aria-label="Producto siguiente">→</button></section>`
+  ? `<section class="card glass rep-review-info rep-review-mini">${ring}<div class="rep-mini-count" title="Fotos aprobadas de este producto">${nOk}/${nTotal}</div><div class="rep-mini-title" title="${pName} · ${escapeHtml(r.codigoProducto||'')} · ${escapeHtml(r.codigoBarras||'')}"><span class="rep-mini-id">${escapeHtml(r.codigoProducto||'—')}</span><span class="rep-mini-name">${pName}</span><span class="rep-mini-bc">${escapeHtml(r.codigoBarras||'—')}</span></div><span class="rep-mini-sep"></span><button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Aprobar foto" aria-label="Aprobar foto">✓</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Devolver para repetir" aria-label="Devolver para repetir">↻</button><button class="btn secondary rep-review-action" data-review-discard="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Descartar foto" aria-label="Descartar foto">🗑</button>${revUndoBtns(true)}<button class="btn secondary rep-review-action" data-review-prev="${sel.key}" ${prods.length<2?'disabled':''} title="Producto anterior" aria-label="Producto anterior">←</button><button class="btn secondary rep-review-action" data-review-next="${sel.key}" ${prods.length<2?'disabled':''} title="Producto siguiente" aria-label="Producto siguiente">→</button></section>`
   : `<section class="card glass rep-review-info"><div class="rep-review-head">${ring}<div><strong>Revisión de repeticiones</strong><div class="small-note" style="margin-top:2px">Producto ${idx+1} de ${prods.length} · ${totalPending} foto${totalPending===1?'':'s'} pendiente${totalPending===1?'':'s'} en total</div></div></div>
     <div><div class="small-note">PRODUCTO</div><h2 style="font-size:22px;margin:4px 0 10px">${pName}</h2><div class="rep-detail"><strong>Código:</strong> ${escapeHtml(r.codigoProducto||'—')}</div><div class="rep-detail"><strong>Código de barras:</strong> ${escapeHtml(r.codigoBarras||'—')}</div><div class="rep-detail"><strong>Fotógrafo original:</strong> ${escapeHtml(r.fotografo||'—')}</div></div>
     <div class="rep-prod-prog"><div class="rep-prod-prog-top"><strong>Fotos de este producto</strong><span>${nOk} de ${nTotal} aprobadas${nRet?` · ${nRet} por repetir`:''}</span></div><div class="rep-review-progress"><span style="width:${pct}%"></span></div></div>
@@ -9666,6 +9750,100 @@ function repDateKey(r){
   const p=repParseId(r.codigoProducto); if(p) return p.date;
   const d=new Date(r.fecha); return isNaN(d)?'':d.toISOString().slice(0,10).replace(/-/g,'');
 }
+/* ===== Filtros (Repeticiones y Revisión): fotógrafo (+ originales/repeticiones), fecha (un día o rango) y orden.
+   Solo se ofrece lo que existe en la sección: p. ej. en Pendientes aún no hay fotos de repetición enviadas. ===== */
+function xReset(X){ X.role='all'; X.from=''; X.to=''; }
+function xOn(X){ return !!(X.from||X.to); }
+function xCount(X){ return (X.from||X.to)?1:0; }
+function xCaps(sec){
+  if(sec==='rv') return {date:true,person:true};
+  const st=state.repFilterStatus;
+  if(st==='pending') return {date:false,person:false};   // aún sin fotos de repetición ni quien las tome
+  if(st==='taken') return {date:false,person:true};      // alguien la está tomando, pero aún no se envió
+  return {date:true,person:true};
+}
+function xNormalize(X,caps){
+  if(!caps.date){ if(X.dateBy==='taken'){ X.dateBy='orig'; X.from=''; X.to=''; } if(X.by==='taken') X.by='orig'; }
+  if(!caps.person && X.role==='rep') X.role='all';
+}
+function repTakenIndex(){   // repeticion → {t: fecha (ms) de la última foto de repetición, codes: quiénes la tomaron}
+  const m=new Map();
+  (state.repetitionPhotos||[]).forEach(f=>{ const k=String(f.repeticionId); let e=m.get(k); if(!e){ e={t:0,codes:new Set()}; m.set(k,e); } const t=Date.parse(f.subidaEn||'')||0; if(t>e.t) e.t=t; if(f.subidoPor) e.codes.add(f.subidoPor); });
+  return m;
+}
+function repTakenOf(r,idx){
+  const e=idx.get(String(r.id)); let t=e?e.t:0; const codes=new Set(e?e.codes:[]);
+  if(!t&&r.fotoSubidaEn) t=Date.parse(r.fotoSubidaEn)||0;
+  if(r.enProcesoPor) codes.add(r.enProcesoPor);
+  return {t,codes};
+}
+function xMatch(r,X,idx,person){
+  const tk=(person||X.from||X.to)?repTakenOf(r,idx):null;
+  if(person){
+    const isO=r.fotografo===person, isR=tk.codes.has(person), role=X.role||'all';
+    if(role==='orig'?!isO:role==='rep'?!isR:!(isO||isR)) return false;
+  }
+  if(X.from||X.to){
+    let a=X.from, b=X.dmode==='day'?X.from:X.to; if(a&&b&&a>b) [a,b]=[b,a];
+    if((X.dateBy||'orig')==='taken'){ if(!tk.t) return false; const k=statLocalDay(tk.t); if(a&&k<a) return false; if(b&&k>b) return false; }
+    else { const k=repDateKey(r); if(!k) return false; const A=(a||'').replace(/-/g,''), B=(b||'').replace(/-/g,''); if(A&&k<A) return false; if(B&&k>B) return false; }
+  }
+  return true;
+}
+function xSort(list,X,idx,getR){
+  if(!X.by) return list;
+  const dir=X.dir==='asc'?1:-1; const R=getR||(x=>x);
+  return list.sort((A,B)=>{
+    const a=R(A), b=R(B);
+    if(X.by==='taken'){ const ta=repTakenOf(a,idx).t, tb=repTakenOf(b,idx).t; if(ta||tb){ if(!ta) return 1; if(!tb) return -1; if(ta!==tb) return (ta-tb)*dir; } }
+    const ka=repDateKey(a), kb=repDateKey(b); if(ka!==kb) return (ka<kb?-1:1)*dir;
+    const pa=String(a.codigoProducto||''), pb=String(b.codigoProducto||''); return pa===pb?0:(pa<pb?-1:1)*dir;
+  });
+}
+function xFiltersHTML(sec,X,legacy,rows,idx,caps){
+  const origCodes=rows.map(r=>r.fotografo).filter(Boolean);
+  const repCodes=caps.person?rows.flatMap(r=>[...repTakenOf(r,idx).codes]):[];
+  const people=[...new Set(origCodes.concat(repCodes))].sort();
+  const stores=[...new Set(rows.map(repStoreKey).filter(Boolean))].sort();
+  const o=(v,l,cur)=>`<option value="${escapeHtml(v)}" ${cur===v?'selected':''}>${escapeHtml(l)}</option>`;
+  const seg=(attr,val,cur,label)=>`<button type="button" class="rep-seg-btn ${cur===val?'on':''}" ${attr}="${val}" data-xsec="${sec}">${label}</button>`;
+  const person=legacy.orig;
+  const personHTML=`<label class="rep-filter-field rep-filter-wide"><span>Fotógrafo</span><select data-xs="${sec}" data-xk="orig"><option value="">Todos</option>${people.map(c=>o(c,repWorkerName(c),person)).join('')}</select></label>`
+    +((person&&caps.person)?`<div class="rep-filter-wide"><span class="rep-lbl">Mostrar de este fotógrafo</span><div class="rep-seg">${seg('data-xrole','all',X.role,'Todas')}${seg('data-xrole','orig',X.role,'Solo originales')}${seg('data-xrole','rep',X.role,'Solo repeticiones')}</div></div>`:'');
+  const dateBySel=caps.date
+    ? `<label class="rep-filter-field rep-filter-wide"><span>Filtrar por la fecha de…</span><select data-xs="${sec}" data-xk="dateBy">${o('orig','Foto original',X.dateBy)}${o('taken','Foto de la repetición (enviada)',X.dateBy)}</select></label>`
+    : `<div class="rep-filter-wide small-note" style="margin:0">Se filtra por la fecha de la foto original.</div>`;
+  const dt=(k,label,val)=>`<label class="rep-filter-field"><span>${label}</span><input type="date" data-xs="${sec}" data-xk="${k}" value="${escapeHtml(val||'')}"></label>`;
+  const dateInputs=X.dmode==='day'?`<div class="rep-filter-wide">${dt('from','Día',X.from)}</div>`:`${dt('from','Desde',X.from)}${dt('to','Hasta',X.to)}`;
+  const sortOpts=(sec==='rv'?o('','Predeterminado',X.by):'')+o('orig','Foto original',X.by)+(caps.date?o('taken','Foto de repetición',X.by):'');
+  const dirLabel=X.dir==='asc'?'↑ Más antiguas primero':'↓ Más recientes primero';
+  return `<div class="rep-filter-sub">👤 Fotógrafo</div>${personHTML}
+    <div class="rep-filter-sub">📅 Fecha</div>${dateBySel}
+    <div class="rep-filter-wide"><div class="rep-seg">${seg('data-xmode','day',X.dmode,'Un día')}${seg('data-xmode','range',X.dmode,'Rango (desde – hasta)')}</div></div>${dateInputs}
+    <div class="rep-filter-sub">↕ Orden</div>
+    <label class="rep-filter-field"><span>Ordenar por fecha de</span><select data-xs="${sec}" data-xk="by">${sortOpts}</select></label>
+    <div class="rep-filter-field"><span>Dirección</span><button class="btn secondary sm" type="button" data-xdir="${sec}">${dirLabel}</button></div>
+    <div class="rep-filter-sub">Otros</div>
+    <label class="rep-filter-field"><span>Almacén</span><select data-xs="${sec}" data-xk="store"><option value="">Todos</option>${stores.map(c=>o(c,c,legacy.store)).join('')}</select></label>
+    <label class="rep-filter-field"><span>Categoría</span><select data-xs="${sec}" data-xk="cat"><option value="">Todas</option>${REP_CATEGORIES.map(c=>o(c,c,legacy.cat)).join('')}${o('__none',t('uncategorized'),legacy.cat)}</select></label>`;
+}
+document.addEventListener('change',e=>{
+  const el=e.target.closest&&e.target.closest('[data-xs]'); if(!el) return;
+  const sec=el.dataset.xs, k=el.dataset.xk;
+  const map={rep:{orig:'repFilterCode',store:'repFilterStore',cat:'repFilterCategory'},rv:{orig:'rvFilterCode',store:'rvFilterStore',cat:'rvFilterCat'}}[sec];
+  if(map&&map[k]){ state[map[k]]=el.value; if(k==='orig') (sec==='rep'?state.repX:state.rvX).role='all'; }
+  else (sec==='rep'?state.repX:state.rvX)[k]=el.value;
+  if(sec==='rv'){ try{ rvReset(); }catch(_){} }
+  render();
+});
+document.addEventListener('click',e=>{
+  const sg=e.target.closest&&e.target.closest('[data-xrole],[data-xmode]');
+  if(sg){ const X=sg.dataset.xsec==='rep'?state.repX:state.rvX; if(sg.dataset.xrole) X.role=sg.dataset.xrole; if(sg.dataset.xmode){ X.dmode=sg.dataset.xmode; if(X.dmode==='day') X.to=''; } if(sg.dataset.xsec==='rv'){ try{ rvReset(); }catch(_){} } render(); return; }
+  const b=e.target.closest&&e.target.closest('[data-xdir]'); if(!b) return;
+  const X=b.dataset.xdir==='rep'?state.repX:state.rvX; X.dir=X.dir==='asc'?'desc':'asc';
+  if(b.dataset.xdir==='rv'){ if(!X.by) X.by='orig'; try{ rvReset(); }catch(_){} }
+  render();
+});
 function repFmtDate(k){ return k&&k.length===8?`${k.slice(0,4)}-${k.slice(4,6)}-${k.slice(6,8)}`:k; }
 /* Almacenes: se agrupan por cadena (Éxito Américas, Éxito Bosa… → ÉXITO). */
 const REP_STORE_CHAIN={1:'JUMBO',2:'JUMBO',3:'JUMBO',4:'ÉXITO',5:'ÉXITO',6:'ÉXITO',7:'ARA',9:'ARA',10:'ARA',8:'D1',11:'D1',12:'D1',13:'OLÍMPICA'};
@@ -9684,8 +9862,109 @@ function repStage(r){
   if(r.estado==='sent') return 'sent';
   return 'pending';
 }
+/* ===== Descargar Excel de repeticiones: por día (o rango), por fotógrafo/personas y por estado ===== */
+const REP_EX_STAGE={pending:'Pendiente',progress:'En progreso',sent:'Enviado',approved:'Aprobado y completado'};
+function repExFmtKey(k){ k=String(k||''); return /^\d{8}$/.test(k)?`${k.slice(0,4)}-${k.slice(4,6)}-${k.slice(6,8)}`:k; }
+function repExFmtTime(ms){ if(!ms) return ''; const d=new Date(ms); return `${statLocalDay(ms)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function repExRows(f){
+  const idx=repTakenIndex(), P=new Set(f.people||[]);
+  const X={role:'all',from:f.from||'',to:f.dmode==='day'?'':(f.to||''),dmode:f.dmode,dateBy:f.dateBy};
+  const out=[];
+  (state.repeticiones||[]).forEach(r=>{
+    if(f.status!=='all' && repStage(r)!==f.status) return;
+    if(!xMatch(r,X,idx,'')) return;
+    const tk=repTakenOf(r,idx);
+    if(P.size){
+      const isO=P.has(r.fotografo), isR=[...tk.codes].some(c=>P.has(c));
+      if(f.role==='orig'?!isO:f.role==='rep'?!isR:!(isO||isR)) return;
+    }
+    out.push({r,tk});
+  });
+  out.sort((a,b)=>{ const ka=repDateKey(a.r), kb=repDateKey(b.r); if(ka!==kb) return ka<kb?-1:1; const pa=String(a.r.codigoProducto||''), pb=String(b.r.codigoProducto||''); return pa===pb?0:(pa<pb?-1:1); });
+  return out;
+}
+function repExClose(){ const el=document.getElementById('repExOverlay'); if(el) el.remove(); }
+function repExOpen(){
+  const X=state.repX||{}, idx=repTakenIndex();
+  const f=state.repEx={ status:'sent', dateBy:'taken', dmode:X.dmode==='range'?'range':'day', from:X.from||'', to:X.to||'', role:'rep', people:state.repFilterCode?[state.repFilterCode]:[] };
+  const all=[...new Set((state.repeticiones||[]).filter(r=>repStage(r)==='sent').flatMap(r=>[...repTakenOf(r,idx).codes]).filter(Boolean).concat(f.people))].sort();
+  const o=(v,l,cur)=>`<option value="${escapeHtml(v)}" ${cur===v?'selected':''}>${escapeHtml(l)}</option>`;
+  repExClose();
+  const ov=document.createElement('div'); ov.id='repExOverlay'; ov.className='modal-overlay';
+  ov.innerHTML=`<div class="modal-sheet glass">
+    <div class="modal-header"><h3>Descargar Excel de repeticiones</h3><button type="button" class="modal-close" data-rexclose aria-label="Cerrar">${ICONS.x}</button></div>
+    <p class="small-note" style="margin:0 0 10px">Repeticiones en estado <b>Enviado</b>, según la fecha de la <b>foto de repetición</b> y quien la tomó.</p>
+    <div class="rex-sec"><div class="rex-l">📅 Fecha</div>
+      <input type="hidden" id="rexMode" value="${f.dmode}">
+      <div class="rep-seg rex-seg"><button type="button" class="rep-seg-btn ${f.dmode==='day'?'on':''}" data-rexmode="day">Un solo día</button><button type="button" class="rep-seg-btn ${f.dmode==='range'?'on':''}" data-rexmode="range">Rango</button></div>
+      <div class="rex-quick"><button type="button" class="rex-q" data-rexq="0">Hoy</button><button type="button" class="rex-q" data-rexq="-1">Ayer</button></div>
+      <div class="rex-dates"><label class="rex-date"><span class="rex-date-l" id="rexFromLbl">${f.dmode==='day'?'Día':'Desde'}</span><span class="rex-date-row"><span class="rex-date-ico">📅</span><input type="date" id="rexFrom" value="${escapeHtml(f.from)}"></span></label><label class="rex-date" id="rexToWrap" style="${f.dmode==='day'?'display:none':''}"><span class="rex-date-l">Hasta</span><span class="rex-date-row"><span class="rex-date-ico">📅</span><input type="date" id="rexTo" value="${escapeHtml(f.to)}"></span></label></div></div>
+    <div class="rex-sec"><div class="rex-l">👤 Quién tomó la foto de repetición <span class="rex-hint">· sin marcar = todas</span></div>
+      <div id="rexPeople" class="rex-people">${all.length?all.map(c=>`<label class="rex-chip"><input type="checkbox" data-rexp="${escapeHtml(c)}" ${f.people.includes(c)?'checked':''}><span class="rex-chip-in"><span class="rex-av">${veriAvatarHTML(c,24)}</span><span class="rex-nm">${escapeHtml(repWorkerName(c))}</span></span></label>`).join(''):'<span class="small-note">Aún no hay personas registradas.</span>'}</div>
+      <button type="button" class="btn ghost sm" id="rexClearP" style="margin-top:8px">Quitar selección</button></div>
+    <div class="small-note" id="rexCount" style="margin:6px 0 10px"></div>
+    <button type="button" class="btn block" id="rexGo">⬇ Descargar Excel</button>
+  </div>`;
+  document.body.appendChild(ov);
+  const $=sel=>ov.querySelector(sel);
+  const upd=()=>{
+    f.dmode=$('#rexMode').value; f.from=$('#rexFrom').value; f.to=$('#rexTo').value;
+    f.people=[...ov.querySelectorAll('[data-rexp]:checked')].map(x=>x.dataset.rexp);
+    ov.querySelectorAll('[data-rexq]').forEach(b=>b.classList.toggle('on',f.from===budDateKey(Number(b.dataset.rexq))&&(f.dmode==='day'||f.to===f.from)));
+    $('#rexFromLbl').textContent=f.dmode==='day'?'Día':'Desde'; $('#rexToWrap').style.display=f.dmode==='day'?'none':'';
+    const n=repExRows(f).length; $('#rexCount').textContent=n+' repetición'+(n===1?'':'es')+' con estos filtros';
+    $('#rexGo').disabled=!n;
+  };
+  ov.addEventListener('change',upd);
+  ov.addEventListener('click',e=>{
+    if(e.target===ov||(e.target.closest&&e.target.closest('[data-rexclose]'))){ repExClose(); return; }
+    const sb=e.target.closest&&e.target.closest('[data-rexmode]');
+    if(sb){ $('#rexMode').value=sb.dataset.rexmode; ov.querySelectorAll('[data-rexmode]').forEach(b=>b.classList.toggle('on',b===sb)); upd(); return; }
+    const qb=e.target.closest&&e.target.closest('[data-rexq]');
+    if(qb){ const k=budDateKey(Number(qb.dataset.rexq)); $('#rexFrom').value=k; if($('#rexMode').value==='range') $('#rexTo').value=k; upd(); return; }
+    if(e.target.closest&&e.target.closest('#rexClearP')){ ov.querySelectorAll('[data-rexp]').forEach(x=>x.checked=false); upd(); return; }
+    if(e.target.closest&&e.target.closest('#rexGo')) repExDownload(f);
+  });
+  upd();
+}
+async function repExDownload(f){
+  try{ await ensureXLSX(); }catch(e){ toast(t('errorImport')); return; }
+  const rows=repExRows(f);
+  if(!rows.length){ toast('No hay repeticiones con esos filtros.'); return; }
+  const nm=c=>c?repWorkerName(c):'';
+  const photosOf=r=>(state.repetitionPhotos||[]).filter(x=>String(x.repeticionId)===String(r.id));
+  const data=rows.map(({r,tk})=>{
+    const ph=photosOf(r), takers=[...new Set(ph.map(x=>x.subidoPor).filter(Boolean).concat(r.enProcesoPor?[r.enProcesoPor]:[]))];
+    const motivos=[...new Set(ph.flatMap(x=>String(x.motivo||'').split(' | ')).map(x=>x.trim()).filter(Boolean))];
+    if(!motivos.length && r.revisionMotivo) motivos.push(r.revisionMotivo);
+    return {
+      'ID':r.codigoProducto||'', 'PRODUCTO':r.nombreProducto||'', 'CODIGO DE BARRAS':r.codigoBarras||'', 'CATEGORIA':repCatOf(r)||'', 'ALMACEN':repStoreKey(r),
+      'ESTADO':REP_EX_STAGE[repStage(r)]||'', 'MOTIVO DE LA REPETICION':r.motivo||'',
+      'FOTOGRAFO ORIGINAL':nm(r.fotografo), 'FECHA FOTO ORIGINAL':repExFmtKey(repDateKey(r)),
+      'FOTO DE REPETICION TOMADA POR':takers.map(nm).join('; '), 'FECHA FOTO DE REPETICION':repExFmtTime(tk.t),
+      'FOTOS':ph.length, 'FOTOS APROBADAS':ph.filter(x=>x.estado==='aprobada').length,
+      'MOTIVOS DE DEVOLUCION':motivos.join(' | '), 'REVISADO POR':nm(r.revisionPor)
+    };
+  });
+  const ws=XLSX.utils.json_to_sheet(data);
+  ws['!cols']=[{wch:24},{wch:42},{wch:18},{wch:16},{wch:14},{wch:20},{wch:30},{wch:26},{wch:16},{wch:30},{wch:18},{wch:8},{wch:10},{wch:40},{wch:22}];
+  applyExcelFont(ws,'Calibri',11);
+  // Resumen por persona (solo con lo que quedó dentro de los filtros)
+  const per=new Map(), bump=(c,k)=>{ if(!c) return; const e=per.get(c)||{o:0,r:0}; e[k]++; per.set(c,e); };
+  rows.forEach(({r,tk})=>{ [...tk.codes].forEach(c=>bump(c,'r')); });
+  const sel=new Set(f.people||[]);
+  const sum=[...per.entries()].filter(([c])=>!sel.size||sel.has(c)).sort((a,b)=>a[0]<b[0]?-1:1).map(([c,e])=>({'PERSONA':nm(c),'REPETICIONES QUE TOMO':e.r}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Repeticiones');
+  if(sum.length){ const w2=XLSX.utils.json_to_sheet(sum); w2['!cols']=[{wch:30},{wch:22}]; applyExcelFont(w2,'Calibri',11); XLSX.utils.book_append_sheet(wb,w2,'Por persona'); }
+  const a=f.from, b=f.dmode==='range'?f.to:'';
+  XLSX.writeFile(wb,`repeticiones_${a?a:todayKey()}${b&&b!==a?'_a_'+b:''}.xlsx`);
+  toast(`Excel descargado · ${rows.length} repetición${rows.length===1?'':'es'}`);
+  repExClose();
+}
+document.addEventListener('click',e=>{ if(e.target.closest&&e.target.closest('#repExportBtn')) repExOpen(); });
 function renderRepList(){
-  const q=normalize(state.repSearch||'');
+  const q=normalize(state.repSearch||''); const __xi=repTakenIndex(); xNormalize(state.repX,xCaps('rep'));
   let list = state.repeticiones
     .filter(r=>{
       if(state.repFilterStatus==='all') return true;
@@ -9696,22 +9975,21 @@ function renderRepList(){
       if(state.repFilterStatus==='archived') return st==='approved';
       return true;
     })
-    .filter(r=> !state.repFilterCode ? true : (r.fotografo===state.repFilterCode))
-    .filter(r=> !state.repFilterDate ? true : repDateKey(r)===state.repFilterDate)
     .filter(r=> !state.repFilterStore ? true : repStoreKey(r)===state.repFilterStore)
     .filter(r=> !state.repFilterCategory ? true : (state.repFilterCategory==='__none' ? !repCatOf(r) : repCatOf(r)===state.repFilterCategory))
+    .filter(r=> xMatch(r,state.repX,__xi,state.repFilterCode))
     .filter(r=> !q ? true : normalize([r.codigoProducto,r.nombreProducto,r.codigoBarras].join(' ')).includes(q));
-  list = list.sort((a,b)=>{ const ka=repDateKey(a), kb=repDateKey(b); const c=ka<kb?-1:ka>kb?1:0; const base=c||(String(a.codigoProducto||'')<String(b.codigoProducto||'')?-1:1); return state.repSort==='desc'?-base:base; });
+  xSort(list,state.repX,__xi);
   const codes = Array.from(new Set(state.repeticiones.map(r=>r.fotografo).filter(Boolean)));
   const dates = Array.from(new Set(state.repeticiones.map(repDateKey).filter(Boolean))).sort().reverse();
   const stores = Array.from(new Set(state.repeticiones.map(repStoreKey).filter(Boolean))).sort();
   const nPend = state.repeticiones.filter(r=>repStage(r)==='pending').length, nWork = state.repeticiones.filter(r=>repStage(r)==='progress').length, nSent = state.repeticiones.filter(r=>repStage(r)==='sent').length, nDone = state.repeticiones.filter(r=>repStage(r)==='approved').length;
   const groups = REP_CATEGORIES.concat(['']).map(cat=>({cat,items:list.filter(r=>repCatOf(r)===cat)})).filter(g=>g.items.length);
-  const hasFilters = state.repFilterCode||state.repFilterDate||state.repFilterStore||state.repFilterCategory||state.repSearch;
-  const nActive = [state.repFilterCode,state.repFilterDate,state.repFilterStore,state.repFilterCategory].filter(Boolean).length;
+  const hasFilters = state.repFilterCode||state.repFilterStore||state.repFilterCategory||state.repSearch||xOn(state.repX);
+  const nActive = [state.repFilterCode,state.repFilterStore,state.repFilterCategory].filter(Boolean).length+xCount(state.repX);
   return `
     <div class="card glass">
-      ${hasAdminAccess()?`<div class="row wrap" style="gap:8px;margin-bottom:12px"><button class="btn" type="button" id="repQuickAdd">＋ Agregar nueva repetición</button>${isAdmin()?`<button class="btn secondary" type="button" id="repClearAll" style="color:#ff453a">🗑 Vaciar todas</button>`:''}${state.repFilterStatus==='pending'&&list.length?`<button class="btn secondary" type="button" id="repDelPending" style="color:#ff453a">🗑 Eliminar pendientes (${list.length})</button>`:''}<label class="btn secondary" for="repQuickImport">Importar repeticiones Excel</label><input type="file" id="repQuickImport" accept=".xlsx,.xls,.csv" style="display:none"></div>`:''}
+      ${hasAdminAccess()?`<div class="row wrap" style="gap:8px;margin-bottom:12px"><button class="btn" type="button" id="repQuickAdd">＋ Agregar nueva repetición</button>${isAdmin()?`<button class="btn secondary" type="button" id="repClearAll" style="color:#ff453a">🗑 Vaciar todas</button>`:''}${state.repFilterStatus==='pending'&&list.length?`<button class="btn secondary" type="button" id="repDelPending" style="color:#ff453a">🗑 Eliminar pendientes (${list.length})</button>`:''}<button class="btn secondary" type="button" id="repExportBtn">⬇ Descargar Excel</button><label class="btn secondary" for="repQuickImport">Importar repeticiones Excel</label><input type="file" id="repQuickImport" accept=".xlsx,.xls,.csv" style="display:none"></div>`:''}
       <div class="row" style="margin-bottom:10px;gap:8px;">
         <input type="search" id="repSearchInput" placeholder="Buscar producto, código o código de barras" value="${escapeHtml(state.repSearch||'')}" style="flex:1;min-width:0;" autocomplete="off">
         <button class="btn secondary sm" type="button" id="repScanBtn" aria-label="Escanear producto">${ICONS.camera||'📷'} Escanear</button>
@@ -9732,11 +10010,7 @@ function renderRepList(){
         <span class="small-note">${list.length} resultado${list.length===1?'':'s'}</span>
       </div>
       <div class="rep-filter-panel ${state.repFiltersOpen?'open':''}" id="repFilterPanel"><div class="rep-filter-inner"><div class="rep-filter-grid">
-        <label class="rep-filter-field"><span>Persona</span><select id="repCodeFilter"><option value="">Todas</option>${codes.map(c=>`<option value="${escapeHtml(c)}" ${state.repFilterCode===c?'selected':''}>${escapeHtml(c)}</option>`).join('')}</select></label>
-        <label class="rep-filter-field"><span>Fecha de la foto</span><select id="repDateFilter"><option value="">Todas</option>${dates.map(d=>`<option value="${d}" ${state.repFilterDate===d?'selected':''}>${repFmtDate(d)}</option>`).join('')}</select></label>
-        <label class="rep-filter-field"><span>Almacén</span><select id="repStoreFilter"><option value="">Todos</option>${stores.map(c=>`<option value="${escapeHtml(c)}" ${state.repFilterStore===c?'selected':''}>${escapeHtml(c)}</option>`).join('')}</select></label>
-        <label class="rep-filter-field"><span>Categoría</span><select id="repCategoryFilter"><option value="">Todas</option>${REP_CATEGORIES.map(c=>`<option value="${escapeHtml(c)}" ${state.repFilterCategory===c?'selected':''}>${escapeHtml(c)}</option>`).join('')}<option value="__none" ${state.repFilterCategory==='__none'?'selected':''}>${t('uncategorized')}</option></select></label>
-        <div class="rep-filter-field"><span>Orden</span><button class="btn secondary sm" id="sortBtn" type="button">${ICONS.sort} ${state.repSort==='desc'?'Más recientes primero':'Más antiguas primero'}</button></div>
+        ${xFiltersHTML('rep',state.repX,{orig:state.repFilterCode,store:state.repFilterStore,cat:state.repFilterCategory},state.repeticiones,__xi,xCaps('rep'))}
       </div></div></div>
       <div style="margin-top:8px;">${list.length ? groups.map(g=>`<div class="category-head"><span>${g.cat||t('uncategorized')}</span><span class="category-count">${g.items.length}</span></div>${g.items.map(renderRepItem).join('')}`).join('') : `<div class="empty">${t('repositoryEmpty')}</div>`}</div>
     </div>
@@ -10996,12 +11270,8 @@ function bindTabEvents(){
       const repImportInForm=document.getElementById('importRepSettings');if(repImportInForm)repImportInForm.onchange=e=>{const file=e.target.files?.[0];if(file&&hasAdminAccess())importExcelRepeticiones(file,document.getElementById('repFilterCodeSettings')?.value||'');};
       document.querySelectorAll('[data-photo-preview]').forEach(el=>el.onclick=()=>openVeriPhotoPreview(decodeURIComponent(el.dataset.photoPreview||''),el.dataset.photoTitle||'Revisión de fotografía'));
       document.getElementById('repStatusFilter').onchange = (e)=>{ state.repFilterStatus = e.target.value; render(); };
-      document.getElementById('repCodeFilter').onchange = (e)=>{ state.repFilterCode = e.target.value; render(); };
-      document.getElementById('repDateFilter').onchange = (e)=>{ state.repFilterDate = e.target.value; render(); };
-      document.getElementById('repStoreFilter').onchange = (e)=>{ state.repFilterStore = e.target.value; render(); };
-      document.getElementById('repCategoryFilter').onchange = (e)=>{ state.repFilterCategory = e.target.value; render(); };
       const repFT=document.getElementById('repFiltersToggle'); if(repFT) repFT.onclick=()=>{ state.repFiltersOpen=!state.repFiltersOpen; repFT.classList.toggle('open',state.repFiltersOpen); repFT.setAttribute('aria-expanded',state.repFiltersOpen); const pn=document.getElementById('repFilterPanel'); if(pn) pn.classList.toggle('open',state.repFiltersOpen); };
-      const repClear=document.getElementById('repClearFilters'); if(repClear) repClear.onclick=()=>{ state.repFilterCode='';state.repFilterDate='';state.repFilterStore=''; state.repFilterCategory='';state.repSearch='';render(); };
+      const repClear=document.getElementById('repClearFilters'); if(repClear) repClear.onclick=()=>{ state.repFilterCode='';state.repFilterDate='';state.repFilterStore=''; state.repFilterCategory='';state.repSearch='';xReset(state.repX);render(); };
       const repSI=document.getElementById('repSearchInput');
       if(repSI){ let tmr=null; repSI.oninput=()=>{ clearTimeout(tmr); tmr=setTimeout(()=>{ state.repSearch=repSI.value; render(); const n=document.getElementById('repSearchInput'); if(n){ n.focus(); const l=n.value.length; try{n.setSelectionRange(l,l);}catch(e){} } },300); }; }
       const repScanBtn=document.getElementById('repScanBtn');
@@ -11011,12 +11281,11 @@ function bindTabEvents(){
         startCamera('repScanWrap','repScanBtn',(code)=>{
           const found=repFindPendingByCode(code);
           stopCamera();
-          state.repSearch=String(code); state.repFilterStatus='all'; state.repFilterCode=''; state.repFilterDate=''; state.repFilterStore=''; state.repFilterCategory='';
+          state.repSearch=String(code); state.repFilterStatus='all'; state.repFilterCode=''; state.repFilterDate=''; state.repFilterStore=''; state.repFilterCategory=''; xReset(state.repX);
           render();
           toast(found?`✓ Repetición: ${found.nombreProducto||found.codigoProducto}`:'Ese producto no tiene repetición registrada.');
         });
       };
-      document.getElementById('sortBtn').onclick = ()=>{ state.repSort = state.repSort==='desc'?'asc':'desc'; render(); };
       document.querySelectorAll('[data-rep-start]').forEach(b=> b.onclick = ()=> repStart(b.dataset.repStart));
       document.querySelectorAll('[data-rep-release]').forEach(b=> b.onclick = ()=> repRelease(b.dataset.repRelease));
       document.querySelectorAll('[data-advance]').forEach(b=> b.onclick = async ()=>{
@@ -11482,7 +11751,6 @@ function bindTabEvents(){
     const rvReset=()=>{ state.repReviewIndex=0; state.repReviewPhoto=null; state.repRevLoop=null; };
     const rvS=document.getElementById('rvSearchInput');
     if(rvS){ let tmr=null; rvS.oninput=()=>{ clearTimeout(tmr); tmr=setTimeout(()=>{ state.rvSearch=rvS.value; rvReset(); render(); const n=document.getElementById('rvSearchInput'); if(n){ n.focus(); const l=n.value.length; try{n.setSelectionRange(l,l);}catch(e){} } },300); }; }
-    [['rvCodeFilter','rvFilterCode'],['rvDateFilter','rvFilterDate'],['rvStoreFilter','rvFilterStore'],['rvCatFilter','rvFilterCat']].forEach(([id,k])=>{ const el=document.getElementById(id); if(el) el.onchange=e=>{ state[k]=e.target.value; rvReset(); render(); }; });
     const rvT=document.getElementById('rvFiltersToggle'); if(rvT) rvT.onclick=()=>{ state.rvFiltersOpen=!state.rvFiltersOpen; rvT.classList.toggle('open',state.rvFiltersOpen); rvT.setAttribute('aria-expanded',state.rvFiltersOpen); const pn=document.getElementById('rvFilterPanel'); if(pn) pn.classList.toggle('open',state.rvFiltersOpen); };
     const rvC=document.getElementById('rvClearFilters'); if(rvC) rvC.onclick=()=>{ revClearFilters(); rvReset(); render(); };
     document.querySelectorAll('[data-review-thumb]').forEach(b=>b.onclick=()=>{state.repReviewPhoto=b.dataset.reviewThumb;render();});
@@ -11536,6 +11804,46 @@ function bindTabEvents(){
       stage?.addEventListener('pointerup',end); stage?.addEventListener('pointercancel',end);
     });
     document.querySelectorAll('[data-review-approve]').forEach(b=>b.onclick=async()=>{const id=b.dataset.reviewApprove;const mode=b.dataset.reviewPhotoMode;const item=mode==='multi'?state.repetitionPhotos.find(x=>String(x.id)===String(id)):null;const r=item?state.repeticiones.find(x=>String(x.id)===String(item.repeticionId)):state.repeticiones.find(x=>String(x.id)===String(id));const path=item?.path||r?.fotoPath;const __prev=item?{kind:'approve',mode:'multi',id:item.id,repId:item.repeticionId,prev:{estado:item.estado,motivo:item.motivo||''}}:{kind:'approve',mode:'legacy',id,repId:id,prevRepEstado:r?r.estado:undefined};const url=path?veriPhotoUrl(path):'';if(url) downloadApprovedPhoto(url,safePhotoFilename({...r,path}));try{const now=new Date().toISOString();if(item){await patchRepPhoto(item.id,{estado:'aprobada',estado_revision:'aprobada',revisada_en:now,fecha_revision:now,revisada_por:normalize(state.session||''),revisado_por:normalize(state.session||''),aprobada_en:now,eliminar_despues_de:new Date(Date.now()+86400000).toISOString()});await syncRepetitionCompletion(item.repeticionId);}else{await patchPhotoReview(id,{revision_estado:'aprobada',revision_motivo:'',revision_por:normalize(state.session||''),revision_fecha:now});if(r)r.estado='sent';}await refreshRepPhotos();revPush(__prev);state.repReviewPhoto=null;state.repReviewWide=false;toast('Foto aprobada; descarga iniciada · puedes deshacer');render();}catch(e){console.error(e);toast('No se pudo aprobar la foto.');}});
+    document.querySelectorAll('[data-review-discard]').forEach(b=>b.onclick=async()=>{
+      if(b.dataset.busy==='1') return;
+      if(!confirm('¿Descartar esta foto?\n\nSe elimina por completo: no se aprueba ni se devuelve, como si nunca se hubiera tomado. Esta acción no se puede deshacer.')) return;
+      b.dataset.busy='1';
+      try{
+        const id=b.dataset.reviewDiscard, legacy=b.dataset.reviewPhotoMode!=='multi';
+        let repId, path;
+        if(!legacy){
+          const item=state.repetitionPhotos.find(x=>String(x.id)===String(id));
+          if(!item) throw new Error('Foto no encontrada');
+          repId=item.repeticionId; path=item.path;
+          await sb(`repeticion_fotos?id=eq.${encodeURIComponent(id)}`,{method:'DELETE',headers:{'Prefer':'return=minimal'}});
+          state.repetitionPhotos=state.repetitionPhotos.filter(x=>String(x.id)!==String(id));
+        } else {
+          repId=id; const rr=state.repeticiones.find(x=>String(x.id)===String(id)); path=rr?rr.fotoPath:null;
+        }
+        // Se borra el archivo del Storage (si falla, el registro ya no existe y no estorba)
+        if(path){
+          try{ const {error}=await veriStorageClient().storage.from('veri-repetition-photos').remove([path]); if(error) console.warn('No se pudo borrar el archivo descartado',error); }catch(e2){ console.warn(e2); }
+          veriPhotoUrlCache.delete(path); try{ revBlobCache.delete(path); }catch(_){}
+        }
+        const rep=state.repeticiones.find(x=>String(x.id)===String(repId));
+        const left=state.repetitionPhotos.filter(f=>String(f.repeticionId)===String(repId)&&f.path);
+        if(!left.length){
+          // No queda ninguna foto: la repetición vuelve a Pendiente, como si nunca se hubiera tomado
+          await sb(`repeticiones?id=eq.${encodeURIComponent(repId)}`,{method:'PATCH',body:JSON.stringify({estado:'pending',archivado:false,foto_path:null,foto_subida_en:null,revision_estado:'pendiente',revision_motivo:''}),headers:{'Prefer':'return=minimal'}});
+          if(rep){ rep.estado='pending'; rep.archivado=false; rep.fotoPath=null; rep.fotoSubidaEn=null; rep.revisionEstado='pendiente'; rep.revisionMotivo=''; }
+        } else {
+          // Si la descartada era la que la repetición tenía como principal, se apunta a otra foto que sí exista
+          if(rep && rep.fotoPath===path){ await patchPhotoReview(repId,{foto_path:left[0].path}); }
+          try{ await syncRepetitionCompletion(repId); }catch(_){}
+        }
+        // Se limpian del historial de deshacer las acciones sobre la foto que ya no existe
+        const h=revHist(), keep=e=>!(String(e.id)===String(id)&&(e.mode==='multi')===!legacy);
+        h.undo=h.undo.filter(keep); h.redo=h.redo.filter(keep);
+        try{ await refreshRepPhotos(); }catch(e3){ console.warn(e3); }
+        toast('Foto descartada'); state.repReviewPhoto=null; state.repReviewWide=false; render();
+      }catch(e){ console.error(e); toast('No se pudo descartar la foto'+(e&&e.message?': '+String(e.message).slice(0,100):'.')); }
+      finally{ delete b.dataset.busy; }
+    });
     document.querySelectorAll('[data-review-retake]').forEach(b=>b.onclick=async()=>{
       if(b.dataset.busy==='1') return;
       const motivo=prompt('¿Qué debe corregir el fotógrafo?');
@@ -12029,10 +12337,9 @@ function repPendingVisible(){
   const q=normalize(state.repSearch||'');
   return (state.repeticiones||[])
     .filter(r=>repStage(r)==='pending')
-    .filter(r=> !state.repFilterCode ? true : (r.fotografo===state.repFilterCode))
-    .filter(r=> !state.repFilterDate ? true : repDateKey(r)===state.repFilterDate)
     .filter(r=> !state.repFilterStore ? true : repStoreKey(r)===state.repFilterStore)
     .filter(r=> !state.repFilterCategory ? true : (state.repFilterCategory==='__none' ? !repCatOf(r) : repCatOf(r)===state.repFilterCategory))
+    .filter(r=> xMatch(r,state.repX,repTakenIndex(),state.repFilterCode))
     .filter(r=> !q ? true : normalize([r.codigoProducto,r.nombreProducto,r.codigoBarras].join(' ')).includes(q));
 }
 document.addEventListener('click',async e=>{
@@ -12043,7 +12350,7 @@ document.addEventListener('click',async e=>{
   const del=vis.filter(r=>!r.fotoPath && !withPhotos.has(String(r.id)) && !r.enProcesoPor && (r.revisionEstado||'pendiente')==='pendiente');
   const skipped=vis.length-del.length;
   if(!del.length){ toast(skipped?`No se eliminó nada: los ${skipped} pendientes ya tienen fotos o están en proceso.`:'No hay pendientes para eliminar.'); return; }
-  const filtered=!!(state.repSearch||state.repFilterCode||state.repFilterDate||state.repFilterStore||state.repFilterCategory);
+  const filtered=!!(state.repSearch||state.repFilterCode||state.repFilterStore||state.repFilterCategory||xOn(state.repX));
   const w=prompt(`Vas a ELIMINAR ${del.length} repeticiones de la pestaña Pendientes${filtered?' (solo las que se ven con los filtros/búsqueda actuales)':''}.${skipped?`\nSe conservan ${skipped} que ya tienen fotos o están en proceso.`:''}\nNo toca las de Tomadas, Enviadas ni Aprobadas. No se puede deshacer.\nEscribe ELIMINAR para confirmar:`);
   if(!w||w.trim().toUpperCase()!=='ELIMINAR'){ if(w!==null) toast('No se eliminó nada: debes escribir ELIMINAR.'); return; }
   b.disabled=true;
@@ -12226,6 +12533,41 @@ if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
   window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(e){ console.warn('SW no registrado',e); }); });
 }
 </script>
+<style id="veri-polish-1">
+/* ===== Fecha: presupuesto ===== */
+.bud-date{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.bud-date-chip{border:1.5px solid var(--glass-border);background:var(--input-bg);color:var(--text-1);border-radius:14px;padding:0 16px;min-height:50px;font:inherit;font-size:14.5px;font-weight:700;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.bud-date-chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.bud-date-pick{position:relative;flex:1 1 180px;min-width:0;display:flex;align-items:center;gap:10px;min-height:50px;padding:0 14px;border-radius:14px;border:1.5px solid var(--glass-border);background:var(--input-bg);color:var(--text-1);font-size:14.5px;font-weight:700;cursor:pointer;margin:0;overflow:hidden}
+.bud-date-pick.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.16)}
+.bud-date-ico{font-size:18px;line-height:1}.bud-date-txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bud-date-car{opacity:.5;font-size:12px}
+.bud-sheet .bud-date-pick input[type=date]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;margin:0;-webkit-appearance:none;appearance:none}
+/* ===== Excel de repeticiones: fecha y persona ===== */
+.rex-sec{margin:0 0 16px}
+.rex-l{font-size:13.5px;font-weight:800;margin:0 0 8px;color:var(--text-1)}.rex-hint{font-weight:600;font-size:12px;opacity:.65}
+.rex-seg{display:grid;grid-template-columns:1fr 1fr;margin:0 0 10px}
+.rex-quick{display:flex;gap:8px;margin:0 0 10px}
+.rex-q{border:1.5px solid var(--divider);background:var(--input-bg);color:var(--text-1);border-radius:99px;padding:7px 16px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
+.rex-q.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.rex-dates{display:flex;gap:10px}.rex-date{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.rex-date-l{font-size:12px;font-weight:700;opacity:.7}
+.rex-date-row{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 12px;border-radius:14px;border:1.5px solid var(--divider);background:var(--input-bg)}
+.rex-date-row:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.16)}
+.rex-date-ico{font-size:17px}
+.rex-date-row input[type=date]{flex:1;min-width:0;border:0!important;background:transparent!important;padding:10px 0;font:inherit;font-size:15px;font-weight:700;color:var(--text-1);outline:none;box-shadow:none!important}
+.rex-people{display:flex;flex-wrap:wrap;gap:8px;max-height:176px;overflow:auto;padding:2px}
+.rex-chip{position:relative;cursor:pointer;margin:0}
+.rex-chip input{position:absolute;opacity:0;pointer-events:none}
+.rex-chip-in{display:flex;align-items:center;gap:7px;padding:5px 12px 5px 6px;border-radius:99px;border:1.5px solid var(--divider);background:var(--input-bg);font-size:13.5px;font-weight:650;transition:background .15s,border-color .15s}
+.rex-av{display:inline-flex;width:24px;height:24px;border-radius:50%;overflow:hidden;flex:0 0 24px}
+.rex-chip input:checked+.rex-chip-in{background:rgba(var(--accent-rgb),.16);border-color:var(--accent);color:var(--accent)}
+.rex-chip input:focus-visible+.rex-chip-in{box-shadow:0 0 0 3px rgba(var(--accent-rgb),.3)}
+/* ===== Filtros de reportes: fecha y fotógrafo ===== */
+.rep-filter-field input[type=date]{min-height:48px!important;border-radius:14px!important;border:1.5px solid var(--divider)!important;font-size:14.5px!important;font-weight:700;padding:8px 12px!important}
+.rep-filter-field select{min-height:48px;border-radius:14px;font-weight:650}
+.rep-filter-field input[type=date]:focus,.rep-filter-field select:focus{border-color:var(--accent)!important;outline:none;box-shadow:0 0 0 3px rgba(var(--accent-rgb),.16)}
+.rep-filter-sub{font-weight:800}
+</style>
 </body>
 </html>
 
