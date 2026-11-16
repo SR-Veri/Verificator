@@ -11631,7 +11631,7 @@ function repLockStale(r){ return !!r.enProcesoDesde && (Date.now()-new Date(r.en
 function repStartButtonHTML(r){
   const me=normalize(state.session||''); if(!me) return '';
   const upJob=(state.repUploads||{})[String(r.id)];
-  if(upJob) return upJob.status==='error' ? `<button type="button" class="btn sm" data-rep-up-retry="${r.id}">↻ Reintentar envío</button><button type="button" class="btn ghost sm" data-rep-up-cancel="${r.id}">Descartar fotos</button>` : '';
+  if(upJob) return upJob.status==='error' ? `${upJob.items.length?`<button type="button" class="btn sm" data-rep-up-retry="${r.id}">↻ Reintentar envío</button>`:''}<button type="button" class="btn secondary sm" data-rep-up-reattach="${r.id}">📎 Adjuntar fotos otra vez</button><button type="button" class="btn ghost sm" data-rep-up-cancel="${r.id}">Descartar fotos</button>` : '';
   if(r.estado==='pending') return `<button type="button" class="btn sm" data-rep-start="${r.id}">📷 Iniciar</button>`;
   if(r.estado==='done'){
     if(!r.enProcesoPor || r.enProcesoPor===me) return `<button type="button" class="btn sm" data-rep-start="${r.id}">📷 Continuar</button><button type="button" class="btn ghost sm" data-rep-release="${r.id}">Cancelar</button>`;
@@ -11710,9 +11710,9 @@ function openRepCapture(r){
   repCapRenderThumbs();
   // Si la app se cerró con fotos tomadas, se recuperan del respaldo local.
   const cc=state.repCapture;
-  repDbTx('readonly',st=>st.get(repDbKey(r.id))).then(rec=>{
+  repDbTx('readonly',st=>st.get(repDbKey(r.id))).then(async rec=>{
     if(!rec||rec.kind!=='draft'||state.repCapture!==cc) return;
-    const its=(rec.items||[]).map(repItemFromRec).filter(Boolean); if(!its.length) return;
+    const its=(await Promise.all((rec.items||[]).map(repItemFromRec))).filter(Boolean); if(!its.length||state.repCapture!==cc) return;
     cc.files=its.concat(cc.files); repCapRenderThumbs();
     its.forEach(it=>veriMakeThumb(it.file).then(t=>{ if(!t) return; if(state.repCapture!==cc||!cc.files.includes(it)){ try{URL.revokeObjectURL(t);}catch(e){} return; } it.thumb=t; repCapRenderThumbs(); }));
     toast(`Se recuperaron ${its.length} foto${its.length===1?'':'s'} que habías tomado`);
@@ -11762,17 +11762,29 @@ const repDbKey=(id)=>normalize(state.session||'')+':'+String(id);
 function repDbPut(kind,id,payload){ return repDbTx('readwrite',s=>s.put(Object.assign({k:repDbKey(id),owner:normalize(state.session||''),id:String(id),kind,t:Date.now()},payload))).catch(e=>console.warn('repDb',e)); }
 function repDbDel(id){ return repDbTx('readwrite',s=>s.delete(repDbKey(id))).catch(()=>{}); }
 function repDbMine(){ const me=normalize(state.session||''); return repDbTx('readonly',s=>s.getAll()).then(a=>(a||[]).filter(x=>x.owner===me)).catch(()=>[]); }
-function repDraftSave(c){ if(!c) return; if(!c.files.length) return repDbDel(c.id); const r=state.repeticiones.find(x=>String(x.id)===String(c.id)); return repDbPut('draft',c.id,{items:c.files.map(f=>({file:f.file})),name:(r&&(r.nombreProducto||r.codigoProducto))||'Producto'}); }
-function repJobPersist(job){ return repDbPut('upload',job.id,{items:job.items.map(i=>({file:i.file,path:i.path||null,saved:!!i.saved})),name:job.name,total:job.total,replace:job.replace||[]}); }
-function repItemFromRec(x){ try{ const f=x&&x.file; if(!(f instanceof Blob)) return null; const file=(f instanceof File)?f:new File([f],'foto.jpg',{type:f.type||'image/jpeg'}); return {file,url:URL.createObjectURL(file),thumb:null,path:x.path||null,saved:!!x.saved}; }catch(e){ return null; } }
+function repDraftSave(c){ if(!c) return; if(!c.files.length) return repDbDel(c.id); const r=state.repeticiones.find(x=>String(x.id)===String(c.id)); return repDbPut('draft',c.id,{items:c.files.map(repRecItem),name:(r&&(r.nombreProducto||r.codigoProducto))||'Producto'}); }
+function repRecItem(i){ return {file:i.file,name:i.file&&i.file.name||'',type:i.file&&i.file.type||'',path:i.path||null,saved:!!i.saved}; }
+function repJobPersist(job){ return repDbPut('upload',job.id,{items:job.items.map(repRecItem),name:job.name,total:job.total,replace:job.replace||[]}); }
+async function repItemFromRec(x){
+  try{
+    const f=x&&x.file; if(!(f instanceof Blob)) return null;
+    const buf=await f.arrayBuffer(); if(!buf||!buf.byteLength) return null;        // se vuelve a leer a memoria: si el archivo guardado no se puede leer, se descarta
+    const u=new Uint8Array(buf.slice(0,12));
+    let type=(f.type&&f.type.startsWith('image/'))?f.type:((x.type&&String(x.type).startsWith('image/'))?x.type:'');
+    if(!type) type=(u[0]===0xFF&&u[1]===0xD8)?'image/jpeg':(u[0]===0x89&&u[1]===0x50)?'image/png':(String.fromCharCode(u[4],u[5],u[6],u[7])==='ftyp'?'image/heic':'image/jpeg');
+    const name=x.name||f.name||('foto.'+(type.includes('png')?'png':type.includes('heic')?'heic':'jpg'));
+    const file=new File([buf],name,{type});
+    return {file,url:URL.createObjectURL(file),thumb:null,path:x.path||null,saved:!!x.saved};
+  }catch(e){ console.warn('repItemFromRec',e); return null; }
+}
 async function repRestoreFromDb(){
   const recs=await repDbMine();
   for(const rec of recs){
     if(rec.kind!=='upload') continue;
     if(state.repUploads&&state.repUploads[rec.id]) continue;
-    const items=(rec.items||[]).map(repItemFromRec).filter(Boolean);
-    if(!items.length){ repDbDel(rec.id); continue; }
-    (state.repUploads||(state.repUploads={}))[rec.id]={id:rec.id,name:rec.name||'Producto',items,total:items.length,done:items.filter(i=>i.saved).length,status:'error',replace:rec.replace||[]};
+    const items=(await Promise.all((rec.items||[]).map(repItemFromRec))).filter(Boolean);
+    (state.repUploads||(state.repUploads={}))[rec.id]={id:rec.id,name:rec.name||'Producto',items,total:rec.total||(rec.items||[]).length||items.length,done:items.filter(i=>i.saved).length,status:'error',replace:rec.replace||[],
+      error:items.length?'':'las fotos guardadas no se pudieron leer; adjúntalas otra vez'};
   }
 }
 let __repResumeAt=0;
@@ -11804,7 +11816,7 @@ function repResumeShow(items){
   const sh=document.createElement('div'); sh.id='repResumeSheet'; sh.className='rep-send'; sh.style.cssText='position:fixed;z-index:100060';
   const item=(it)=>{
     const id=escapeHtml(String(it.type==='upload'?it.job.id:it.r.id)), nm=escapeHtml(it.type==='upload'?it.job.name:(it.r.nombreProducto||it.r.codigoProducto||'Producto'));
-    if(it.type==='upload'){ const j=it.job; return `<div class="rep-res-item" data-k="${id}"><b>📤 ${nm}</b><small>También te falta enviar este producto (${j.done}/${j.total} fotos subidas). Tus fotos siguen guardadas en este dispositivo. ¿Quieres volver a intentarlo?</small><div class="rep-res-btns"><button type="button" class="btn sm" data-act="retry" data-id="${id}">↻ Reintentar envío</button><button type="button" class="btn ghost sm" data-act="discard" data-id="${id}">Descartar fotos</button></div></div>`; }
+    if(it.type==='upload'){ const j=it.job; return `<div class="rep-res-item" data-k="${id}"><b>📤 ${nm}</b><small>También te falta enviar este producto (${j.done}/${j.total} fotos subidas). Tus fotos siguen guardadas en este dispositivo. ¿Quieres volver a intentarlo?${j.error?` <i>(${escapeHtml(j.error)})</i>`:''}</small><div class="rep-res-btns">${j.items.length?`<button type="button" class="btn sm" data-act="retry" data-id="${id}">↻ Reintentar envío</button>`:''}<button type="button" class="btn secondary sm" data-act="reattach" data-id="${id}">📎 Adjuntar fotos otra vez</button><button type="button" class="btn ghost sm" data-act="discard" data-id="${id}">Descartar fotos</button></div></div>`; }
     return `<div class="rep-res-item" data-k="${id}"><b>📷 ${nm}</b><small>${it.n?`Dejaste este producto en progreso con ${it.n} foto${it.n===1?'':'s'} guardada${it.n===1?'':'s'}. ¿Quieres seguir tomando fotos o enviar ya?`:'Dejaste este producto en progreso. ¿Quieres continuar tomando fotos?'}</small><div class="rep-res-btns"><button type="button" class="btn sm" data-act="cont" data-id="${id}">📷 Continuar tomando fotos</button>${it.n?`<button type="button" class="btn secondary sm" data-act="send" data-id="${id}">🚀 Enviar ya</button>`:''}<button type="button" class="btn ghost sm" data-act="free" data-id="${id}">Liberar</button></div></div>`;
   };
   sh.innerHTML=`<div class="rep-send-card" style="max-height:84vh;overflow:auto"><button type="button" class="rep-send-x" id="repResX" aria-label="Cerrar">✕</button><h3>Tienes repeticiones sin terminar</h3><p class="rep-send-sub">Puedes retomarlas ahora mismo.</p>${items.map(item).join('')}<div style="text-align:center;margin-top:10px"><button type="button" class="btn ghost sm" id="repResLater">Ahora no</button></div></div>`;
@@ -11818,6 +11830,7 @@ function repResumeShow(items){
     if(act==='retry'){ const job=(state.repUploads||{})[id]; if(job){ job.status='queued'; render(); repUploadEnqueue(job); toast('Reintentando el envío…'); } drop(id); return; }
     if(act==='discard'){ if(!confirm('¿Descartar estas fotos? El producto volverá a pendientes.')) return; const job=(state.repUploads||{})[id]; if(job){ delete state.repUploads[id]; job.items.forEach(repCapFree); } repDbDel(id); repRelease(id,true); drop(id); return; }
     if(act==='free'){ await repRelease(id); drop(id); return; }
+    if(act==='reattach'){ close(); await repReattach(id); return; }
     if(act==='cont'||act==='send'){ close(); await repStart(id); if(act==='send'){ await repResumeWait(()=>state.repCapture&&state.repCapture.files.length>0,2500); if(state.repCapture&&state.repCapture.files.length) repCapOpenSend(); } }
   };
 }
@@ -11930,7 +11943,7 @@ function repUploadEnqueue(job){ job.status='queued'; __repUpChain=__repUpChain.t
 function repUploadInner(job){
   const err=job.status==='error';
   const pct=job.status==='queued'?3:Math.max(4,Math.round(job.done/job.total*100));
-  const txt=job.status==='queued'?'En cola para enviar…':err?'No se pudo enviar. Tus fotos siguen guardadas aquí.':job.done<job.total?`Subiendo foto ${job.done+1} de ${job.total}`:'Guardando en revisión…';
+  const txt=job.status==='queued'?'En cola para enviar…':err?`No se pudo enviar${job.error?': '+job.error:''}. Tus fotos siguen guardadas aquí.`:job.done<job.total?`Subiendo foto ${job.done+1} de ${job.total}`:'Guardando en revisión…';
   return `<div class="rep-up-top"><span>${txt}</span><b>${err?'':pct+'%'}</b></div><div class="rep-up-bar ${err?'err':''}"><i style="width:${err?100:pct}%"></i></div>`;
 }
 function repUploadHTML(r){
@@ -11949,30 +11962,33 @@ function repNotify(title, body){
 async function repUploadRun(job){
   const key=job.id, jobs=state.repUploads||{};
   if(jobs[key]!==job) return;                        // descartado
-  const r=state.repeticiones.find(x=>String(x.id)===key);
-  job.status='uploading'; repUploadPaint(job);
+  let r=state.repeticiones.find(x=>String(x.id)===key);
+  job.status='uploading'; job.error=''; repUploadPaint(job);
+  const withRetry=async(fn)=>{ let last; for(let a=0;a<3;a++){ try{ return await fn(); }catch(e){ last=e; if(/imagen|30 MB/i.test(String(e&&e.message))) throw e; await new Promise(res=>setTimeout(res,1500*(a+1))); } } throw last; };
   try{
-    if(!r) throw new Error('Repetición no encontrada');
+    if(!job.items.length) throw new Error('no hay fotos guardadas para enviar; adjúntalas otra vez');
+    if(!r){ try{ await refreshRepeticiones(); }catch(e){} r=state.repeticiones.find(x=>String(x.id)===key); }
+    if(!r) throw new Error('no se encontró el producto (revisa tu conexión)');
     let first=null;
     for(let i=0;i<job.items.length;i++){
       const it=job.items[i];
       if(state.repUploads[key]!==job) return;
-      if(!it.path){ it.path=await uploadVeriPhoto(it.file, r.id, {skipSave:true}); repJobPersist(job); }     // cada archivo se sube una sola vez
+      if(!it.path){ it.path=await withRetry(()=>uploadVeriPhoto(it.file, r.id, {skipSave:true})); repJobPersist(job); }     // cada archivo se sube una sola vez
       if(!it.saved){
         const oldId=job.replace[i];
         if(oldId!==undefined){
           const now=new Date().toISOString();
-          await patchRepPhoto(oldId,{foto_path:it.path,ruta_archivo:it.path,nombre_archivo:it.file.name,estado:'pendiente',estado_revision:'pendiente',subida_en:now,fecha_subida:now,revisada_en:null,fecha_revision:null,revisada_por:null,revisado_por:null,aprobada_en:null,eliminar_despues_de:null});
-        } else await insertRepPhoto(r.id, it.path, it.file.name);
+          await withRetry(()=>patchRepPhoto(oldId,{foto_path:it.path,ruta_archivo:it.path,nombre_archivo:it.file.name,estado:'pendiente',estado_revision:'pendiente',subida_en:now,fecha_subida:now,revisada_en:null,fecha_revision:null,revisada_por:null,revisado_por:null,aprobada_en:null,eliminar_despues_de:null}));
+        } else await withRetry(()=>insertRepPhoto(r.id, it.path, it.file.name));
         it.saved=true; repJobPersist(job);
       }
       if(!first) first=it.path;
       job.done=i+1; repUploadPaint(job);
     }
     const now=new Date().toISOString();
-    await repPatchSafe(r.id,
+    await withRetry(()=>repPatchSafe(r.id,
       {estado:'sent', archivado:false, foto_path:first, foto_subida_en:now, revision_estado:'pendiente', revision_motivo:'', en_proceso_por:null, en_proceso_desde:null},
-      {estado:'sent', archivado:false, foto_path:first, foto_subida_en:now, revision_estado:'pendiente', revision_motivo:''});
+      {estado:'sent', archivado:false, foto_path:first, foto_subida_en:now, revision_estado:'pendiente', revision_motivo:''}));
     Object.assign(r,{estado:'sent',archivado:false,fotoPath:first,fotoSubidaEn:now,revisionEstado:'pendiente',revisionMotivo:'',enProcesoPor:'',enProcesoDesde:null});
     try{ await refreshRepPhotos(); }catch(e){ console.warn(e); }
     delete state.repUploads[key]; job.items.forEach(repCapFree); repDbDel(key);
@@ -11981,12 +11997,24 @@ async function repUploadRun(job){
   }catch(e){
     console.error(e);
     if(state.repUploads && state.repUploads[key]===job){
-      job.status='error'; render();
-      toast(`No se pudieron enviar las fotos de ${job.name}. Toca “Reintentar envío”.`);
+      job.status='error'; job.error=String((e&&(e.message||e.error_description||e.error))||e||'error desconocido').slice(0,140); render();
+      toast(`No se pudieron enviar las fotos de ${job.name}: ${job.error}`);
     }
   }
 }
+async function repReattach(id){
+  id=String(id);
+  const job=(state.repUploads||{})[id];
+  if(job){
+    if(job.items.length) await repDbPut('draft',id,{items:job.items.map(repRecItem),name:job.name}); else await repDbDel(id);
+    delete state.repUploads[id]; job.items.forEach(repCapFree);
+  }
+  if(!state.repeticiones.find(x=>String(x.id)===id)){ try{ await refreshRepeticiones(); }catch(e){} }
+  render(); await repStart(id);
+}
 document.addEventListener('click',e=>{
+  const ra=e.target.closest&&e.target.closest('[data-rep-up-reattach]');
+  if(ra){ repReattach(ra.dataset.repUpReattach); return; }
   const rb=e.target.closest&&e.target.closest('[data-rep-up-retry]');
   if(rb){ const job=(state.repUploads||{})[rb.dataset.repUpRetry]; if(job&&job.status==='error'){ job.status='queued'; render(); repUploadEnqueue(job); } return; }
   const cb=e.target.closest&&e.target.closest('[data-rep-up-cancel]');
