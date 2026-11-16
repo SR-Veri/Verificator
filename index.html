@@ -2370,7 +2370,26 @@ html.lite [data-theme="dark"] .glass,html.lite [data-theme="dark"] .card{backgro
 html.lite img{image-rendering:auto}
 html.lite .veri-bot,html.lite .vc-hero-glow{animation:none!important}
 html.lite.lite .stat-pie-svg circle{transition:none!important}
+
+.rep-res-item{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:12px 14px;margin:10px 0;color:#fff}
+.rep-res-item b{display:block;font-size:15px;margin-bottom:4px}
+.rep-res-item small{display:block;opacity:.78;font-size:13px;line-height:1.4;margin-bottom:10px}
+.rep-res-btns{display:flex;flex-wrap:wrap;gap:8px}
+/* Pantalla de carga: logo Veri con puntos saltando sobre la i */
+.bs{position:fixed;inset:0;z-index:2147482900;overflow:hidden}
+.bs-bg{position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 30%,rgba(var(--accent-rgb),.16),transparent 62%),var(--bg-1,#eef1f6)}
+.bs-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.bs-mark.veri-wordmark{font-size:68px;will-change:transform;animation:bsIn .6s cubic-bezier(.22,1,.36,1) backwards}
+.bs-dots{position:absolute;left:50%;top:-.6em;transform:translateX(-50%);display:flex;align-items:center;gap:.13em;pointer-events:none}
+.bs-dots i{display:block;width:.1em;height:.1em;border-radius:50%;background:var(--accent);opacity:.55;animation:bsHop 1.1s cubic-bezier(.3,0,.4,1) infinite}
+.bs-dots i.c{width:.22em;height:.22em;opacity:1;animation-delay:.14s}
+.bs-dots i:last-child{animation-delay:.28s}
+.bs.bs-end .bs-dots i:not(.c){opacity:0;transition:opacity .25s}
+.bs.bs-end .bs-dots i{animation:none}
+@keyframes bsHop{0%,55%,100%{transform:translateY(0)}27%{transform:translateY(-.36em)}}
+@keyframes bsIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
 </style>
+<div id="bootSplash" class="bs" aria-hidden="true"><div class="bs-bg"></div><div class="bs-stage"><div class="bs-mark veri-wordmark">Ver<span class="i-wrap">ı<span class="bs-dots"><i></i><i class="c"></i><i></i></span></span></div></div></div>
 <script>
 /* ===================== Supabase config ===================== */
 const SUPABASE_URL = 'https://vgnpwlwkpxcumiqfmbti.supabase.co';
@@ -6750,15 +6769,48 @@ async function ensureBothBasesLoaded(){
   basesLoadPending = false;
 }
 
+/* ---- Pantalla de carga inicial ---- */
+function bootSplashShow(){
+  let el=document.getElementById('bootSplash');
+  if(!el){ el=document.createElement('div'); el.id='bootSplash'; el.className='bs'; el.setAttribute('aria-hidden','true');
+    el.innerHTML='<div class="bs-bg"></div><div class="bs-stage"><div class="bs-mark veri-wordmark">Ver<span class="i-wrap">ı<span class="bs-dots"><i></i><i class="c"></i><i></i></span></span></div></div>';
+    document.body.appendChild(el); }
+  delete el.dataset.done; el.classList.remove('bs-end'); el.dataset.t0=String(Date.now());
+  clearTimeout(el._safe); el._safe=setTimeout(()=>bootSplashDone(true),15000);   // red de seguridad
+  return el;
+}
+function bootSplashDone(force){
+  const el=document.getElementById('bootSplash'); if(!el||el.dataset.done) return; el.dataset.done='1'; clearTimeout(el._safe);
+  const wait=force?0:Math.max(0,1100-(Date.now()-Number(el.dataset.t0||Date.now())));
+  setTimeout(()=>{
+    let tgt=null; try{ tgt=[...document.querySelectorAll('.topbar .veri-wordmark,.login-card .veri-wordmark,.sidebar .veri-wordmark')].find(n=>n.offsetWidth>0&&n.offsetHeight>0)||null; }catch(e){}
+    const mark=el.querySelector('.bs-mark'), bg=el.querySelector('.bs-bg');
+    let reduce=false; try{ reduce=veriReduceMotion()||document.documentElement.classList.contains('lite'); }catch(e){}
+    const cleanup=()=>{ try{ el.remove(); }catch(e){} if(tgt) tgt.style.visibility=''; };
+    setTimeout(cleanup,3000);
+    if(reduce||!el.animate){ el.style.transition='opacity .2s'; el.style.opacity='0'; setTimeout(cleanup,230); return; }
+    el.classList.add('bs-end');
+    if(!tgt){   // sin destino: el logo se expande y se disuelve
+      mark.animate([{transform:'scale(1)',opacity:1},{transform:'scale(1.35)',opacity:0}],{duration:520,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
+      bg.animate([{opacity:1},{opacity:0}],{duration:520,easing:'ease',fill:'forwards'}).onfinish=cleanup; return;
+    }
+    const a=mark.getBoundingClientRect(), r=tgt.getBoundingClientRect(), k=r.width/a.width;
+    const dx=(r.left+r.width/2)-(a.left+a.width/2), dy=(r.top+r.height/2)-(a.top+a.height/2);
+    tgt.style.visibility='hidden';
+    bg.animate([{opacity:1},{opacity:0}],{duration:620,delay:200,easing:'ease-in-out',fill:'forwards'});
+    const fly=mark.animate([{transform:'translate(0,0) scale(1)'},{transform:`translate(${dx}px,${dy}px) scale(${k})`}],{duration:820,easing:'cubic-bezier(.22,1,.36,1)',fill:'forwards'});
+    fly.onfinish=()=>{ cleanup(); try{ tgt.animate([{transform:'scale(1.08)'},{transform:'scale(1)'}],{duration:380,easing:'cubic-bezier(.34,1.56,.64,1)'}); }catch(e){} };
+  },wait);
+}
 async function boot(){
-  state.booted = false; state.connError = false; renderRoot();
+  state.booted = false; state.connError = false; bootSplashShow(); renderRoot();
   try{
     const personas = await fetchPersonas();
     state.personas = personas || [];
     if(state.personas.length>0){
       const sess = normalize(state.session||'');
       const valid = sess && state.personas.some(p=>p.codigo===sess);
-      if(!valid){ state.session=null; localStorage.removeItem('vp_session'); state.booted=true; renderRoot(); return; }
+      if(!valid){ state.session=null; localStorage.removeItem('vp_session'); state.booted=true; renderRoot(); bootSplashDone(); return; }
     }
     await loadCoreData();
     if(state.session){ veriRememberUser(state.session, state.personas.find(p=>p.codigo===normalize(state.session))); }   // el dispositivo recuerda a quien ya tenía sesión
@@ -6772,10 +6824,13 @@ async function boot(){
     startNamingDayWatcher();
     state.booted = true;
     renderRoot();
+    bootSplashDone();
+    setTimeout(()=>{ try{ repResumeCheck(true); }catch(e){} },1500);
   }catch(err){
     console.error(err);
     state.connError = true; state.booted = true;
     renderRoot();
+    bootSplashDone();
   }
 }
 
@@ -8009,7 +8064,7 @@ function renderRoot(){
   applyTheme();
   updateVeriFab(false);
   if(!state.booted){
-    root.innerHTML = `<div class="login-screen"><div class="glass login-card"><div class="spinner"></div></div></div>`;
+    root.innerHTML = '';   // la pantalla de carga (#bootSplash) cubre este momento
     return;
   }
   if(state.connError){
@@ -8244,6 +8299,7 @@ async function completeLogin(codigo, photoUrl=null, pin=null){
     try{ const rows=await fetchNamingRemote(); if(Array.isArray(rows)) await syncNamingRemoteRows(rows); }catch(e){ console.error('Error sincronizando nombrados:',e); }
     startNamingDayWatcher();
     state.booted=true; renderRoot();
+    setTimeout(()=>{ try{ repResumeCheck(true); }catch(e){} },2500);
   } finally {
     veriSplashFinish(splash);
   }
@@ -11614,7 +11670,7 @@ async function repRelease(id, silent){
   if(!silent && !confirm('¿Liberar este producto y dejarlo otra vez en pendientes?')) return;
   try{
     await repPatchSafe(id,{estado:'pending',en_proceso_por:null,en_proceso_desde:null},{estado:'pending'});
-    r.estado='pending'; r.enProcesoPor=''; r.enProcesoDesde=null; render();
+    r.estado='pending'; r.enProcesoPor=''; r.enProcesoDesde=null; repDbDel(id); render();
   }catch(e){ console.error(e); toast('No se pudo liberar el producto.'); }
 }
 
@@ -11652,6 +11708,15 @@ function openRepCapture(r){
   m.querySelector('#repCapTake').onclick=()=>cam.click();   // siempre la cámara nativa del dispositivo (foto original, máxima calidad)
   m.querySelector('#repCapSend').onclick=repCapOpenSend;
   repCapRenderThumbs();
+  // Si la app se cerró con fotos tomadas, se recuperan del respaldo local.
+  const cc=state.repCapture;
+  repDbTx('readonly',st=>st.get(repDbKey(r.id))).then(rec=>{
+    if(!rec||rec.kind!=='draft'||state.repCapture!==cc) return;
+    const its=(rec.items||[]).map(repItemFromRec).filter(Boolean); if(!its.length) return;
+    cc.files=its.concat(cc.files); repCapRenderThumbs();
+    its.forEach(it=>veriMakeThumb(it.file).then(t=>{ if(!t) return; if(state.repCapture!==cc||!cc.files.includes(it)){ try{URL.revokeObjectURL(t);}catch(e){} return; } it.thumb=t; repCapRenderThumbs(); }));
+    toast(`Se recuperaron ${its.length} foto${its.length===1?'':'s'} que habías tomado`);
+  }).catch(()=>{});
 }
 /* --- Ayudas de fotos (iPhone/HEIC/archivos grandes) --- */
 function veriGuessImgType(name){
@@ -11689,6 +11754,73 @@ function veriMakeThumb(file){
   });
 }
 function repCapFree(f){ try{ if(f&&f.url) URL.revokeObjectURL(f.url); }catch(e){} try{ if(f&&f.thumb) URL.revokeObjectURL(f.thumb); }catch(e){} }
+/* ===== Respaldo local de repeticiones (IndexedDB): fotos en progreso y envíos que no terminaron ===== */
+const REP_DB={db:null};
+function repDbOpen(){ return new Promise((res,rej)=>{ if(REP_DB.db) return res(REP_DB.db); try{ const rq=indexedDB.open('vp_rep_v1',1); rq.onupgradeneeded=()=>{ rq.result.createObjectStore('recs',{keyPath:'k'}); }; rq.onsuccess=()=>{ REP_DB.db=rq.result; res(REP_DB.db); }; rq.onerror=()=>rej(rq.error); }catch(e){ rej(e); } }); }
+async function repDbTx(mode,fn){ const d=await repDbOpen(); return new Promise((res,rej)=>{ const tx=d.transaction('recs',mode); const rq=fn(tx.objectStore('recs')); tx.oncomplete=()=>res(rq&&rq.result); tx.onerror=()=>rej(tx.error); tx.onabort=()=>rej(tx.error); }); }
+const repDbKey=(id)=>normalize(state.session||'')+':'+String(id);
+function repDbPut(kind,id,payload){ return repDbTx('readwrite',s=>s.put(Object.assign({k:repDbKey(id),owner:normalize(state.session||''),id:String(id),kind,t:Date.now()},payload))).catch(e=>console.warn('repDb',e)); }
+function repDbDel(id){ return repDbTx('readwrite',s=>s.delete(repDbKey(id))).catch(()=>{}); }
+function repDbMine(){ const me=normalize(state.session||''); return repDbTx('readonly',s=>s.getAll()).then(a=>(a||[]).filter(x=>x.owner===me)).catch(()=>[]); }
+function repDraftSave(c){ if(!c) return; if(!c.files.length) return repDbDel(c.id); const r=state.repeticiones.find(x=>String(x.id)===String(c.id)); return repDbPut('draft',c.id,{items:c.files.map(f=>({file:f.file})),name:(r&&(r.nombreProducto||r.codigoProducto))||'Producto'}); }
+function repJobPersist(job){ return repDbPut('upload',job.id,{items:job.items.map(i=>({file:i.file,path:i.path||null,saved:!!i.saved})),name:job.name,total:job.total,replace:job.replace||[]}); }
+function repItemFromRec(x){ try{ const f=x&&x.file; if(!(f instanceof Blob)) return null; const file=(f instanceof File)?f:new File([f],'foto.jpg',{type:f.type||'image/jpeg'}); return {file,url:URL.createObjectURL(file),thumb:null,path:x.path||null,saved:!!x.saved}; }catch(e){ return null; } }
+async function repRestoreFromDb(){
+  const recs=await repDbMine();
+  for(const rec of recs){
+    if(rec.kind!=='upload') continue;
+    if(state.repUploads&&state.repUploads[rec.id]) continue;
+    const items=(rec.items||[]).map(repItemFromRec).filter(Boolean);
+    if(!items.length){ repDbDel(rec.id); continue; }
+    (state.repUploads||(state.repUploads={}))[rec.id]={id:rec.id,name:rec.name||'Producto',items,total:items.length,done:items.filter(i=>i.saved).length,status:'error',replace:rec.replace||[]};
+  }
+}
+let __repResumeAt=0;
+function repResumeWait(fn,ms){ return new Promise(res=>{ const t0=Date.now(); const iv=setInterval(()=>{ if(fn()||Date.now()-t0>ms){ clearInterval(iv); res(); } },80); }); }
+async function repResumeCheck(force){
+  try{
+    if(!state.session||!state.booted||!toolVisible('rep')||state.repCapture||document.getElementById('repResumeSheet')) return;
+    if(!force&&Date.now()-__repResumeAt<90000) return;
+    const me=normalize(state.session);
+    if(!state.repeticiones||!state.repeticiones.length){ try{ await refreshRepeticiones(); }catch(e){} }
+    await repRestoreFromDb();
+    const recs=await repDbMine(), drafts=new Map(recs.filter(x=>x.kind==='draft').map(x=>[String(x.id),x]));
+    const rows=state.repeticiones||[], items=[];
+    for(const job of Object.values(state.repUploads||{})){
+      const r=rows.find(x=>String(x.id)===String(job.id));
+      if(r&&r.estado==='sent'){ delete state.repUploads[job.id]; repDbDel(job.id); continue; }   // ya se había enviado
+      if(job.status==='error') items.push({type:'upload',job,r});
+    }
+    for(const r of rows){
+      if(r.estado==='done'&&r.enProcesoPor===me&&!(state.repUploads||{})[String(r.id)]) items.push({type:'progress',r,n:((drafts.get(String(r.id))||{}).items||[]).length});
+    }
+    for(const [id] of drafts){ const r=rows.find(x=>String(x.id)===id); if(r&&!(r.estado==='done'&&r.enProcesoPor===me)) repDbDel(id); }   // borradores huérfanos
+    if(!items.length) return;
+    __repResumeAt=Date.now();
+    repResumeShow(items);
+  }catch(e){ console.warn('repResume',e); }
+}
+function repResumeShow(items){
+  const sh=document.createElement('div'); sh.id='repResumeSheet'; sh.className='rep-send'; sh.style.cssText='position:fixed;z-index:100060';
+  const item=(it)=>{
+    const id=escapeHtml(String(it.type==='upload'?it.job.id:it.r.id)), nm=escapeHtml(it.type==='upload'?it.job.name:(it.r.nombreProducto||it.r.codigoProducto||'Producto'));
+    if(it.type==='upload'){ const j=it.job; return `<div class="rep-res-item" data-k="${id}"><b>📤 ${nm}</b><small>También te falta enviar este producto (${j.done}/${j.total} fotos subidas). Tus fotos siguen guardadas en este dispositivo. ¿Quieres volver a intentarlo?</small><div class="rep-res-btns"><button type="button" class="btn sm" data-act="retry" data-id="${id}">↻ Reintentar envío</button><button type="button" class="btn ghost sm" data-act="discard" data-id="${id}">Descartar fotos</button></div></div>`; }
+    return `<div class="rep-res-item" data-k="${id}"><b>📷 ${nm}</b><small>${it.n?`Dejaste este producto en progreso con ${it.n} foto${it.n===1?'':'s'} guardada${it.n===1?'':'s'}. ¿Quieres seguir tomando fotos o enviar ya?`:'Dejaste este producto en progreso. ¿Quieres continuar tomando fotos?'}</small><div class="rep-res-btns"><button type="button" class="btn sm" data-act="cont" data-id="${id}">📷 Continuar tomando fotos</button>${it.n?`<button type="button" class="btn secondary sm" data-act="send" data-id="${id}">🚀 Enviar ya</button>`:''}<button type="button" class="btn ghost sm" data-act="free" data-id="${id}">Liberar</button></div></div>`;
+  };
+  sh.innerHTML=`<div class="rep-send-card" style="max-height:84vh;overflow:auto"><button type="button" class="rep-send-x" id="repResX" aria-label="Cerrar">✕</button><h3>Tienes repeticiones sin terminar</h3><p class="rep-send-sub">Puedes retomarlas ahora mismo.</p>${items.map(item).join('')}<div style="text-align:center;margin-top:10px"><button type="button" class="btn ghost sm" id="repResLater">Ahora no</button></div></div>`;
+  document.body.appendChild(sh);
+  const close=()=>{ sh.remove(); };
+  const drop=(id)=>{ const n=sh.querySelector(`.rep-res-item[data-k="${CSS.escape(id)}"]`); if(n) n.remove(); if(!sh.querySelector('.rep-res-item')) close(); };
+  sh.querySelector('#repResX').onclick=close; sh.querySelector('#repResLater').onclick=close; sh.onclick=e=>{ if(e.target===sh) close(); };
+  sh.onclick=async(e)=>{
+    if(e.target===sh){ close(); return; }
+    const b=e.target.closest('[data-act]'); if(!b) return; const id=b.dataset.id, act=b.dataset.act;
+    if(act==='retry'){ const job=(state.repUploads||{})[id]; if(job){ job.status='queued'; render(); repUploadEnqueue(job); toast('Reintentando el envío…'); } drop(id); return; }
+    if(act==='discard'){ if(!confirm('¿Descartar estas fotos? El producto volverá a pendientes.')) return; const job=(state.repUploads||{})[id]; if(job){ delete state.repUploads[id]; job.items.forEach(repCapFree); } repDbDel(id); repRelease(id,true); drop(id); return; }
+    if(act==='free'){ await repRelease(id); drop(id); return; }
+    if(act==='cont'||act==='send'){ close(); await repStart(id); if(act==='send'){ await repResumeWait(()=>state.repCapture&&state.repCapture.files.length>0,2500); if(state.repCapture&&state.repCapture.files.length) repCapOpenSend(); } }
+  };
+}
 async function repCapAddFiles(files){
   const c=state.repCapture; if(!c||c.busy) return;
   for(const f0 of files){
@@ -11698,6 +11830,7 @@ async function repCapAddFiles(files){
     if(state.repCapture!==c) return;
     const it={file:f, url:URL.createObjectURL(f), thumb:null, path:null, saved:false};
     c.files.push(it);
+    repDraftSave(c);
     repCapRenderThumbs();
     veriMakeThumb(f).then(t=>{
       if(!t) return;
@@ -11710,7 +11843,7 @@ function repCapRenderThumbs(){
   const c=state.repCapture, box=document.getElementById('repCapThumbs'); if(!c||!box) return;
   box.innerHTML=c.files.map((f,i)=>`<div class="rep-cap-thumb"><button type="button" class="rep-cap-img" data-cap-view="${i}" aria-label="Ver foto ${i+1}"><img src="${f.thumb||f.url}" alt="Foto ${i+1}" decoding="async" onerror="this.style.display='none';this.closest('.rep-cap-thumb').classList.add('nopv')"></button>${c.busy?'':`<button type="button" class="rep-cap-del" data-cap-del="${i}" aria-label="Quitar foto ${i+1}">✕</button>`}</div>`).join('') || '<p class="small-note" style="opacity:.7;text-align:center;margin:14px 0">Aún no hay fotos.</p>';
   box.querySelectorAll('[data-cap-view]').forEach(b=>b.onclick=()=>{ const f=c.files[Number(b.dataset.capView)]; if(!f) return; openVeriPhotoPreview(f.url,'Foto '+(Number(b.dataset.capView)+1),c.files.map((q,j)=>({src:q.url,title:'Foto '+(j+1)})),Number(b.dataset.capView)); const v=document.getElementById('veriPhotoModal'); if(v) v.style.zIndex=100002; });
-  box.querySelectorAll('[data-cap-del]').forEach(b=>b.onclick=()=>{ const i=Number(b.dataset.capDel); const f=c.files[i]; if(!f) return; repCapFree(f); c.files.splice(i,1); repCapRenderThumbs(); });
+  box.querySelectorAll('[data-cap-del]').forEach(b=>b.onclick=()=>{ const i=Number(b.dataset.capDel); const f=c.files[i]; if(!f) return; repCapFree(f); c.files.splice(i,1); repDraftSave(c); repCapRenderThumbs(); });
   const n=c.files.length, cnt=document.getElementById('repCapCount'), send=document.getElementById('repCapSend');
   if(cnt) cnt.textContent = n ? `${n} foto${n===1?'':'s'}` : 'Sin fotos';
   const takeLbl=document.querySelector('#repCapTake .lbl'); if(takeLbl) takeLbl.textContent = n ? 'Tomar otra foto' : 'Tomar foto';
@@ -11785,6 +11918,7 @@ function repCapDoSend(){
   const replace=(state.repetitionPhotos||[]).filter(f=>String(f.repeticionId)===key && f.estado==='repetir').map(f=>f.id);
   const job={id:key, name:r.nombreProducto||r.codigoProducto||'Producto', items:c.files.slice(), total:c.files.length, done:0, status:'queued', replace};
   (state.repUploads||(state.repUploads={}))[key]=job;
+  repJobPersist(job);
   c.files=[];                       // las fotos pasan al trabajo de envío; la ventana ya no las libera
   closeRepCapture(false);
   toast('Enviando fotos en segundo plano · ya puedes seguir con otro producto');
@@ -11823,14 +11957,14 @@ async function repUploadRun(job){
     for(let i=0;i<job.items.length;i++){
       const it=job.items[i];
       if(state.repUploads[key]!==job) return;
-      if(!it.path) it.path=await uploadVeriPhoto(it.file, r.id, {skipSave:true});     // cada archivo se sube una sola vez
+      if(!it.path){ it.path=await uploadVeriPhoto(it.file, r.id, {skipSave:true}); repJobPersist(job); }     // cada archivo se sube una sola vez
       if(!it.saved){
         const oldId=job.replace[i];
         if(oldId!==undefined){
           const now=new Date().toISOString();
           await patchRepPhoto(oldId,{foto_path:it.path,ruta_archivo:it.path,nombre_archivo:it.file.name,estado:'pendiente',estado_revision:'pendiente',subida_en:now,fecha_subida:now,revisada_en:null,fecha_revision:null,revisada_por:null,revisado_por:null,aprobada_en:null,eliminar_despues_de:null});
         } else await insertRepPhoto(r.id, it.path, it.file.name);
-        it.saved=true;
+        it.saved=true; repJobPersist(job);
       }
       if(!first) first=it.path;
       job.done=i+1; repUploadPaint(job);
@@ -11841,7 +11975,7 @@ async function repUploadRun(job){
       {estado:'sent', archivado:false, foto_path:first, foto_subida_en:now, revision_estado:'pendiente', revision_motivo:''});
     Object.assign(r,{estado:'sent',archivado:false,fotoPath:first,fotoSubidaEn:now,revisionEstado:'pendiente',revisionMotivo:'',enProcesoPor:'',enProcesoDesde:null});
     try{ await refreshRepPhotos(); }catch(e){ console.warn(e); }
-    delete state.repUploads[key]; job.items.forEach(repCapFree);
+    delete state.repUploads[key]; job.items.forEach(repCapFree); repDbDel(key);
     repNotify('Fotos enviadas correctamente', `${job.name} · ${job.total} foto${job.total===1?'':'s'} en revisión`);
     render();
   }catch(e){
@@ -11859,7 +11993,7 @@ document.addEventListener('click',e=>{
   if(cb){
     const k=cb.dataset.repUpCancel, job=(state.repUploads||{})[k]; if(!job) return;
     if(!confirm('¿Descartar estas fotos? El producto volverá a pendientes.')) return;
-    delete state.repUploads[k]; job.items.forEach(repCapFree); repRelease(k,true);
+    delete state.repUploads[k]; job.items.forEach(repCapFree); repDbDel(k); repRelease(k,true);
   }
 });
 /* Eliminar pendientes: solo lo que se ve en la pestaña Pendientes (respeta búsqueda y filtros). No toca productos con fotos, en proceso, enviados ni aprobados. */
@@ -11915,7 +12049,7 @@ window.addEventListener('beforeunload',e=>{ if(state.repUploads && Object.keys(s
 async function closeRepCapture(release){
   const c=state.repCapture; repCapLiveStop();
   const m=document.getElementById('repCaptureModal'); if(m) m.remove();
-  if(c){ c.files.forEach(f=>{ repCapFree(f); }); state.repCapture=null; if(release) await repRelease(c.id,true); }
+  if(c){ c.files.forEach(f=>{ repCapFree(f); }); state.repCapture=null; if(release){ repDbDel(c.id); await repRelease(c.id,true); } }
 }
 
 /* ---- Cámara continua dentro de la app (sin zoom propio: el celular ya cambia de lente) ---- */
@@ -11978,7 +12112,7 @@ setInterval(()=>{ const inRev=!!(state.session && state.tab==='rep' && state.rep
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden && state.session && state.tab==='rep' && state.repView==='review') pollReview(); });
 // Al entrar a Repeticiones se actualiza al instante (sin esperar el primer ciclo); fuera de Repeticiones no hay consultas.
 let __wasInRep=false;
-setInterval(()=>{ const inRep=!!(state.session && state.tab==='rep' && state.repView==='list' && !document.hidden); if(inRep && !__wasInRep) pollRepeticiones(); __wasInRep=inRep; }, 1000);
+setInterval(()=>{ const inRep=!!(state.session && state.tab==='rep' && state.repView==='list' && !document.hidden); if(inRep && !__wasInRep){ pollRepeticiones(); repResumeCheck(false); } __wasInRep=inRep; }, 1000);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden && state.session && state.tab==='rep' && state.repView==='list') pollRepeticiones(); });
 
 /* Visor de revisión de fotografías: zoom, giro, ajuste y arrastre */
