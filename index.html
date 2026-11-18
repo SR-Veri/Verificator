@@ -6474,7 +6474,21 @@ function searchProducts(query, year, limit){
 }
 
 /* ===================== Data loading (Supabase) ===================== */
+/* Caché local de las bases: la base de productos NO se vuelve a descargar mientras no cambie su fecha de actualización (config.base_AAAA_updated_at). */
+function vpBaseDb(){ return new Promise((res,rej)=>{ try{ const rq=indexedDB.open('vp_bases_v1',1); rq.onupgradeneeded=()=>rq.result.createObjectStore('b'); rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error); }catch(e){ rej(e); } }); }
+async function vpBaseGet(k){ try{ const db=await vpBaseDb(); return await new Promise(r=>{ const q=db.transaction('b').objectStore('b').get(k); q.onsuccess=()=>r(q.result||null); q.onerror=()=>r(null); }); }catch(e){ return null; } }
+async function vpBasePut(k,v){ try{ const db=await vpBaseDb(); await new Promise(r=>{ const t=db.transaction('b','readwrite'); t.objectStore('b').put(v,k); t.oncomplete=()=>r(); t.onerror=()=>r(); t.onabort=()=>r(); }); }catch(e){} }
 async function fetchProductos(base){
+  let ts=null, tsOk=true;
+  try{ const r=await sb(`config?select=base_${base}_updated_at&id=eq.1`,{silent:true}); ts=(r&&r[0]&&r[0]['base_'+base+'_updated_at'])||null; }catch(e){ tsOk=false; }
+  const c=await vpBaseGet(base), hasC=!!(c&&Array.isArray(c.rows)&&c.rows.length);
+  if(!tsOk && hasC) return c.rows;                                   // sin conexión: se usa la copia guardada
+  if(ts && hasC && c.ts===ts) return c.rows;                          // la base no cambió: cero descarga
+  const rows=await fetchProductosNet(base);
+  if(ts && Array.isArray(rows) && rows.length) vpBasePut(base,{ts, rows});
+  return rows;
+}
+async function fetchProductosNet(base){
   const pageSize = 1000;
   const first = await sbRaw(`productos?base=eq.${base}&select=*&order=codigo.asc`, {
     headers: { 'Range-Unit':'items', 'Range': `0-${pageSize-1}`, 'Prefer':'count=exact' }
@@ -7722,7 +7736,7 @@ const NOTIF_TYPES = {
 };
 state.notif = { list:[], loaded:false, error:'', coAdminCanSend:false, draft:{tipo:'novedad',titulo:'',mensaje:''}, sending:false };
 let notifPollTimer = null;
-const NOTIF_POLL_INTERVAL_MS = 12000;
+const NOTIF_POLL_INTERVAL_MS = 30000;
 let notifPanelSeenAt = 0;
 const NOTIF_MISSING_RE = /42P01|PGRST205|does not exist|Could not find the table/i;
 
@@ -9722,14 +9736,14 @@ function renderRepReview(){
   state.__revCurId=String(r.id);
   const retReasons=[]; photos.forEach((p,i)=>{ const parts=String(p.motivo||'').split(' | ').map(x=>x.trim()).filter(Boolean); parts.forEach((m,k)=>retReasons.push({n:i+1,k:k+1,of:parts.length,m})); });
   if(!retReasons.length && photos.some(p=>p.legacy) && r.revisionMotivo) retReasons.push({n:0,m:r.revisionMotivo});
-  const reasonBanners=`<div class="warning-banner"><span><strong>Motivo original de la repetición</strong><br>${escapeHtml(r.motivo||'No se indicó un motivo.')}</span></div>`+retReasons.map(x=>`<div class="warning-banner"><span><strong>${x.of>1?`Devolución ${x.k} de ${x.of}`:'Motivo de devolución'}${x.n?` · foto ${x.n}`:''}</strong><br>${escapeHtml(x.m)}</span></div>`).join('');
+  const reasonBanners=`<div class="warning-banner"><span><strong>Motivo original de la repetición</strong><br>${escapeHtml(r.motivo||'No se indicó un motivo.')}</span></div>`+(repMissingText(r)?`<div class="warning-banner"><span><strong>Faltante pedido al fotógrafo</strong><br>${escapeHtml(repMissingText(r))}</span></div>`:'')+retReasons.map(x=>`<div class="warning-banner"><span><strong>${x.of>1?`Devolución ${x.k} de ${x.of}`:'Motivo de devolución'}${x.n?` · foto ${x.n}`:''}</strong><br>${escapeHtml(x.m)}</span></div>`).join('');
   const wideReasons=(wide&&retReasons.length)?`<div class="card glass" style="padding:10px 12px;margin-bottom:10px">${reasonBanners}</div>`:'';
   const loopNote=(state.repRevLoop&&String(state.repRevLoop.repId)===String(r.id))?`<div class="warning-banner" style="margin-bottom:10px"><span>↻ <strong>${escapeHtml(state.repRevLoop.text)}</strong></span></div>`:'';
   const ring=`<div class="rep-ring" role="img" title="${pName} · ${escapeHtml(r.codigoProducto||'')}" aria-label="Producto ${idx+1} de ${prods.length}"><svg viewBox="0 0 48 48"><circle class="trk" cx="24" cy="24" r="19"/><circle class="bar" cx="24" cy="24" r="19" style="--off:${(119.38*(1-(idx+1)/prods.length)).toFixed(2)}"/></svg><b>${totalPending}</b></div>`;
   const navBtns=`<div class="rep-review-nav"><button class="btn secondary rep-review-action" data-review-prev="${sel.key}" ${prods.length<2?'disabled':''} aria-label="Producto anterior">${idx===0&&prods.length>1?'↻ Ir al último':'← Anterior'}</button><button class="btn secondary rep-review-action" data-review-next="${sel.key}" ${prods.length<2?'disabled':''} aria-label="Producto siguiente">${idx>=prods.length-1&&prods.length>1?'↻ Volver al primero':'Siguiente →'}</button></div>`;
-  const actBtns=`<button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'}>✓ Aprobar foto</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'}>↻ Devolver para repetir</button><button class="btn secondary rep-review-action" data-review-discard="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} style="color:var(--red)" title="Eliminar esta foto sin aprobarla ni devolverla">🗑 Descartar foto</button>${revUndoBtns(false)}`;
+  const actBtns=`<button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'}>✓ Aprobar foto</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'}>↻ Devolver para repetir</button><button class="btn secondary rep-review-action" data-review-missing="${sel.reviewId}" ${(canAct&&mode==='multi')?'':'disabled'} title="Aprueba esta foto, pero avisa que aún falta fotografiar algo del producto">✓＋ Aprobar y marcar faltante</button><button class="btn secondary rep-review-action" data-review-discard="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} style="color:var(--red)" title="Eliminar esta foto sin aprobarla ni devolverla">🗑 Descartar foto</button>${revUndoBtns(false)}`;
   const info = wide
-  ? `<section class="card glass rep-review-info rep-review-mini">${ring}<div class="rep-mini-count" title="Fotos aprobadas de este producto">${nOk}/${nTotal}</div><div class="rep-mini-title" title="${pName} · ${escapeHtml(r.codigoProducto||'')} · ${escapeHtml(r.codigoBarras||'')}"><span class="rep-mini-id">${escapeHtml(r.codigoProducto||'—')}</span><span class="rep-mini-name">${pName}</span><span class="rep-mini-bc">${escapeHtml(r.codigoBarras||'—')}</span></div><span class="rep-mini-sep"></span><button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Aprobar foto" aria-label="Aprobar foto">✓</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Devolver para repetir" aria-label="Devolver para repetir">↻</button><button class="btn secondary rep-review-action" data-review-discard="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Descartar foto" aria-label="Descartar foto">🗑</button>${revUndoBtns(true)}<button class="btn secondary rep-review-action" data-review-prev="${sel.key}" ${prods.length<2?'disabled':''} title="Producto anterior" aria-label="Producto anterior">←</button><button class="btn secondary rep-review-action" data-review-next="${sel.key}" ${prods.length<2?'disabled':''} title="Producto siguiente" aria-label="Producto siguiente">→</button></section>`
+  ? `<section class="card glass rep-review-info rep-review-mini">${ring}<div class="rep-mini-count" title="Fotos aprobadas de este producto">${nOk}/${nTotal}</div><div class="rep-mini-title" title="${pName} · ${escapeHtml(r.codigoProducto||'')} · ${escapeHtml(r.codigoBarras||'')}"><span class="rep-mini-id">${escapeHtml(r.codigoProducto||'—')}</span><span class="rep-mini-name">${pName}</span><span class="rep-mini-bc">${escapeHtml(r.codigoBarras||'—')}</span></div><span class="rep-mini-sep"></span><button class="btn rep-review-action" data-review-approve="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Aprobar foto" aria-label="Aprobar foto">✓</button><button class="btn secondary rep-review-action" data-review-retake="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Devolver para repetir" aria-label="Devolver para repetir">↻</button><button class="btn secondary rep-review-action" data-review-missing="${sel.reviewId}" ${(canAct&&mode==='multi')?'':'disabled'} title="Aprobar y marcar faltante" aria-label="Aprobar y marcar faltante">✓＋</button><button class="btn secondary rep-review-action" data-review-discard="${sel.reviewId}" data-review-photo-mode="${mode}" ${canAct?'':'disabled'} title="Descartar foto" aria-label="Descartar foto">🗑</button>${revUndoBtns(true)}<button class="btn secondary rep-review-action" data-review-prev="${sel.key}" ${prods.length<2?'disabled':''} title="Producto anterior" aria-label="Producto anterior">←</button><button class="btn secondary rep-review-action" data-review-next="${sel.key}" ${prods.length<2?'disabled':''} title="Producto siguiente" aria-label="Producto siguiente">→</button></section>`
   : `<section class="card glass rep-review-info"><div class="rep-review-head">${ring}<div><strong>Revisión de repeticiones</strong><div class="small-note" style="margin-top:2px">Producto ${idx+1} de ${prods.length} · ${totalPending} foto${totalPending===1?'':'s'} pendiente${totalPending===1?'':'s'} en total</div></div></div>
     <div><div class="small-note">PRODUCTO</div><h2 style="font-size:22px;margin:4px 0 10px">${pName}</h2><div class="rep-detail"><strong>Código:</strong> ${escapeHtml(r.codigoProducto||'—')}</div><div class="rep-detail"><strong>Código de barras:</strong> ${escapeHtml(r.codigoBarras||'—')}</div><div class="rep-detail"><strong>Fotógrafo original:</strong> ${escapeHtml(r.fotografo||'—')}</div></div>
     <div class="rep-prod-prog"><div class="rep-prod-prog-top"><strong>Fotos de este producto</strong><span>${nOk} de ${nTotal} aprobadas${nRet?` · ${nRet} por repetir`:''}</span></div><div class="rep-review-progress"><span style="width:${pct}%"></span></div></div>
@@ -9845,9 +9859,44 @@ document.addEventListener('click',e=>{
   render();
 });
 function repFmtDate(k){ return k&&k.length===8?`${k.slice(0,4)}-${k.slice(4,6)}-${k.slice(6,8)}`:k; }
-/* Almacenes: se agrupan por cadena (Éxito Américas, Éxito Bosa… → ÉXITO). */
-const REP_STORE_CHAIN={1:'JUMBO',2:'JUMBO',3:'JUMBO',4:'ÉXITO',5:'ÉXITO',6:'ÉXITO',7:'ARA',9:'ARA',10:'ARA',8:'D1',11:'D1',12:'D1',13:'OLÍMPICA'};
+/* Almacenes 01–23: el filtro agrupa por cadena (Éxito Américas, Éxito Bosa… → ÉXITO). */
+const REP_STORE_NAME_DEF={1:'JUMBO CRA 30',2:'JUMBO AUTOSUR',3:'JUMBO CALLE 170',4:'ÉXITO AMÉRICAS',5:'ÉXITO COUNTRY',6:'ÉXITO BOSA',7:'ARA CHAPINERO',8:'D1 SAN MARCOS',9:'ARA NAVARRA',10:'ARA DINDALITO',11:'D1 ANDINO',12:'D1 LAS DELICIAS',13:'OLÍMPICA AMÉRICAS',14:'D1 EL CANEY',15:'ARA EL CANEY',16:'ÉXITO SAN MATEO',17:'OLÍMPICA EL CANEY',18:'JUMBO JARDÍN PLAZA',19:'OLÍMPICA GUAYMARAL',20:'ARA GUAYMARAL',21:'ÉXITO MELÉNDEZ',22:'METRO UNICENTRO',23:'D1 LA RIVIERA'};
+const REP_STORE_CHAIN_DEF={1:'JUMBO',2:'JUMBO',3:'JUMBO',18:'JUMBO',4:'ÉXITO',5:'ÉXITO',6:'ÉXITO',16:'ÉXITO',21:'ÉXITO',7:'ARA',9:'ARA',10:'ARA',15:'ARA',20:'ARA',8:'D1',11:'D1',12:'D1',14:'D1',23:'D1',13:'OLÍMPICA',17:'OLÍMPICA',19:'OLÍMPICA',22:'METRO'};
+/* Los códigos de supermercado se sincronizan solos desde la hoja "códigos supermercados" del Excel (tabla "supermercados" en Supabase).
+   Lo de arriba es solo el respaldo; se guarda una copia local para que también funcione sin conexión. */
+let REP_STORE_NAME={...REP_STORE_NAME_DEF}, REP_STORE_CHAIN={...REP_STORE_CHAIN_DEF};
+const REP_STORES_KEY='veri_supermercados_v1';
+function repChainFromName(n){ const x=String(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim(); if(/^EXITO\b/.test(x)) return 'ÉXITO'; if(/^OLIMPICA\b/.test(x)) return 'OLÍMPICA'; return x.split(/\s+/)[0]||''; }
+function repApplyStores(rows){
+  if(!Array.isArray(rows)||!rows.length) return false;
+  const nm={...REP_STORE_NAME_DEF}, ch={...REP_STORE_CHAIN_DEF}; let n=0;
+  rows.forEach(r=>{ const c=parseInt(r&&r.codigo,10), name=String((r&&r.nombre)||'').trim().toUpperCase(); if(!c||!name) return;
+    nm[c]=name; ch[c]=String((r&&r.cadena)||'').trim().toUpperCase()||repChainFromName(name); n++; });
+  if(!n) return false; REP_STORE_NAME=nm; REP_STORE_CHAIN=ch; return true;
+}
+try{ repApplyStores(JSON.parse(localStorage.getItem(REP_STORES_KEY)||'null')); }catch(_){}
+/* Los códigos se descargan UNA vez al día: a partir de las 7:15 a. m. (el script de la hoja los sube a las 7:00). El resto del día se usa la copia local. */
+const REP_STORES_AT_KEY='veri_supermercados_fecha';
+function repStoresDue(){
+  let last=0; try{ last=parseInt(localStorage.getItem(REP_STORES_AT_KEY)||'0',10)||0; }catch(_){}
+  const b=new Date(); b.setHours(7,15,0,0); if(Date.now()<b.getTime()) b.setDate(b.getDate()-1);
+  return last<b.getTime();
+}
+async function repLoadStores(force){
+  if(!force && !repStoresDue()) return;
+  try{
+    const rows=await sb('supermercados?select=codigo,nombre,cadena&order=codigo.asc',{silent:true});
+    if(!Array.isArray(rows)||!rows.length) return;
+    try{ localStorage.setItem(REP_STORES_AT_KEY,String(Date.now())); }catch(_){}
+    const sig=JSON.stringify(rows); let old=''; try{ old=localStorage.getItem(REP_STORES_KEY)||''; }catch(_){}
+    if(sig!==old){ try{ localStorage.setItem(REP_STORES_KEY,sig); }catch(_){} if(repApplyStores(rows)){ try{ render(); }catch(_){} } }
+  }catch(e){ /* sin tabla o sin red: se queda con la copia local / el respaldo */ }
+}
+setInterval(()=>{ if(!document.hidden && state.session) repLoadStores(); }, 30*60*1000);   // por si la app queda abierta pasadas las 7:15
+setTimeout(()=>{ if(state.session) repLoadStores(); }, 3000);
 function repChainName(store){ const n=parseInt(store,10); return REP_STORE_CHAIN[n]||(store?('Almacén '+store):''); }
+/* Nombre completo del almacén (ej. "OLÍMPICA AMÉRICAS") para mostrarlo en la tarjeta; el filtro sigue agrupando por cadena. */
+function repStoreName(store){ const n=parseInt(store,10); return REP_STORE_NAME[n]||repChainName(store); }
 function repStoreKey(r){ const p=repParseId(r.codigoProducto); return p?repChainName(p.store):''; }
 function repFindPendingByCode(...codes){
   const cs=codes.map(c=>String(c||'').trim().toUpperCase()).filter(Boolean); if(!cs.length) return null;
@@ -10018,7 +10067,7 @@ function renderRepList(){
 }
 function renderRepItem(r){
   const stage=repStage(r), upJob=(state.repUploads||{})[String(r.id)];
-  const statusLabel = stage==='pending'?(r.revisionEstado==='repetir'?t('statusPending')+' · devuelta':t('statusPending')):stage==='progress'?(upJob?(upJob.status==='error'?'En progreso · error al enviar':'En progreso · enviando fotos'):('En progreso'+(r.enProcesoPor?' · '+escapeHtml(repWorkerName(r.enProcesoPor)):''))):stage==='sent'?(t('statusSent')+' · en revisión'):t('archivedLabel');
+  const statusLabel = stage==='pending'?(r.revisionEstado==='repetir'?t('statusPending')+(repMissingText(r)?' · falta algo':' · devuelta'):t('statusPending')):stage==='progress'?(upJob?(upJob.status==='error'?'En progreso · error al enviar':'En progreso · enviando fotos'):('En progreso'+(r.enProcesoPor?' · '+escapeHtml(repWorkerName(r.enProcesoPor)):''))):stage==='sent'?(t('statusSent')+' · en revisión'):t('archivedLabel');
   const dotCls={pending:'pending',progress:'working',sent:'sent',approved:'done'}[stage];
   const review = r.revisionEstado || 'pendiente';
   const photoUrl = (!r.archivado && r.fotoPath) ? veriPhotoUrl(r.fotoPath) : '';
@@ -10029,7 +10078,7 @@ function renderRepItem(r){
   const multiPending=multiPhotos.filter(f=>f.estado!=='aprobada').length;
   const allMultiApproved=multiPhotos.length>0 && multiPhotos.every(f=>f.estado==='aprobada');
   const reviewLabel = allMultiApproved?'Todas las fotos aprobadas':multiPhotos.length?`${multiPhotos.length-multiPending}/${multiPhotos.length} fotos aprobadas`:review==='aprobada'?'Foto aprobada':review==='repetir'?'Debe tomar la foto nuevamente':'Foto pendiente de revisión';
-  const reviewChip = stage==='pending' ? ((review==='repetir'||multiPhotos.some(f=>f.estado==='repetir'))?'Debe tomar la foto nuevamente':'') : stage==='progress' ? '' : reviewLabel;   // en Pendiente/En progreso aún no hay nada por revisar
+  const reviewChip = stage==='pending' ? (repMissingText(r)?'Falta información por fotografiar':((review==='repetir'||multiPhotos.some(f=>f.estado==='repetir'))?'Debe tomar la foto nuevamente':'')) : stage==='progress' ? '' : reviewLabel;   // en Pendiente/En progreso aún no hay nada por revisar
   const reviewer = hasAdminAccess();
   const photographerOwns = normalize(r.fotografo||'')===normalize(state.session||'');
   return `<div class="rep-item">
@@ -10038,13 +10087,13 @@ function renderRepItem(r){
       ${r.codigoBarras ? `<div class="rep-detail"><strong>Código de barras:</strong> ${escapeHtml(r.codigoBarras)}</div>` : ''}
       ${r.motivo ? `<div class="rep-detail"><strong>Motivo de la repetición:</strong> ${escapeHtml(r.motivo)}</div>` : ''}</div>
       ${reviewer ? `<button class="btn ghost sm" data-del="${r.id}">${ICONS.trash}</button>`:''}</div>
-    <div class="rep-meta">${`<span class="chip">${escapeHtml(repCatOf(r)||t('uncategorized'))}</span>`}${r.fotografo ? `<span class="chip">Fotógrafo: ${escapeHtml(r.fotografo)}</span>`:''}${repParseId(r.codigoProducto)?`<span class="chip">${repFmtDate(repParseId(r.codigoProducto).date)} · ${escapeHtml(repChainName(repParseId(r.codigoProducto).store))}</span>`:''}<span class="chip"><span class="status-dot ${dotCls}"></span>${statusLabel}</span>${reviewChip?`<span class="chip">${reviewChip}</span>`:''}</div>
+    <div class="rep-meta">${`<span class="chip">${escapeHtml(repCatOf(r)||t('uncategorized'))}</span>`}${r.fotografo ? `<span class="chip">Fotógrafo: ${escapeHtml(r.fotografo)}</span>`:''}${repParseId(r.codigoProducto)?`<span class="chip">${repFmtDate(repParseId(r.codigoProducto).date)} · ${escapeHtml(repStoreName(repParseId(r.codigoProducto).store))}</span>`:''}<span class="chip"><span class="status-dot ${dotCls}"></span>${statusLabel}</span>${reviewChip?`<span class="chip">${reviewChip}</span>`:''}</div>
     ${shownPhotos.length && liteHide ? veriLiteShowBtn(r.id,shownPhotos.length) : ''}
     ${shownPhotos.length && !liteHide ? `<div class="rep-photo-strip" style="display:flex;gap:8px;overflow:auto;margin-top:10px">${shownPhotos.map(f=>{const u=veriPhotoUrl(f.path);return `<div style="min-width:100px;width:100px">${u?`<img src="${u}" alt="Foto" loading="lazy" decoding="async" style="width:100px;height:86px;object-fit:cover;border-radius:10px">`:''}<div class="small-note">${escapeHtml(f.estado)}</div>${photographerOwns && f.estado==='repetir'?`<label class="btn secondary sm" for="retake-photo-${f.id}">Reemplazar</label><input id="retake-photo-${f.id}" data-retake-photo="${f.id}" type="file" accept="image/*" capture="environment" style="display:none">`:''}</div>`}).join('')}</div>`:''}
     ${keepNote}
     ${photoUrl && !multiPhotos.length && liteHide ? veriLiteShowBtn(r.id,1) : ''}
     ${photoUrl && !multiPhotos.length && !liteHide ? `<button type="button" class="veri-photo-preview-trigger" data-photo-preview="${encodeURIComponent(photoUrl)}" data-photo-title="${String(r.nombreProducto||r.codigoProducto||'Fotografía del producto').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}"><img src="${photoUrl}" loading="lazy" decoding="async" alt="Vista previa de fotografía de ${r.nombreProducto||r.codigoProducto||'producto'}" style="display:block;width:min(100%,420px);max-height:360px;object-fit:contain;border-radius:14px;background:var(--surface,#f4f4f4);"><span>⤢ Ver imagen en grande · zoom y revisión de enfoque</span></button>`:''}
-    ${review==='repetir' && r.revisionMotivo ? `<div class="warning-banner" style="margin-top:10px;"><span><strong>Devuelta · nuevo motivo:</strong> ${escapeHtml(r.revisionMotivo)}</span></div>`:''}
+    ${review==='repetir' && r.revisionMotivo ? `<div class="warning-banner" style="margin-top:10px;"><span><strong>${repMissingText(r)?'Falta por fotografiar:':'Devuelta · nuevo motivo:'}</strong> ${escapeHtml(repMissingText(r)?r.revisionMotivo.replace(/^FALTA:\s*/,''):r.revisionMotivo)}</span></div>`:''}
     ${repUploadHTML(r)}
     <div class="row wrap" style="margin-top:10px;gap:8px;">
       ${repStartButtonHTML(r)}
@@ -10164,6 +10213,10 @@ async function revApply(entry,dir){
         {estado_revision:'repetir',motivo_devolucion:m}
       ]);
     }
+    if(entry.missing){   // aprobación con faltante: al deshacer se quita el aviso; al rehacer se vuelve a poner
+      if(dir==='undo') await patchPhotoReview(entry.repId,{revision_estado:'pendiente',revision_motivo:'',revision_por:null,revision_fecha:null});
+      else await patchPhotoReview(entry.repId,{revision_estado:'repetir',revision_motivo:'FALTA: '+(entry.missingText||''),revision_por:who,revision_fecha:now});
+    }
     try{ await syncRepetitionCompletion(entry.repId); }catch(_){}
   } else {
     const r=state.repeticiones.find(x=>String(x.id)===String(entry.id));
@@ -10197,6 +10250,8 @@ async function revRunHistory(dir){
   }catch(e){ console.error(e); toast('No se pudo '+(dir==='undo'?'deshacer':'rehacer')+(e&&e.message?': '+String(e.message).slice(0,100):'.')); }
   finally{ window.__revBusy=false; }
 }
+/* Un "faltante" se guarda en revision_motivo con el prefijo "FALTA: " (sin columnas nuevas). Se borra solo cuando el fotógrafo envía fotos nuevas. */
+function repMissingText(r){ return (r&&r.revisionEstado==='repetir'&&/^FALTA:/.test(String(r.revisionMotivo||'')))?String(r.revisionMotivo).replace(/^FALTA:\s*/,'').split(' · ')[0].trim():''; }
 async function syncRepetitionCompletion(repId){
   const rep=state.repeticiones.find(r=>String(r.id)===String(repId));
   const photos=state.repetitionPhotos.filter(f=>String(f.repeticionId)===String(repId));
@@ -10205,12 +10260,14 @@ async function syncRepetitionCompletion(repId){
   if(rep.estado==='done' || (state.repUploads&&state.repUploads[String(repId)])) return;
   const allApproved=photos.every(f=>f.estado==='aprobada');
   const needsRetake=photos.some(f=>f.estado==='repetir');
+  const miss=repMissingText(rep);   // faltante pedido desde Revisión: no se completa hasta que el fotógrafo agregue lo que falta
   let patch;
-  if(allApproved) patch={estado:'sent',archivado:true};                      // Aprobados y completados
+  if(allApproved && !miss) patch={estado:'sent',archivado:true};            // Aprobados y completados
   else if(needsRetake){                                                     // Rechazada: vuelve a Pendientes con el nuevo motivo
     const motivos=photos.filter(f=>f.estado==='repetir').map(f=>String(f.motivo||'').split(' | ').pop().trim()).filter(Boolean);
-    patch={estado:'pending',archivado:false,revision_estado:'repetir',revision_motivo:motivos.join(' · ')};
-  } else patch={estado:'sent',archivado:false,revision_estado:'pendiente',revision_motivo:''};   // Enviado, en revisión
+    patch={estado:'pending',archivado:false,revision_estado:'repetir',revision_motivo:(miss?'FALTA: '+miss+(motivos.length?' · ':''):'')+motivos.join(' · ')};
+  } else if(miss) patch={estado:'pending',archivado:false};                 // aprobado, pero falta algo: vuelve a Pendientes
+  else patch={estado:'sent',archivado:false,revision_estado:'pendiente',revision_motivo:''};   // Enviado, en revisión
   try{
     await sb(`repeticiones?id=eq.${encodeURIComponent(repId)}`,{method:'PATCH',body:JSON.stringify(patch),headers:{'Prefer':'return=minimal'}});
     rep.estado=patch.estado; rep.archivado=patch.archivado;
@@ -11804,6 +11861,26 @@ function bindTabEvents(){
       stage?.addEventListener('pointerup',end); stage?.addEventListener('pointercancel',end);
     });
     document.querySelectorAll('[data-review-approve]').forEach(b=>b.onclick=async()=>{const id=b.dataset.reviewApprove;const mode=b.dataset.reviewPhotoMode;const item=mode==='multi'?state.repetitionPhotos.find(x=>String(x.id)===String(id)):null;const r=item?state.repeticiones.find(x=>String(x.id)===String(item.repeticionId)):state.repeticiones.find(x=>String(x.id)===String(id));const path=item?.path||r?.fotoPath;const __prev=item?{kind:'approve',mode:'multi',id:item.id,repId:item.repeticionId,prev:{estado:item.estado,motivo:item.motivo||''}}:{kind:'approve',mode:'legacy',id,repId:id,prevRepEstado:r?r.estado:undefined};const url=path?veriPhotoUrl(path):'';if(url) downloadApprovedPhoto(url,safePhotoFilename({...r,path}));try{const now=new Date().toISOString();if(item){await patchRepPhoto(item.id,{estado:'aprobada',estado_revision:'aprobada',revisada_en:now,fecha_revision:now,revisada_por:normalize(state.session||''),revisado_por:normalize(state.session||''),aprobada_en:now,eliminar_despues_de:new Date(Date.now()+86400000).toISOString()});await syncRepetitionCompletion(item.repeticionId);}else{await patchPhotoReview(id,{revision_estado:'aprobada',revision_motivo:'',revision_por:normalize(state.session||''),revision_fecha:now});if(r)r.estado='sent';}await refreshRepPhotos();revPush(__prev);state.repReviewPhoto=null;state.repReviewWide=false;toast('Foto aprobada; descarga iniciada · puedes deshacer');render();}catch(e){console.error(e);toast('No se pudo aprobar la foto.');}});
+    document.querySelectorAll('[data-review-missing]').forEach(b=>b.onclick=async()=>{
+      if(b.dataset.busy==='1') return;
+      const item=state.repetitionPhotos.find(x=>String(x.id)===String(b.dataset.reviewMissing));
+      if(!item){ toast('Esta opción solo está disponible para fotos multifoto.'); return; }
+      const falta=prompt('¿Qué falta por fotografiar?\n\nLa foto se aprueba y el producto vuelve a Pendientes con este aviso para el fotógrafo.');
+      if(!falta||!falta.trim()){ toast('Indica qué falta.'); return; }
+      b.dataset.busy='1';
+      try{
+        const m=falta.trim(), now=new Date().toISOString(), who=normalize(state.session||'');
+        const r=state.repeticiones.find(x=>String(x.id)===String(item.repeticionId));
+        const url=item.path?veriPhotoUrl(item.path):''; if(url) downloadApprovedPhoto(url,safePhotoFilename({...r,path:item.path}));
+        const entry={kind:'approve',mode:'multi',id:item.id,repId:item.repeticionId,prev:{estado:item.estado,motivo:item.motivo||''},missing:true,missingText:m};
+        await patchRepPhoto(item.id,{estado:'aprobada',estado_revision:'aprobada',revisada_en:now,fecha_revision:now,revisada_por:who,revisado_por:who,aprobada_en:now,eliminar_despues_de:new Date(Date.now()+86400000).toISOString()});
+        await patchPhotoReview(item.repeticionId,{revision_estado:'repetir',revision_motivo:'FALTA: '+m,revision_por:who,revision_fecha:now});
+        await syncRepetitionCompletion(item.repeticionId);
+        await refreshRepPhotos(); revPush(entry);
+        state.repReviewPhoto=null; state.repReviewWide=false; toast('Foto aprobada · el producto vuelve a Pendientes con el faltante · puedes deshacer'); render();
+      }catch(e){ console.error(e); toast('No se pudo marcar el faltante'+(e&&e.message?': '+String(e.message).slice(0,100):'.')); }
+      finally{ delete b.dataset.busy; }
+    });
     document.querySelectorAll('[data-review-discard]').forEach(b=>b.onclick=async()=>{
       if(b.dataset.busy==='1') return;
       if(!confirm('¿Descartar esta foto?\n\nSe elimina por completo: no se aprueba ni se devuelve, como si nunca se hubiera tomado. Esta acción no se puede deshacer.')) return;
@@ -11994,7 +12071,7 @@ function openRepCapture(r){
       <div><span>Código</span> <b>${escapeHtml(r.codigoProducto||'—')}</b></div>
       <div><span>Código de barras</span> <b>${escapeHtml(r.codigoBarras||'—')}</b></div>
       ${r.fotografo?`<div><span>Fotógrafo original</span> <b>${escapeHtml(r.fotografo)}</b></div>`:''}</div>
-    ${(r.revisionEstado==='repetir'&&r.revisionMotivo)?`<div class="rep-cap-motivo"><strong>Devuelta · nuevo motivo</strong><br>${escapeHtml(r.revisionMotivo)}</div>`:''}
+    ${(r.revisionEstado==='repetir'&&r.revisionMotivo)?`<div class="rep-cap-motivo"><strong>${repMissingText(r)?'Falta por fotografiar':'Devuelta · nuevo motivo'}</strong><br>${escapeHtml(repMissingText(r)?r.revisionMotivo.replace(/^FALTA:\s*/,''):r.revisionMotivo)}</div>`:''}
     <div class="rep-cap-motivo"><strong>Qué hay que repetir</strong><br>${escapeHtml(r.motivo||'No se indicó un motivo.')}</div>
     <div class="rep-cap-actions">
       <button type="button" class="rep-cap-bigbtn primary" id="repCapTake"><span class="ico">📷</span><span class="lbl">Tomar foto</span><span class="sub">Abre la cámara</span></button>
@@ -12400,9 +12477,10 @@ let __repPolling=false;
 function repSig(list){ return (list||[]).map(r=>[r.id,r.estado,r.archivado?1:0,r.enProcesoPor||'',r.revisionEstado||'',r.fotoPath||''].join('~')).join('|'); }
 /* Sondeo ligero: solo mientras estás DENTRO de Repeticiones (cada 4 s). Fuera de ahí no se consulta nada, para ahorrar datos.
    Primero se pide una lista mínima (id + estado + quién lo tiene); la descarga completa solo ocurre si algo cambió. */
-const REP_POLL_MS=4000;
+const REP_POLL_MS=10000;   // antes 4000: cada sondeo descarga la lista de repeticiones
 async function pollRepeticiones(force){
   if(__repPolling) return; __repPolling=true;
+  repLoadStores();
   try{
     if(!force){
       let lite=null;
@@ -12427,11 +12505,16 @@ async function pollRepeticiones(force){
 }
 setInterval(()=>{ if(document.hidden || !state.session || veriLiteSkip('rep')) return; if(state.tab==='rep' && state.repView==='list') pollRepeticiones(); }, REP_POLL_MS);
 /* Revisión: sondeo más frecuente (3 s). Detecta fotos nuevas, devueltas o aprobadas por otra persona y actualiza la cola sin perder tu lugar. */
+let __rfLiteBad=false;
+async function repFotosPollRows(){
+  if(!__rfLiteBad){ try{ return await sb('repeticion_fotos?select=id,estado,estado_revision,motivo_devolucion,foto_path,ruta_archivo&order=fecha_subida.asc',{silent:true}); }catch(e){ if(/Supabase 4\d\d/.test(String(e&&e.message))) __rfLiteBad=true; else throw e; } }
+  return await sb('repeticion_fotos?select=*&order=fecha_subida.asc',{silent:true});
+}
 let __revPoll2=false;
 async function pollReview(){
   if(__revPoll2) return; __revPoll2=true;
   try{
-    const rows=await sb('repeticion_fotos?select=*&order=fecha_subida.asc',{silent:true});
+    const rows=await repFotosPollRows();
     if(Array.isArray(rows)){
       const a=rows.map(f=>[f.id,f.estado||f.estado_revision||'pendiente',f.motivo_devolucion||'',f.foto_path||f.ruta_archivo||''].join('~')).join('|');
       const b=(state.repetitionPhotos||[]).map(f=>[f.id,f.estado,f.motivo||'',f.path||''].join('~')).join('|');
@@ -12441,7 +12524,7 @@ async function pollReview(){
   }catch(e){}
   finally{ __revPoll2=false; }
 }
-setInterval(()=>{ if(document.hidden || !state.session || veriLiteSkip('rep')) return; if(state.tab==='rep' && state.repView==='review' && !window.__revBusy) pollReview(); }, 3000);
+setInterval(()=>{ if(document.hidden || !state.session || veriLiteSkip('rep')) return; if(state.tab==='rep' && state.repView==='review' && !window.__revBusy) pollReview(); }, 8000);
 let __wasInRev=false;
 setInterval(()=>{ const inRev=!!(state.session && state.tab==='rep' && state.repView==='review' && !document.hidden); if(inRev && !__wasInRev) pollReview(); __wasInRev=inRev; }, 1000);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden && state.session && state.tab==='rep' && state.repView==='review') pollReview(); });
